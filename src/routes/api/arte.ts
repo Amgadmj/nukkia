@@ -1,6 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { generateImageBase64 } from "@/lib/ai.server";
+import { AiError } from "@/lib/ai.server";
+import {
+  generateCarousel,
+  generateStaticArt,
+  generateVideoStoryboard,
+  renderVideo,
+} from "@/lib/content-engine";
+import type { BrandKitLike } from "@/lib/content-engine/types";
+import { checkAiQuota, quotaExceededResponse } from "@/lib/quota.server";
 import { userClientFromRequest } from "@/lib/supabase-request.server";
 
 const bodySchema = z.object({
@@ -15,12 +23,18 @@ export const Route = createFileRoute("/api/arte")({
         const supabase = userClientFromRequest(request);
         if (!supabase) return new Response("Não autenticado", { status: 401 });
 
-        const parsed = bodySchema.safeParse(await request.json());
+        let body: unknown;
+        try {
+          body = await request.json();
+        } catch {
+          return new Response("Corpo da requisição inválido", { status: 400 });
+        }
+        const parsed = bodySchema.safeParse(body);
         if (!parsed.success) return new Response("Dados inválidos", { status: 400 });
 
         const { data: item } = await supabase
           .from("content_items")
-          .select("id, company_id, title, caption, format, pillar")
+          .select("id, company_id, title, caption, format, pillar, cta")
           .eq("id", parsed.data.contentItemId)
           .maybeSingle();
         if (!item || item.company_id !== parsed.data.companyId) {
@@ -32,50 +46,85 @@ export const Route = createFileRoute("/api/arte")({
           .select("name, segment")
           .eq("id", item.company_id)
           .maybeSingle();
+        if (!company) return new Response("Empresa não encontrada", { status: 404 });
 
-        const { data: brandKit } = await supabase
+        const { data: brandKitRow } = await supabase
           .from("brand_kits")
-          .select("palette, tone")
+          .select("palette, tone, fonts")
           .eq("company_id", item.company_id)
           .maybeSingle();
+        // The DB stores palette/fonts as generic Json; the content engine
+        // expects their known shape (BrandKitLike). Cast once at the
+        // boundary rather than sprinkling `as` through every call site.
+        const brandKit = brandKitRow as unknown as BrandKitLike;
 
-        const palette = (brandKit?.palette ?? null) as { cores?: string[]; nome?: string } | null;
-        const cores = palette?.cores?.join(", ") ?? "#2A0845, #3B82F6, #06B6D4, #F8FAFC";
+        // Which quota bucket depends on the format — a carousel/video costs
+        // more than a single image, so each has its own daily/monthly cap
+        // (src/lib/quota.server.ts), but every branch below spends exactly
+        // one unit regardless of how many images it produces internally.
+        const kind =
+          item.format === "carrossel"
+            ? "carrossel"
+            : item.format === "reels"
+              ? "video_storyboard"
+              : "arte";
+        const allowed = await checkAiQuota(supabase, item.company_id, kind);
+        if (!allowed) return quotaExceededResponse(kind);
 
-        const prompt = [
-          `Peça publicitária quadrada para redes sociais da empresa ${company?.name ?? ""}.`,
-          `Segmento: ${company?.segment ?? "serviços"}.`,
-          `Tema da publicação: ${item.title}.`,
-          `Formato: ${item.format}. Pilar: ${item.pillar ?? "educacional"}.`,
-          `Use exatamente esta paleta de cores: ${cores}.`,
-          `Estilo: design profissional, limpo, moderno, com bastante respiro, gradientes sutis e composição centrada.`,
-          `Inclua um título curto em português do Brasil, legível, com no máximo 6 palavras: "${item.title.slice(0, 60)}".`,
-          `Sem marcas d'água, sem textos sem sentido, sem rostos distorcidos.`,
-        ].join(" ");
+        const brief = {
+          title: item.title,
+          format: item.format,
+          pillar: item.pillar,
+          caption: item.caption,
+          cta: item.cta,
+        };
 
-        let b64: string;
         try {
-          b64 = await generateImageBase64(prompt);
+          if (item.format === "carrossel") {
+            const { slides, coverPath, coverUrl } = await generateCarousel(supabase, {
+              company,
+              brandKit,
+              item: brief,
+              contentItemId: item.id,
+              companyId: item.company_id,
+            });
+            await supabase
+              .from("content_items")
+              .update({ slides, image_path: coverPath, image_url: coverUrl })
+              .eq("id", item.id);
+            return Response.json({ ok: true, format: "carrossel", slides: slides.length });
+          }
+
+          if (item.format === "reels") {
+            const storyboard = await generateVideoStoryboard({ company, brandKit, item: brief });
+            const rendered = await renderVideo(storyboard);
+            await supabase
+              .from("content_items")
+              .update({
+                storyboard,
+                video_url: rendered.status === "rendered" ? rendered.videoUrl : null,
+              })
+              .eq("id", item.id);
+            return Response.json({ ok: true, format: "reels", status: rendered.status });
+          }
+
+          const { imagePath, imageUrl } = await generateStaticArt(supabase, {
+            company,
+            brandKit,
+            item: brief,
+            contentItemId: item.id,
+            companyId: item.company_id,
+          });
+          await supabase
+            .from("content_items")
+            .update({ image_path: imagePath, image_url: imageUrl })
+            .eq("id", item.id);
+          return Response.json({ ok: true, format: item.format, url: imageUrl });
         } catch (err) {
-          return new Response(err instanceof Error ? err.message : "Erro na arte", { status: 502 });
+          const message = err instanceof AiError ? err.userMessage : "Erro ao gerar a peça.";
+          if (!(err instanceof AiError)) console.error("[api/arte] unexpected error:", err);
+          return new Response(message, { status: 502 });
         }
-
-        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-        const path = `${item.company_id}/${item.id}-${Date.now()}.png`;
-        const { error: uploadError } = await supabase.storage
-          .from("content-media")
-          .upload(path, bytes, { contentType: "image/png", upsert: true });
-        if (uploadError) return new Response("Falha ao salvar a arte", { status: 500 });
-
-        const { data: signed } = await supabase.storage
-          .from("content-media")
-          .createSignedUrl(path, 60 * 60 * 24 * 365);
-        const url = signed?.signedUrl;
-        if (!url) return new Response("Falha ao publicar a arte", { status: 500 });
-
-        await supabase.from("content_items").update({ image_url: url }).eq("id", item.id);
-
-        return Response.json({ ok: true, url });
       },
     },
   },

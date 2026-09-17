@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as TermosRouteImport } from './routes/termos'
+import { Route as AuthenticatedContaRouteImport } from './routes/_authenticated/conta'
 import { Route as AuthenticatedConteudoRouteImport } from './routes/_authenticated/conteudo'
 import { Route as AuthenticatedDiagnosticoRouteImport } from './routes/_authenticated/diagnostico'
 import { Route as AuthenticatedMarcaRouteImport } from './routes/_authenticated/marca'
@@ -20,7 +23,9 @@ import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedRedesRouteImport } from './routes/_authenticated/redes'
 import { Route as AuthenticatedTrilhaRouteImport } from './routes/_authenticated/trilha'
 import { Route as ApiArteRouteImport } from './routes/api/arte'
+import { Route as ApiContaRouteImport } from './routes/api/conta'
 import { Route as ApiDiagnosticoRouteImport } from './routes/api/diagnostico'
+import { Route as ApiPesquisaEmpresaRouteImport } from './routes/api/pesquisa-empresa'
 import { Route as ApiPlanoRouteImport } from './routes/api/plano'
 
 const IndexRoute = IndexRouteImport.update({
@@ -36,6 +41,21 @@ const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedContaRoute = AuthenticatedContaRouteImport.update({
+  id: '/conta',
+  path: '/conta',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedConteudoRoute = AuthenticatedConteudoRouteImport.update({
   id: '/conteudo',
@@ -78,9 +98,19 @@ const ApiArteRoute = ApiArteRouteImport.update({
   path: '/api/arte',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiContaRoute = ApiContaRouteImport.update({
+  id: '/api/conta',
+  path: '/api/conta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiDiagnosticoRoute = ApiDiagnosticoRouteImport.update({
   id: '/api/diagnostico',
   path: '/api/diagnostico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPesquisaEmpresaRoute = ApiPesquisaEmpresaRouteImport.update({
+  id: '/api/pesquisa-empresa',
+  path: '/api/pesquisa-empresa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPlanoRoute = ApiPlanoRouteImport.update({
@@ -92,6 +122,9 @@ const ApiPlanoRoute = ApiPlanoRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
+  '/conta': typeof AuthenticatedContaRoute
   '/conteudo': typeof AuthenticatedConteudoRoute
   '/diagnostico': typeof AuthenticatedDiagnosticoRoute
   '/marca': typeof AuthenticatedMarcaRoute
@@ -100,12 +133,17 @@ export interface FileRoutesByFullPath {
   '/redes': typeof AuthenticatedRedesRoute
   '/trilha': typeof AuthenticatedTrilhaRoute
   '/api/arte': typeof ApiArteRoute
+  '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
+  '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
+  '/conta': typeof AuthenticatedContaRoute
   '/conteudo': typeof AuthenticatedConteudoRoute
   '/diagnostico': typeof AuthenticatedDiagnosticoRoute
   '/marca': typeof AuthenticatedMarcaRoute
@@ -114,7 +152,9 @@ export interface FileRoutesByTo {
   '/redes': typeof AuthenticatedRedesRoute
   '/trilha': typeof AuthenticatedTrilhaRoute
   '/api/arte': typeof ApiArteRoute
+  '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
+  '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
 }
 export interface FileRoutesById {
@@ -122,6 +162,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
+  '/_authenticated/conta': typeof AuthenticatedContaRoute
   '/_authenticated/conteudo': typeof AuthenticatedConteudoRoute
   '/_authenticated/diagnostico': typeof AuthenticatedDiagnosticoRoute
   '/_authenticated/marca': typeof AuthenticatedMarcaRoute
@@ -130,7 +173,9 @@ export interface FileRoutesById {
   '/_authenticated/redes': typeof AuthenticatedRedesRoute
   '/_authenticated/trilha': typeof AuthenticatedTrilhaRoute
   '/api/arte': typeof ApiArteRoute
+  '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
+  '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
 }
 export interface FileRouteTypes {
@@ -138,6 +183,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/privacidade'
+    | '/termos'
+    | '/conta'
     | '/conteudo'
     | '/diagnostico'
     | '/marca'
@@ -146,12 +194,17 @@ export interface FileRouteTypes {
     | '/redes'
     | '/trilha'
     | '/api/arte'
+    | '/api/conta'
     | '/api/diagnostico'
+    | '/api/pesquisa-empresa'
     | '/api/plano'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/privacidade'
+    | '/termos'
+    | '/conta'
     | '/conteudo'
     | '/diagnostico'
     | '/marca'
@@ -160,13 +213,18 @@ export interface FileRouteTypes {
     | '/redes'
     | '/trilha'
     | '/api/arte'
+    | '/api/conta'
     | '/api/diagnostico'
+    | '/api/pesquisa-empresa'
     | '/api/plano'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/privacidade'
+    | '/termos'
+    | '/_authenticated/conta'
     | '/_authenticated/conteudo'
     | '/_authenticated/diagnostico'
     | '/_authenticated/marca'
@@ -175,7 +233,9 @@ export interface FileRouteTypes {
     | '/_authenticated/redes'
     | '/_authenticated/trilha'
     | '/api/arte'
+    | '/api/conta'
     | '/api/diagnostico'
+    | '/api/pesquisa-empresa'
     | '/api/plano'
   fileRoutesById: FileRoutesById
 }
@@ -183,8 +243,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  TermosRoute: typeof TermosRoute
   ApiArteRoute: typeof ApiArteRoute
+  ApiContaRoute: typeof ApiContaRoute
   ApiDiagnosticoRoute: typeof ApiDiagnosticoRoute
+  ApiPesquisaEmpresaRoute: typeof ApiPesquisaEmpresaRoute
   ApiPlanoRoute: typeof ApiPlanoRoute
 }
 
@@ -210,6 +274,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/conta': {
+      id: '/_authenticated/conta'
+      path: '/conta'
+      fullPath: '/conta'
+      preLoaderRoute: typeof AuthenticatedContaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/conteudo': {
       id: '/_authenticated/conteudo'
@@ -267,11 +352,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiArteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/conta': {
+      id: '/api/conta'
+      path: '/api/conta'
+      fullPath: '/api/conta'
+      preLoaderRoute: typeof ApiContaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/diagnostico': {
       id: '/api/diagnostico'
       path: '/api/diagnostico'
       fullPath: '/api/diagnostico'
       preLoaderRoute: typeof ApiDiagnosticoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/pesquisa-empresa': {
+      id: '/api/pesquisa-empresa'
+      path: '/api/pesquisa-empresa'
+      fullPath: '/api/pesquisa-empresa'
+      preLoaderRoute: typeof ApiPesquisaEmpresaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/plano': {
@@ -285,6 +384,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedContaRoute: typeof AuthenticatedContaRoute
   AuthenticatedConteudoRoute: typeof AuthenticatedConteudoRoute
   AuthenticatedDiagnosticoRoute: typeof AuthenticatedDiagnosticoRoute
   AuthenticatedMarcaRoute: typeof AuthenticatedMarcaRoute
@@ -295,6 +395,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedContaRoute: AuthenticatedContaRoute,
   AuthenticatedConteudoRoute: AuthenticatedConteudoRoute,
   AuthenticatedDiagnosticoRoute: AuthenticatedDiagnosticoRoute,
   AuthenticatedMarcaRoute: AuthenticatedMarcaRoute,
@@ -311,8 +412,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  TermosRoute: TermosRoute,
   ApiArteRoute: ApiArteRoute,
+  ApiContaRoute: ApiContaRoute,
   ApiDiagnosticoRoute: ApiDiagnosticoRoute,
+  ApiPesquisaEmpresaRoute: ApiPesquisaEmpresaRoute,
   ApiPlanoRoute: ApiPlanoRoute,
 }
 export const routeTree = rootRouteImport

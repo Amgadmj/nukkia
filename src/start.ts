@@ -25,6 +25,10 @@ const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",
 });
 
+// Security headers (CSP/HSTS/nosniff/etc.) are applied in src/server.ts,
+// not here — see src/lib/security-headers.ts for why this layer doesn't
+// work for that.
+
 export const startInstance = createStart(() => ({
   functionMiddleware: [attachSupabaseAuth],
   requestMiddleware: [errorMiddleware, csrfMiddleware],

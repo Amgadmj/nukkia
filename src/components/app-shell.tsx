@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BrainCircuit,
   CalendarDays,
@@ -9,6 +10,7 @@ import {
   Palette,
   Share2,
   Trophy,
+  UserCog,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NukkiaLogo } from "@/components/nukkia-logo";
@@ -24,16 +26,33 @@ const nav = [
   { to: "/conteudo", label: "Conteúdo", icon: CalendarDays },
   { to: "/redes", label: "Redes", icon: Share2 },
   { to: "/metricas", label: "Métricas", icon: Gauge },
+  { to: "/conta", label: "Conta", icon: UserCog },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const queryClient = useQueryClient();
 
   async function signOut() {
     await supabase.auth.signOut();
+    queryClient.clear();
     navigate({ to: "/auth", search: { modo: "entrar" } });
   }
+
+  // A session expiring or being signed out from another tab must also wipe
+  // this tab's cache — otherwise the next person to sign in on this browser
+  // can briefly see the previous account's company/diagnostic/missions data
+  // served straight from React Query's cache (C16 in the code review).
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        queryClient.clear();
+        navigate({ to: "/auth", search: { modo: "entrar" } });
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [navigate, queryClient]);
 
   return (
     <div className="min-h-screen bg-background">

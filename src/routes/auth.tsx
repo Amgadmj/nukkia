@@ -7,10 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { NukkiaLogo } from "@/components/nukkia-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { CONSENT_VERSION } from "@/lib/consent";
 
 const searchSchema = z.object({
   modo: z.enum(["entrar", "cadastro"]).catch("entrar"),
@@ -36,6 +38,9 @@ const cadastroSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
   phone: z.string().trim().min(8, "Informe um telefone válido").max(30),
   password: z.string().min(8, "A senha precisa de ao menos 8 caracteres").max(72),
+  consent: z.literal("on", {
+    message: "Aceite os termos e a política de privacidade para continuar.",
+  }),
 });
 
 function AuthPage() {
@@ -43,13 +48,28 @@ function AuthPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/painel" });
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!session) return;
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        // Google sign-up has no form for us to attach consent_version to
+        // (handle_new_user only sees it for email/password signup, via
+        // signUp's options.data). Record it here instead, once, the first
+        // time a Google-authenticated account shows up with no consent on
+        // file yet — a returning user who already has one is left alone.
+        await supabase
+          .from("profiles")
+          .update({
+            consent_version: CONSENT_VERSION,
+            consent_accepted_at: new Date().toISOString(),
+          })
+          .eq("id", session.user.id)
+          .is("consent_version", null);
         navigate({ to: "/painel" });
       }
     });
@@ -57,6 +77,10 @@ function AuthPage() {
   }, [navigate]);
 
   async function handleGoogle() {
+    if (modo === "cadastro" && !consent) {
+      toast.error("Aceite os termos e a política de privacidade para continuar.");
+      return;
+    }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
@@ -77,6 +101,7 @@ function AuthPage() {
           email: form.get("email"),
           phone: form.get("phone"),
           password: form.get("password"),
+          consent: form.get("consent"),
         });
         if (!parsed.success) {
           toast.error(parsed.error.issues[0]?.message ?? "Verifique os dados informados.");
@@ -87,7 +112,11 @@ function AuthPage() {
           password: parsed.data.password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { full_name: parsed.data.fullName, phone: parsed.data.phone },
+            data: {
+              full_name: parsed.data.fullName,
+              phone: parsed.data.phone,
+              consent_version: CONSENT_VERSION,
+            },
           },
         });
         if (error) {
@@ -189,12 +218,37 @@ function AuthPage() {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading
-                    ? "Aguarde..."
-                    : modo === "cadastro"
-                      ? "Criar conta"
-                      : "Entrar"}
+                {modo === "cadastro" && (
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="consent"
+                      name="consent"
+                      checked={consent}
+                      onCheckedChange={(value) => setConsent(value === true)}
+                      className="mt-0.5"
+                    />
+                    <Label
+                      htmlFor="consent"
+                      className="text-xs font-normal leading-snug text-muted-foreground"
+                    >
+                      Li e aceito os{" "}
+                      <Link to="/termos" target="_blank" className="underline">
+                        termos de uso
+                      </Link>{" "}
+                      e a{" "}
+                      <Link to="/privacidade" target="_blank" className="underline">
+                        política de privacidade
+                      </Link>
+                      .
+                    </Label>
+                  </div>
+                )}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loading || (modo === "cadastro" && !consent)}
+                >
+                  {loading ? "Aguarde..." : modo === "cadastro" ? "Criar conta" : "Entrar"}
                 </Button>
               </form>
             )}

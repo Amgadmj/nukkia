@@ -15,7 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useBrandKit, useCompany } from "@/lib/company";
+import type { Tables } from "@/integrations/supabase/types";
+import { useBrandKit, useCompany, type Company } from "@/lib/company";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/marca")({
@@ -36,18 +37,9 @@ export const Route = createFileRoute("/_authenticated/marca")({
 });
 
 const paletas = [
-  {
-    nome: "Confiança Clínica",
-    cores: ["#0F3D6E", "#2E8BC0", "#B1D4E0", "#F5F9FC"],
-  },
-  {
-    nome: "Energia Moderna",
-    cores: ["#2A0845", "#3B82F6", "#06B6D4", "#F8FAFC"],
-  },
-  {
-    nome: "Acolhimento Natural",
-    cores: ["#2F4F3E", "#7BA88B", "#E4C58B", "#FBF7F0"],
-  },
+  { nome: "Confiança Clínica", cores: ["#0F3D6E", "#2E8BC0", "#B1D4E0", "#F5F9FC"] },
+  { nome: "Energia Moderna", cores: ["#2A0845", "#3B82F6", "#06B6D4", "#F8FAFC"] },
+  { nome: "Acolhimento Natural", cores: ["#2F4F3E", "#7BA88B", "#E4C58B", "#FBF7F0"] },
 ];
 
 const fontesOpcoes = [
@@ -63,15 +55,15 @@ const tons = [
   "Descontraído e leve",
 ];
 
+type BrandKit = Tables<"brand_kits">;
+
 function Marca() {
   const { data: company } = useCompany();
-  const { data: brandKit } = useBrandKit(company?.id);
+  const { data: brandKit, isLoading: brandKitLoading } = useBrandKit(company?.id);
   const queryClient = useQueryClient();
-  const [selected, setSelected] = useState<number>(brandKit?.selected_index ?? 1);
   const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
 
-  const logoUrl = (brandKit?.logo_url as string | null) ?? null;
+  const logoUrl = brandKit?.logo_url ?? null;
 
   async function handleLogo(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -93,57 +85,27 @@ function Marca() {
       }
       const { data } = await supabase.storage
         .from("brand-assets")
-        .createSignedUrl(path, 60 * 60 * 24 * 365);
-      await saveKit({ logo_url: data?.signedUrl ?? null });
+        .createSignedUrl(path, 60 * 60 * 24 * 7);
+      const { error: saveError } = await supabase.from("brand_kits").upsert(
+        {
+          company_id: company.id,
+          options: paletas,
+          logo_url: data?.signedUrl ?? null,
+          selected_index: brandKit?.selected_index ?? null,
+          palette: brandKit?.palette ?? null,
+          fonts: brandKit?.fonts ?? null,
+          tone: brandKit?.tone ?? null,
+        },
+        { onConflict: "company_id" },
+      );
+      if (saveError) {
+        toast.error("Não foi possível salvar a logomarca.");
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["brand-kit", company.id] });
       toast.success("Logomarca enviada!");
     } finally {
       setUploading(false);
-    }
-  }
-
-  async function saveKit(patch: Record<string, unknown>) {
-    if (!company) return;
-    const payload = {
-      company_id: company.id,
-      options: paletas,
-      logo_url: logoUrl,
-      ...brandKitFields(),
-      ...patch,
-    };
-    const { error } = await supabase
-      .from("brand_kits")
-      .upsert(payload, { onConflict: "company_id" });
-    if (error) {
-      toast.error("Não foi possível salvar a identidade.");
-      return;
-    }
-    queryClient.invalidateQueries({ queryKey: ["brand-kit", company.id] });
-  }
-
-  function brandKitFields() {
-    return {
-      selected_index: brandKit?.selected_index ?? null,
-      palette: brandKit?.palette ?? null,
-      fonts: brandKit?.fonts ?? null,
-      tone: brandKit?.tone ?? null,
-    };
-  }
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    setSaving(true);
-    try {
-      await saveKit({
-        selected_index: selected,
-        palette: paletas[selected],
-        fonts: { preset: String(form.get("fonts") ?? "sora-manrope") },
-        tone: String(form.get("tone") ?? tons[0]),
-      });
-      await supabase.from("companies").update({ onboarding_step: "missions" }).eq("id", company!.id);
-      toast.success("Identidade salva!");
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -181,7 +143,13 @@ function Marca() {
             <Label htmlFor="logo" className="sr-only">
               Enviar logomarca
             </Label>
-            <Input id="logo" type="file" accept="image/*" onChange={handleLogo} disabled={uploading} />
+            <Input
+              id="logo"
+              type="file"
+              accept="image/*"
+              onChange={handleLogo}
+              disabled={uploading}
+            />
             <p className="mt-2 text-xs text-muted-foreground">
               <Upload className="mr-1 inline size-3" />
               {uploading ? "Enviando..." : "Escolha o arquivo da sua marca"}
@@ -190,91 +158,150 @@ function Marca() {
         </CardContent>
       </Card>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Keyed on the load state so this only ever mounts (and reads its
+          useState initial values) once brandKit has actually loaded — the
+          previous version seeded state/defaultValue from `brandKit` while
+          it was still undefined, so a returning user saw the hardcoded
+          defaults and saving overwrote their real saved choices. */}
+      {brandKitLoading ? (
+        <p className="text-sm text-muted-foreground">Carregando identidade salva...</p>
+      ) : (
+        <IdentityForm company={company} brandKit={brandKit ?? null} logoUrl={logoUrl} />
+      )}
+    </div>
+  );
+}
+
+function IdentityForm({
+  company,
+  brandKit,
+  logoUrl,
+}: {
+  company: Company;
+  brandKit: BrandKit | null;
+  logoUrl: string | null;
+}) {
+  const queryClient = useQueryClient();
+  const [selected, setSelected] = useState<number>(brandKit?.selected_index ?? 1);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setSaving(true);
+    try {
+      const paleta = paletas[selected] ?? paletas[1]!;
+      const { error } = await supabase.from("brand_kits").upsert(
+        {
+          company_id: company.id,
+          options: paletas,
+          logo_url: logoUrl,
+          selected_index: selected,
+          palette: paleta,
+          fonts: { preset: String(form.get("fonts") ?? "sora-manrope") },
+          tone: String(form.get("tone") ?? tons[0]),
+        },
+        { onConflict: "company_id" },
+      );
+      if (error) {
+        toast.error("Não foi possível salvar a identidade.");
+        return;
+      }
+      await supabase.from("companies").update({ onboarding_step: "missions" }).eq("id", company.id);
+      queryClient.invalidateQueries({ queryKey: ["brand-kit", company.id] });
+      toast.success("Identidade salva!");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Escolha sua paleta</CardTitle>
+          <CardDescription>Três direções sugeridas para o seu segmento.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-3">
+          {paletas.map((paleta, index) => (
+            <button
+              type="button"
+              key={paleta.nome}
+              onClick={() => setSelected(index)}
+              aria-pressed={selected === index}
+              className={cn(
+                "rounded-xl border p-4 text-left transition-colors",
+                selected === index ? "border-primary ring-2 ring-primary/30" : "border-border",
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{paleta.nome}</span>
+                {selected === index && <Check className="size-4 text-primary" />}
+              </div>
+              <div className="mt-3 flex gap-1.5">
+                {paleta.cores.map((cor) => (
+                  <span
+                    key={cor}
+                    title={cor}
+                    className="size-8 rounded-md border border-border"
+                    style={{ backgroundColor: cor }}
+                  />
+                ))}
+              </div>
+            </button>
+          ))}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Escolha sua paleta</CardTitle>
-            <CardDescription>Três direções sugeridas para o seu segmento.</CardDescription>
+            <CardTitle>Tipografia</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-3">
-            {paletas.map((paleta, index) => (
-              <button
-                type="button"
-                key={paleta.nome}
-                onClick={() => setSelected(index)}
-                className={cn(
-                  "rounded-xl border p-4 text-left transition-colors",
-                  selected === index ? "border-primary ring-2 ring-primary/30" : "border-border",
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{paleta.nome}</span>
-                  {selected === index && <Check className="size-4 text-primary" />}
-                </div>
-                <div className="mt-3 flex gap-1.5">
-                  {paleta.cores.map((cor) => (
-                    <span
-                      key={cor}
-                      className="size-8 rounded-md border border-border"
-                      style={{ backgroundColor: cor }}
-                    />
-                  ))}
-                </div>
-              </button>
-            ))}
+          <CardContent>
+            <Select
+              name="fonts"
+              defaultValue={
+                (brandKit?.fonts as { preset?: string } | null)?.preset ?? "sora-manrope"
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Escolha a combinação" />
+              </SelectTrigger>
+              <SelectContent>
+                {fontesOpcoes.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Tom de voz</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select name="tone" defaultValue={brandKit?.tone ?? tons[0]!}>
+              <SelectTrigger>
+                <SelectValue placeholder="Escolha o tom" />
+              </SelectTrigger>
+              <SelectContent>
+                {tons.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tipografia</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select
-                name="fonts"
-                defaultValue={
-                  ((brandKit?.fonts as { preset?: string } | null)?.preset) ?? "sora-manrope"
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolha a combinação" />
-                </SelectTrigger>
-                <SelectContent>
-                  {fontesOpcoes.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>
-                      {f.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Tom de voz</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select name="tone" defaultValue={(brandKit?.tone as string | null) ?? tons[0]!}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolha o tom" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tons.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Button type="submit" disabled={saving}>
-          {saving ? "Salvando..." : "Salvar identidade"}
-        </Button>
-      </form>
-    </div>
+      <Button type="submit" disabled={saving}>
+        {saving ? "Salvando..." : "Salvar identidade"}
+      </Button>
+    </form>
   );
 }

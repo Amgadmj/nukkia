@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { generateJson } from "@/lib/ai.server";
+import { AiError, generateJson } from "@/lib/ai.server";
+import { checkAiQuota, quotaExceededResponse } from "@/lib/quota.server";
 import { userClientFromRequest } from "@/lib/supabase-request.server";
 
 const bodySchema = z.object({
@@ -54,7 +55,13 @@ export const Route = createFileRoute("/api/plano")({
         const supabase = userClientFromRequest(request);
         if (!supabase) return new Response("Não autenticado", { status: 401 });
 
-        const parsed = bodySchema.safeParse(await request.json());
+        let body: unknown;
+        try {
+          body = await request.json();
+        } catch {
+          return new Response("Corpo da requisição inválido", { status: 400 });
+        }
+        const parsed = bodySchema.safeParse(body);
         if (!parsed.success) return new Response("Dados inválidos", { status: 400 });
 
         const { data: company } = await supabase
@@ -66,9 +73,17 @@ export const Route = createFileRoute("/api/plano")({
 
         const { data: brandKit } = await supabase
           .from("brand_kits")
-          .select("tone, palette")
+          .select("tone")
           .eq("company_id", company.id)
           .maybeSingle();
+        if (!brandKit) {
+          return new Response("Defina a identidade da marca antes de gerar o plano.", {
+            status: 409,
+          });
+        }
+
+        const allowed = await checkAiQuota(supabase, company.id, "plano");
+        if (!allowed) return quotaExceededResponse("plano");
 
         const { data: diagnostic } = await supabase
           .from("diagnostics")
@@ -91,37 +106,66 @@ export const Route = createFileRoute("/api/plano")({
             input: [
               `Empresa: ${company.name}`,
               `Segmento: ${company.segment ?? "não informado"}`,
-              `Tom de voz: ${brandKit?.tone ?? "profissional e acolhedor"}`,
+              `Tom de voz: ${brandKit.tone ?? "profissional e acolhedor"}`,
               `Pilares: ${(report.pilares ?? []).join(", ") || "educacional, bastidores, prova social, oferta"}`,
               `Resumo do diagnóstico: ${report.resumo ?? "sem diagnóstico"}`,
               `Frequência desejada: ${frequencia} publicações por semana`,
             ].join("\n"),
           });
         } catch (err) {
-          const message = err instanceof Error ? err.message : "Erro ao planejar";
+          const message = err instanceof AiError ? err.userMessage : "Erro ao planejar.";
+          if (!(err instanceof AiError)) console.error("[api/plano] unexpected error:", err);
           return new Response(message, { status: 502 });
+        }
+
+        if (!Array.isArray(plan.publicacoes) || plan.publicacoes.length === 0) {
+          console.error("[api/plano] AI plan shape was unexpected:", plan);
+          return new Response("A IA retornou uma resposta inesperada. Tente novamente.", {
+            status: 502,
+          });
         }
 
         const hoje = new Date();
         const base = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 1));
+        const month = base.toISOString().slice(0, 10);
 
-        const { data: planRow } = await supabase
+        // Idempotent: re-running "gerar plano do mês" for the same month
+        // REPLACES that month's plan instead of duplicating it forever
+        // (the previous version inserted-and-ignored-the-conflict-error,
+        // producing an extra 12 items with plan_id=null on every click).
+        const { data: planRow, error: planError } = await supabase
           .from("content_plans")
-          .insert({
-            company_id: company.id,
-            month: base.toISOString().slice(0, 10),
-            frequency: { por_semana: frequencia },
-            status: "draft",
-          })
+          .upsert(
+            {
+              company_id: company.id,
+              month,
+              frequency: { por_semana: frequencia },
+              status: "draft",
+            },
+            { onConflict: "company_id,month" },
+          )
           .select("id")
-          .maybeSingle();
+          .single();
+        if (planError || !planRow) {
+          console.error("[api/plano] failed to upsert content_plans:", planError?.message);
+          return new Response("Não foi possível salvar o plano.", { status: 500 });
+        }
+
+        const { error: deleteError } = await supabase
+          .from("content_items")
+          .delete()
+          .eq("plan_id", planRow.id);
+        if (deleteError) {
+          console.error("[api/plano] failed to clear previous plan items:", deleteError.message);
+          return new Response("Não foi possível atualizar o plano.", { status: 500 });
+        }
 
         const rows = plan.publicacoes.slice(0, 12).map((p) => {
           const dia = Math.max(1, Math.min(28, p.dia));
           const data = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), dia, 13, 0, 0));
           return {
             company_id: company.id,
-            plan_id: planRow?.id ?? null,
+            plan_id: planRow.id,
             scheduled_for: data.toISOString(),
             channel: p.canal,
             format: p.formato,
@@ -134,8 +178,11 @@ export const Route = createFileRoute("/api/plano")({
           };
         });
 
-        const { error } = await supabase.from("content_items").insert(rows);
-        if (error) return new Response("Falha ao salvar o plano", { status: 500 });
+        const { error: insertError } = await supabase.from("content_items").insert(rows);
+        if (insertError) {
+          console.error("[api/plano] failed to insert content_items:", insertError.message);
+          return new Response("Falha ao salvar o plano.", { status: 500 });
+        }
 
         return Response.json({ ok: true, total: rows.length });
       },

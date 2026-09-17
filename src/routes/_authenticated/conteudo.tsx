@@ -2,14 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CheckCircle2, ImageIcon, Sparkles } from "lucide-react";
+import { CheckCircle2, Clapperboard, GalleryHorizontal, ImageIcon, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { apiFetch } from "@/lib/api";
 import { useBrandKit, useCompany } from "@/lib/company";
+import type { CarouselSlide, Storyboard } from "@/lib/content-engine/types";
 
 export const Route = createFileRoute("/_authenticated/conteudo")({
   head: () => ({
@@ -39,7 +41,19 @@ type ContentItem = {
   hashtags: string | null;
   cta: string | null;
   image_url: string | null;
+  image_path: string | null;
+  slides: CarouselSlide[];
+  storyboard: Storyboard | null;
+  video_url: string | null;
   status: string;
+};
+
+const FORMAT_LABEL: Record<string, string> = {
+  post: "Gerar arte",
+  stories: "Gerar arte",
+  artigo: "Gerar arte",
+  carrossel: "Gerar carrossel",
+  reels: "Gerar roteiro",
 };
 
 function Conteudo() {
@@ -59,7 +73,7 @@ function Conteudo() {
         .eq("company_id", company!.id)
         .order("scheduled_for", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as ContentItem[];
+      return (data ?? []) as unknown as ContentItem[];
     },
   });
 
@@ -95,12 +109,15 @@ function Conteudo() {
   async function gerarArte(item: ContentItem) {
     setGerandoArte(item.id);
     try {
-      const response = await apiFetch("/api/arte", { contentItemId: item.id, companyId: company!.id });
+      const response = await apiFetch("/api/arte", {
+        contentItemId: item.id,
+        companyId: company!.id,
+      });
       if (!response.ok) {
-        toast.error(`Não foi possível gerar a arte. ${(await response.text()).slice(0, 120)}`);
+        toast.error(`Não foi possível gerar a peça. ${(await response.text()).slice(0, 120)}`);
         return;
       }
-      toast.success("Arte gerada!");
+      toast.success("Peça gerada!");
       queryClient.invalidateQueries({ queryKey: ["content-items", company!.id] });
     } finally {
       setGerandoArte(null);
@@ -150,6 +167,25 @@ function Conteudo() {
   );
 }
 
+/** Signs every slide path for one carousel in a single storage call. */
+function useCarouselUrls(itemId: string, slides: CarouselSlide[]) {
+  const paths = slides.map((s) => s.path);
+  return useQuery({
+    enabled: paths.length > 0,
+    queryKey: ["carousel-urls", itemId, paths],
+    queryFn: async () => {
+      const { data, error } = await supabase.storage
+        .from("content-media")
+        .createSignedUrls(paths, 3600);
+      if (error) throw error;
+      return (data ?? [])
+        .map((entry, index) => ({ order: slides[index]!.order, url: entry.signedUrl }))
+        .filter((slide): slide is { order: number; url: string } => Boolean(slide.url))
+        .sort((a, b) => a.order - b.order);
+    },
+  });
+}
+
 function ItemCard({
   item,
   onAprovar,
@@ -162,6 +198,9 @@ function ItemCard({
   gerandoArte: boolean;
 }) {
   const [caption, setCaption] = useState(item.caption ?? "");
+  const { data: carouselUrls } = useCarouselUrls(item.id, item.slides ?? []);
+  const hasContent =
+    Boolean(item.image_url) || (item.slides?.length ?? 0) > 0 || Boolean(item.storyboard);
 
   return (
     <Card>
@@ -189,7 +228,48 @@ function ItemCard({
         {item.pillar && <CardDescription>Pilar: {item.pillar}</CardDescription>}
       </CardHeader>
       <CardContent className="space-y-3">
-        {item.image_url && (
+        {item.format === "carrossel" && (carouselUrls?.length ?? 0) > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {carouselUrls!.map((slide) => (
+              <img
+                key={slide.order}
+                src={slide.url}
+                alt={`Slide ${slide.order + 1} de ${item.title}`}
+                className="h-40 w-32 shrink-0 rounded-lg border border-border object-cover"
+                loading="lazy"
+              />
+            ))}
+          </div>
+        )}
+
+        {item.format === "reels" && item.storyboard && (
+          <div className="space-y-2 rounded-lg border border-border p-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Clapperboard className="size-4" />
+              Roteiro ({item.storyboard.duracao_total_seg}s)
+              {!item.video_url && (
+                <Badge variant="outline" className="ml-auto text-[10px]">
+                  Vídeo: aguardando integração
+                </Badge>
+              )}
+            </div>
+            <ol className="space-y-2 text-xs text-muted-foreground">
+              {item.storyboard.shots.map((shot) => (
+                <li key={shot.ordem}>
+                  <span className="font-medium text-foreground">
+                    Bloco {shot.ordem} ({shot.duracao_seg}s):
+                  </span>{" "}
+                  {shot.narracao} — <span className="italic">{shot.visual_descricao}</span>
+                </li>
+              ))}
+            </ol>
+            {item.video_url && (
+              <video src={item.video_url} controls className="w-full rounded-lg" />
+            )}
+          </div>
+        )}
+
+        {item.format !== "carrossel" && item.format !== "reels" && item.image_url && (
           <img
             src={item.image_url}
             alt={`Arte da publicação ${item.title}`}
@@ -197,21 +277,43 @@ function ItemCard({
             loading="lazy"
           />
         )}
-        <Textarea
-          value={caption}
-          onChange={(event) => setCaption(event.target.value)}
-          rows={6}
-          maxLength={2200}
-        />
+
+        <div className="space-y-1.5">
+          <Label htmlFor={`caption-${item.id}`} className="sr-only">
+            Legenda
+          </Label>
+          <Textarea
+            id={`caption-${item.id}`}
+            value={caption}
+            onChange={(event) => setCaption(event.target.value)}
+            rows={6}
+            maxLength={2200}
+          />
+        </div>
         {item.hashtags && <p className="text-xs text-muted-foreground">{item.hashtags}</p>}
         {item.cta && <p className="text-sm font-medium">CTA: {item.cta}</p>}
         <div className="flex flex-wrap gap-2">
           <Button size="sm" onClick={() => onAprovar(item, caption)}>
             Aprovar texto
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onGerarArte(item)} disabled={gerandoArte}>
-            <ImageIcon className="size-4" />
-            {gerandoArte ? "Gerando..." : item.image_url ? "Refazer arte" : "Gerar arte"}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onGerarArte(item)}
+            disabled={gerandoArte}
+          >
+            {item.format === "carrossel" ? (
+              <GalleryHorizontal className="size-4" />
+            ) : item.format === "reels" ? (
+              <Clapperboard className="size-4" />
+            ) : (
+              <ImageIcon className="size-4" />
+            )}
+            {gerandoArte
+              ? "Gerando..."
+              : hasContent
+                ? `Refazer · ${FORMAT_LABEL[item.format] ?? "Gerar arte"}`
+                : (FORMAT_LABEL[item.format] ?? "Gerar arte")}
           </Button>
         </div>
       </CardContent>

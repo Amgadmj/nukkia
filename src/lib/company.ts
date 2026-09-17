@@ -1,6 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export type CompanyResearchDraft = {
+  segmento_sugerido: string;
+  publico_alvo: string;
+  mercado_concorrencia: string;
+  diferenciais_provaveis: string;
+  objetivos_provaveis: string;
+  confianca: "alta" | "media" | "baixa";
+};
+
+// The column defaults to '{}'::jsonb until /api/pesquisa-empresa first
+// populates it, so every field is optional rather than a strict union —
+// `company.research?.draft` should just work whether or not it's been run.
+export type CompanyResearch = {
+  generated_at?: string;
+  seed?: { website: string | null; instagram_handle: string | null; linkedin_url: string | null };
+  draft?: CompanyResearchDraft;
+};
+
 export type Company = {
   id: string;
   owner_id: string;
@@ -12,6 +30,7 @@ export type Company = {
   instagram_handle: string | null;
   linkedin_url: string | null;
   onboarding_step: string;
+  research: CompanyResearch;
 };
 
 export function useCompany() {

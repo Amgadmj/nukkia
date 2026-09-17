@@ -50,7 +50,12 @@ export default defineConfig({
     viteReact(),
     tailwindcss(),
     nitro({
-      preset: process.env["NITRO_PRESET"] || "cloudflare-module",
+      // Vercel sets VERCEL=1 in its own build environment — auto-select its
+      // preset there so a deploy to Vercel doesn't silently produce a
+      // Cloudflare Worker bundle it can't serve. NITRO_PRESET still wins if
+      // set explicitly (e.g. to force a specific target locally).
+      preset:
+        process.env["NITRO_PRESET"] || (process.env["VERCEL"] ? "vercel" : "cloudflare-module"),
     }),
   ],
 });

@@ -32,5 +32,7 @@ export type Storyboard = {
   shots: StoryboardShot[];
 };
 
-export type VideoRenderResult =
-  { status: "awaiting_provider"; videoUrl: null } | { status: "rendered"; videoUrl: string };
+export type VideoJobStatus =
+  | { status: "rendering" }
+  | { status: "ready"; videoPath: string }
+  | { status: "failed"; error: string };

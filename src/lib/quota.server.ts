@@ -9,13 +9,13 @@ import type { Database } from "@/integrations/supabase/types";
  * needed to change them.
  */
 export const AI_LIMITS = {
-  diagnostico: { daily: 5, monthly: 20 },
-  plano: { daily: 3, monthly: 10 },
+  diagnostico: { daily: 10, monthly: 20 },
+  plano: { daily: 10, monthly: 10 },
   arte: { daily: 20, monthly: 150 },
-  carrossel: { daily: 10, monthly: 60 },
+  carrossel: { daily: 20, monthly: 60 },
   video_storyboard: { daily: 10, monthly: 60 },
   video_render: { daily: 5, monthly: 20 },
-  pesquisa_empresa: { daily: 10, monthly: 60 },
+  pesquisa_empresa: { daily: 15, monthly: 60 },
 } as const satisfies Record<string, { daily: number; monthly: number }>;
 
 export type AiUsageKind = keyof typeof AI_LIMITS;

@@ -1,170 +1,143 @@
 # Nukkia — Engineering Plan
 
 Source: five-discipline review (architecture, security, engineering, DevOps, UI/UX) run on the
-Lovable export dated 2026-09-16, plus new scope requested the same day: AI-driven
-onboarding auto-fill, and a generalized carousel/video content engine.
+Lovable export dated 2026-09-16; extended 2026-09-16 with a full platform migration off Lovable
+(own database, own AI provider) plus resolutions for every previously-deferred item, decided by
+the user via a round of MCQ questions (see git history for the exact answers).
 
-Status legend: `[ ]` todo · `[x]` done and verified (typecheck + lint + prod build all clean;
-the app was also smoke-tested in a running dev server) · `[-]` deferred (reason noted)
-
-**⚠ Before any of the `[x]` database items take effect: the two new migrations have not been
-applied to the live Supabase project.** See "Applying the migrations" at the bottom — this
-needs a decision (push now vs. review first) that's the user's to make, not something to do
-unattended against production.
-
-**AI-dependent code paths (diagnostic, plan, art/carousel/video-storyboard generation,
-onboarding auto-fill) could not be exercised end-to-end locally** — `.env` has no
-`LOVABLE_API_KEY`, and that key only exists inside Lovable's environment. Everything below
-marked done was verified by type-checking, linting, a full production build, and direct code
-review, not by an actual AI round-trip.
+Status legend: `[x]` done and verified (typecheck + lint + prod build all clean; smoke-tested in
+a running dev server where the page doesn't require login) · `[ ]` todo · `[-]` deferred (reason
+noted) · **BLOCKED** = needs the user's action, not more code, to finish.
 
 ---
 
-## P0 — Data integrity & unblock the funnel
+## Decisions made this pass (2026-09-16, round 2)
 
-- [x] `brand_kits` has no `UNIQUE(company_id)` but code upserts on it → save always fails,
-      which blocks content generation entirely. Added the constraint (with a defensive
-      dedupe first). `supabase/migrations/20260916210000_p0_data_integrity.sql`
-- [x] `content_plans` double-click duplicated a month's content. `/api/plano` now upserts on
-      `(company_id, month)` and replaces that plan's items instead of insert-and-ignore.
-- [x] Mission/XP fields were client-writable — revoked, moved to `complete_mission()`, a
-      `SECURITY DEFINER` RPC. `trilha.tsx` calls it via `supabase.rpc(...)`.
-- [x] Status/format free-text columns disagreed with what code wrote (`pending` vs `todo`).
-      Added CHECK constraints; `/api/diagnostico` now writes `'pending'`.
-- [x] Missing indexes on every `company_id` FK; missing `updated_at` triggers on
-      `missions`/`user_progress`.
-- [x] Storage buckets (`brand-assets`, `content-media`) are now created in the migration
-      (private, size-capped, image-mime-only) instead of only referenced by policy.
-- [x] `social_accounts.access_token`/`refresh_token` were plain text and client-readable.
-      Split into `social_account_secrets`, service-role only, zero client grants.
-- [x] Storage policy UUID cast (`::uuid`) now goes through `owns_company_folder()`, which
-      returns false instead of throwing on a non-UUID folder name.
-
-## P1 — Security & cost control
-
-- [x] No quota/rate limit on the AI endpoints → unlimited spend per account. Added
-      `ai_usage` + `check_and_record_ai_usage()` (atomic, advisory-locked) and
-      `src/lib/quota.server.ts` with per-format daily/monthly caps, enforced in every route.
-- [x] AI gateway raw error bodies were relayed to the browser. `AiError` in `ai.server.ts`
-      now separates a logged internal message from a generic Portuguese `userMessage`.
-- [x] `ai.server.ts`'s SSE parser dropped `response.failed`/`incomplete`/`error` events, had
-      no timeout/retry, and trusted the model's JSON blindly. Rewrote the parser (CRLF-safe,
-      flushes the final frame, handles all three failure event types), added
-      `AbortSignal.timeout` + one retry on 429/5xx.
-- [x] User-writable fields feeding straight into image prompts (`content_items.title`,
-      `brand_kits.tone`, …) had no length limit. Added CHECK constraints.
-- [x] Signed URLs for logos/art were saved with a 1-year expiry, unrevocable. Now the
-      storage **path** is persisted (`content_items.image_path`); a 7-day URL is kept
-      alongside for immediate display as a bounded interim fix — see "Still open" below for
-      the full fix.
-- [x] No security headers. Verified two implementation attempts against a real response
-      before shipping — see `src/lib/security-headers.ts` for exactly what didn't work and
-      why; applied in `src/server.ts`, confirmed present on both SSR pages and `/api/*`.
-- [x] Composite FKs added so `scheduled_posts`/`content_items.plan_id` can only reference a
-      row in the *same* company.
-- [ ] Admin RLS branch should require MFA (`aal2`) once an admin UI exists. *(deferred: no
-      admin UI yet)*
-
-## P1 — LGPD
-
-- [x] Signup requires a consent checkbox linking to real `/termos`/`/privacidade` pages;
-      version + timestamp recorded on `profiles` (via signup metadata → `handle_new_user`
-      for email signup, via a one-time client-side backfill for Google signup).
-- [x] `/privacidade` discloses AI processing outside Brazil and advises against entering
-      patient/client PII in the diagnostic.
-- [x] Self-serve account deletion (`/conta`, `DELETE /api/conta`): purges storage, then
-      deletes the `auth.users` row via the admin API, which cascades every DB row.
-- [ ] Data export (JSON download of everything tied to a company). *(deferred — deletion is
-      the higher-severity gap and is done)*
-
-## P2 — Correctness / UX bugs from the code review
-
-- [x] `marca.tsx`/`diagnostico.tsx` seeded `useState`/`defaultValue` before the query
-      resolved. Both now gate rendering the interactive form until the query settles, so
-      initial state is always read from real data.
-- [x] Cross-account cache leak: sign-out (button, and an `onAuthStateChange` listener for
-      `SIGNED_OUT` from any tab/expiry) now calls `queryClient.clear()`.
-- [x] Write-during-render in `painel.tsx` removed — `user_progress` is now seeded by a
-      trigger on company creation (`handle_new_company`), not a client mutation in render.
-- [ ] Onboarding step (`onboarding_step`) is still written but not read for routing/gating.
-      A real guided-onboarding stepper is UI scope beyond this pass — see "Still open".
-- [ ] Mobile bottom nav + a full accessibility/contrast pass. *(deferred — large UI surface)*
-
-## New capability 1 — AI-assisted onboarding auto-fill
-
-- [x] `companies.research` jsonb column (raw AI draft + confidence).
-- [x] `POST /api/pesquisa-empresa` — from just the name + whatever handle/site the client
-      already gave, drafts plausible answers for the diagnostic's open fields.
-- [x] `diagnostico.tsx`: a "Sugerir com IA" button, pre-filled fields marked with a visible
-      "Sugestão da IA — revise" badge that clears the moment the user edits that field;
-      `painel.tsx` fires this automatically in the background right after company creation
-      if a site/handle was given.
-- [ ] Actual web fetch of the given URL/handles for grounding. Deliberately not built: it
-      needs the SSRF-hardened fetcher from the security review (private-IP/DNS-rebinding
-      guards, redirect limits, size caps) *first* — building the fetch without those guards
-      just to hit this checkbox would recreate the exact hole that review flagged.
-
-## New capability 2 — Generalized content engine (carousel + video)
-
-Full design in `docs/CONTENT_ENGINE.md`.
-
-- [x] `src/lib/content-engine/style-anchor.ts` — a persistent brand-identity text prompt
-      (palette/tone/segment) prepended to every generated image/frame for one piece, so a
-      carousel's slides read as one brand.
-- [x] `generateCarousel()` — 4–6 slides (cover → body → CTA), each rendered through the
-      image gateway with the shared anchor + per-slide copy.
-- [x] `generateVideoStoryboard()` — script + shot list (10-second blocks), always generated
-      and always saved regardless of render-provider availability.
-- [x] `renderVideo()` — explicit pluggable seam. **No video provider is wired in** (no API
-      key, that's a cost/vendor decision for the user) — every call today returns the
-      storyboard with `status: "awaiting_provider"` rather than faking a render.
-- [x] `content_items` extended: `slides`, `storyboard`, `video_url`, `image_path`.
-- [x] `/api/arte` now branches on format (`carrossel`/`reels`/other) instead of always
-      generating one square image; `conteudo.tsx` renders slides/storyboard/video
-      accordingly.
-- [ ] Actual video rendering — needs `VIDEO_PROVIDER` configured (see `.env.example`) and a
-      real integration written into `renderVideo()`.
+| Area | Decision |
+|---|---|
+| Database | New Supabase project, user's own account (not self-hosted Docker — no Docker on this machine) |
+| AI provider | Gemini API direct, replacing the Lovable AI gateway entirely |
+| Text models | Mixed tier: `gemini-2.5-flash` for drafts (plan/carousel/storyboard/onboarding-research), `gemini-2.5-pro` for the diagnostic report |
+| Image model | `gemini-2.5-flash-image` ("Nano Banana") |
+| Video | Veo (`veo-3.1-generate-preview`) wired in for real, async job + polling |
+| Google login | Dropped — email/password only |
+| Lovable exit scope | Full: Vite config, logo, error reporting, cron secret, all replaced |
+| Image/video URLs | Sign-on-read from a stored path, not a cached long-lived URL |
+| Onboarding stepper | Built |
+| Mobile nav + a11y | Built (bottom tab bar, contrast fix, focus rings) |
+| Data export (LGPD) | Built |
+| Admin area | Built (minimal, read-only) |
+| Instagram/LinkedIn publishing | Deferred (also defers the metrics job, which depends on it) |
+| CI/tests/lockfile | CI set up (typecheck/lint/build); npm is now the lockfile of record |
 
 ---
 
-## Still open (real gaps, not accidentally skipped)
+## BLOCKED on the user
 
-- **Sign-on-read for images**, not a 7-day signed URL cached in the DB. The path is now
-  stored (`image_path`), so this is a client-side change (fetch a fresh signed URL when
-  displaying, the way `conteudo.tsx` already does for carousel slides via
-  `createSignedUrls`) — same pattern, not yet applied to the single-image case.
-- **Guided onboarding stepper.** `onboarding_step` is written correctly through the whole
-  flow now but nothing routes or gates on it yet.
-- Instagram/LinkedIn OAuth + real publishing + `/api/public/cron/publish`.
-- Metrics collection job + charts.
-- Admin area / MFA-gated admin RLS.
-- Mobile bottom nav + full accessibility/contrast pass.
-- Data export (LGPD Art. 18 portability) endpoint.
-- Removing Lovable lock-in (Vite config, Google OAuth broker, asset hosting).
-- Dependency/CI hardening (lockfile choice, pinned nitro beta, GitHub Actions, tests).
+1. **Create the new Supabase project.** This session has no Supabase account/API token and
+   can't do this itself (account/billing action). Steps:
+   - `supabase.com` → New project → note the project ref, URL, publishable key, and (Settings →
+     API) the service-role key and DB password.
+   - Apply every migration in `supabase/migrations/` in order (`npx supabase db push` after
+     `supabase login` + `supabase link --project-ref <new-ref>`, or paste each file into the
+     SQL editor in order).
+   - In Auth settings: turn **off** Google as a provider (dropped this pass); email/password is
+     the only one this app uses now.
+   - Update `.env` (see `.env.example`) with the new `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
+     `SUPABASE_PROJECT_ID` (and their `VITE_` twins), and `SUPABASE_SERVICE_ROLE_KEY`.
+   - Regenerate `src/integrations/supabase/types.ts` for real:
+     `npx supabase gen types typescript --project-id <new-ref> > src/integrations/supabase/types.ts`
+     (this repo's copy was hand-written to match what the migrations *should* produce).
+2. **Gemini API key** — user is adding `GEMINI_API_KEY` to `.env` directly (their choice from
+   the MCQ round) and will confirm when done. Nothing AI-dependent can be tested until then.
+   Optional overrides for the model IDs are in `.env.example` — the defaults are a reasonable
+   starting point, not a guarantee of current availability (see the comment in `ai.server.ts`).
+3. **Veo cost.** Video rendering is real now, not a stub — every "Gerar roteiro + vídeo" click
+   spends actual money once the key is live. `src/lib/quota.server.ts` caps it (5/day, 20/month
+   per company by default) but the per-call cost itself is the user's to monitor.
 
 ---
 
-## Applying the migrations
+## What changed this pass
 
-Two new files, both additive (nothing already-applied is touched):
-`supabase/migrations/20260916210000_p0_data_integrity.sql` and
-`supabase/migrations/20260916210100_p1_security_and_features.sql`.
+### Database (prep complete, application blocked — see above)
+- Nothing schema-wise changed in *what* the app needs beyond round 1's migrations plus one new
+  file: `supabase/migrations/20260917000000_gemini_video_jobs.sql` (`content_items.video_operation`
+  /`video_path`/`video_error` for the async Veo job).
+- `image_path`/`video_path`/carousel slide paths are now the *only* things the server ever
+  writes — `image_url`/`video_url` columns are no longer populated for new content. The client
+  signs a fresh 1-hour URL on render (`useSignedUrl`/`useCarouselUrls` in `conteudo.tsx`),
+  closing the "long-lived cached URL" gap fully (round 1 only shortened it to 7 days).
 
-This session has no service-role key or DB password for the live project — only the
-publishable key in `.env` — so these were **not** pushed to production. To apply them:
+### AI: Gemini replaces the Lovable gateway
+- `src/lib/ai.server.ts` rewritten: raw REST against `generativelanguage.googleapis.com`
+  (verified against Google's own docs before writing, not assumed — a first web-fetch attempt
+  returned hallucinated endpoint/model names, caught by cross-checking with a second source
+  before any code was written on top of it).
+- `generateJson` takes a `tier: "fast" | "quality"` (default fast); `/api/diagnostico` is the
+  one call site using `"quality"`.
+- No more SSE parsing — Gemini's `generateContent` is a plain JSON response, so the whole
+  custom stream parser from round 1's hardening pass is gone (it was solving a problem that no
+  longer exists, not a regression).
+- New: `startVideoGeneration`/`checkVideoOperation`/`downloadVideoBytes` for Veo's async
+  predictLongRunning pattern.
 
-```bash
-npx supabase login
-npx supabase link --project-ref zvnkjiqdqssztveevyhc
-npx supabase db push
-```
+### Content engine: Veo wired in for real
+- `docs/CONTENT_ENGINE.md` updated. `renderVideo()`'s old "awaiting_provider" stub is replaced
+  by `startVideoRender()` (kicks off the job) + `checkVideoRender()` (polls, downloads, uploads
+  once done).
+- `/api/arte`'s `reels` branch now: generates the storyboard (quota unit 1: `video_storyboard`),
+  then kicks off the actual Veo render (quota unit 2: `video_render` — rendering costs
+  meaningfully more than a text call, so it's metered separately).
+- New `POST /api/video-status`: Veo takes minutes, well past any single request's budget, so
+  this is polled — `conteudo.tsx`'s `useVideoPolling` calls it every 8s while a job is pending
+  and invalidates the content-items list once it resolves.
 
-Then regenerate the real types (this repo's `src/integrations/supabase/types.ts` was hand-
-edited to match what the migrations *should* produce — regenerate to confirm):
+### Lovable exit (full scope)
+- `vite.config.ts` rewritten without `@lovable.dev/vite-tanstack-config` — the three actual vite
+  plugins it wrapped (`tanstackStart`, `viteReact`, `tailwindcss`, `tsConfigPaths`, `nitro`) were
+  already direct dependencies; import paths were verified against the installed packages'
+  actual exports before writing the config, not guessed.
+- Google OAuth (`@lovable.dev/cloud-auth-js`, `src/integrations/lovable/`) removed entirely from
+  `auth.tsx` — email/password only now.
+- `src/lib/lovable-error-reporting.ts` → `src/lib/error-reporting.ts`: plain console logging,
+  no more dependency on `window.__lovableEvents` (which only ever existed inside Lovable's own
+  preview iframe).
+- `cron-auth.ts` renamed `LOVABLE_CRON_SECRET*` → `CRON_SECRET*` (never an actual Lovable
+  service dependency, just borrowed naming).
+- The logo (`/__l5e/assets-v1/...`, 404 on every local run even before this) replaced with an
+  inline SVG placeholder mark in `nukkia-logo.tsx` — **not a final design**, swap it for the real
+  file whenever one exists.
+- `bun.lock`/`bunfig.toml` removed; `package-lock.json` is now the lockfile of record (npm).
+- `.github/workflows/ci.yml`: typecheck + lint + build on every push/PR.
 
-```bash
-npx supabase gen types typescript --project-id zvnkjiqdqssztveevyhc > src/integrations/supabase/types.ts
-```
+### Onboarding, mobile, admin, export (the rest of round 1's "still open" list)
+- `src/components/onboarding-progress.tsx`: a step indicator + "continue" card on `/painel`,
+  driven by `companies.onboarding_step` (which was already being written correctly, just never
+  read). `trilha.tsx` now advances it to `"content"` on a company's first completed mission.
+- `app-shell.tsx`: a fixed bottom tab bar below `sm:`, full top nav hidden on mobile instead of
+  the old sideways-scrolling row; `--primary` darkened (`oklch 0.623` → `0.52`, same hue/chroma)
+  so white button text clears WCAG AA's 4.5:1 (was ~3.7:1); shared button/nav focus rings
+  widened from a 1px ring to a 2px ring with an offset.
+- `GET /api/exportar-dados` + a button on `/conta`: every row tied to the caller's company as
+  one downloadable JSON file (LGPD Art. 18 portability, the round 1 deferral).
+- `/admin` (nav-gated on the `admin` role, hidden otherwise): read-only table of every company,
+  its owner, latest diagnostic score, and AI call count. Uses the same authenticated client and
+  existing RLS (`owns_company`/`has_role` already grant admins cross-company read) — no service
+  role needed for this.
 
-Review the SQL first if you'd rather not run it blind — both files are short and commented.
+---
+
+## Still open (unchanged from round 1, or newly noted)
+
+- Instagram/LinkedIn OAuth + real publishing + the metrics-collection job (explicitly deferred
+  this round).
+- MFA (`aal2`) on the admin RLS branch — there's a real admin UI now, so this is worth revisiting
+  sooner than round 1 assumed.
+- The real Nukkia logo file — the SVG mark is a placeholder.
+- A DB-side test suite (RLS/constraint tests) and a first Vitest pass (the SSE-parser tests round
+  1 flagged are moot now that Gemini's plain-JSON response replaced streaming, but the Veo
+  polling logic and quota RPC are exactly the kind of thing worth testing).
+- Removing the remaining Lovable-Cloud-specific pieces once the new Supabase project is live:
+  `previewAuthStorage.ts`'s Lovable-preview-domain detection is now fully inert outside Lovable
+  (falls back to plain `localStorage`), safe to delete once confirmed unneeded, not urgent.

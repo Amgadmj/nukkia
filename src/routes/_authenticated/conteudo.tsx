@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CheckCircle2, Clapperboard, GalleryHorizontal, ImageIcon, Sparkles } from "lucide-react";
@@ -40,11 +40,12 @@ type ContentItem = {
   caption: string | null;
   hashtags: string | null;
   cta: string | null;
-  image_url: string | null;
   image_path: string | null;
   slides: CarouselSlide[];
   storyboard: Storyboard | null;
-  video_url: string | null;
+  video_operation: string | null;
+  video_path: string | null;
+  video_error: string | null;
   status: string;
 };
 
@@ -53,7 +54,7 @@ const FORMAT_LABEL: Record<string, string> = {
   stories: "Gerar arte",
   artigo: "Gerar arte",
   carrossel: "Gerar carrossel",
-  reels: "Gerar roteiro",
+  reels: "Gerar roteiro + vídeo",
 };
 
 function Conteudo() {
@@ -117,7 +118,9 @@ function Conteudo() {
         toast.error(`Não foi possível gerar a peça. ${(await response.text()).slice(0, 120)}`);
         return;
       }
-      toast.success("Peça gerada!");
+      toast.success(
+        item.format === "reels" ? "Roteiro pronto — gerando o vídeo..." : "Peça gerada!",
+      );
       queryClient.invalidateQueries({ queryKey: ["content-items", company!.id] });
     } finally {
       setGerandoArte(null);
@@ -157,6 +160,7 @@ function Conteudo() {
           <ItemCard
             key={item.id}
             item={item}
+            companyId={company.id}
             onAprovar={aprovar}
             onGerarArte={gerarArte}
             gerandoArte={gerandoArte === item.id}
@@ -165,6 +169,27 @@ function Conteudo() {
       </div>
     </div>
   );
+}
+
+/**
+ * Every generated asset is stored as a private-bucket PATH, not a
+ * long-lived URL cached in the row — the original design saved a signed
+ * URL straight into the database (first a year, briefly a 7-day interim
+ * fix), which can't be revoked and eventually breaks. The client signs a
+ * fresh, short-lived URL whenever it actually renders something instead.
+ */
+function useSignedUrl(path: string | null) {
+  return useQuery({
+    enabled: Boolean(path),
+    queryKey: ["signed-url", path],
+    queryFn: async () => {
+      const { data, error } = await supabase.storage
+        .from("content-media")
+        .createSignedUrl(path!, 3600);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+  });
 }
 
 /** Signs every slide path for one carousel in a single storage call. */
@@ -186,21 +211,56 @@ function useCarouselUrls(itemId: string, slides: CarouselSlide[]) {
   });
 }
 
+/**
+ * Veo rendering takes minutes — /api/arte only kicks the job off, this
+ * polls /api/video-status until it's no longer "rendering", then
+ * invalidates the content-items list so the row's real video_path/error
+ * gets picked up.
+ */
+function useVideoPolling(companyId: string, item: ContentItem) {
+  const queryClient = useQueryClient();
+  const pending = item.format === "reels" && Boolean(item.video_operation) && !item.video_path;
+
+  const { data } = useQuery({
+    enabled: pending,
+    queryKey: ["video-status", item.id],
+    queryFn: async () => {
+      const response = await apiFetch("/api/video-status", { companyId, contentItemId: item.id });
+      if (!response.ok) throw new Error(await response.text());
+      return (await response.json()) as { status: string; error?: string };
+    },
+    refetchInterval: (query) => (query.state.data?.status === "rendering" ? 8000 : false),
+  });
+
+  useEffect(() => {
+    if (data && data.status !== "rendering") {
+      queryClient.invalidateQueries({ queryKey: ["content-items", companyId] });
+    }
+  }, [data, companyId, queryClient]);
+
+  return pending;
+}
+
 function ItemCard({
   item,
+  companyId,
   onAprovar,
   onGerarArte,
   gerandoArte,
 }: {
   item: ContentItem;
+  companyId: string;
   onAprovar: (item: ContentItem, caption: string) => void;
   onGerarArte: (item: ContentItem) => void;
   gerandoArte: boolean;
 }) {
   const [caption, setCaption] = useState(item.caption ?? "");
   const { data: carouselUrls } = useCarouselUrls(item.id, item.slides ?? []);
+  const { data: imageUrl } = useSignedUrl(item.image_path);
+  const { data: videoUrl } = useSignedUrl(item.video_path);
+  const rendering = useVideoPolling(companyId, item);
   const hasContent =
-    Boolean(item.image_url) || (item.slides?.length ?? 0) > 0 || Boolean(item.storyboard);
+    Boolean(item.image_path) || (item.slides?.length ?? 0) > 0 || Boolean(item.storyboard);
 
   return (
     <Card>
@@ -247,9 +307,14 @@ function ItemCard({
             <div className="flex items-center gap-2 text-sm font-medium">
               <Clapperboard className="size-4" />
               Roteiro ({item.storyboard.duracao_total_seg}s)
-              {!item.video_url && (
-                <Badge variant="outline" className="ml-auto text-[10px]">
-                  Vídeo: aguardando integração
+              {rendering && (
+                <Badge variant="outline" className="ml-auto animate-pulse text-[10px]">
+                  Renderizando vídeo...
+                </Badge>
+              )}
+              {item.video_error && !rendering && (
+                <Badge variant="outline" className="ml-auto text-[10px] text-destructive">
+                  Falha no vídeo
                 </Badge>
               )}
             </div>
@@ -263,15 +328,14 @@ function ItemCard({
                 </li>
               ))}
             </ol>
-            {item.video_url && (
-              <video src={item.video_url} controls className="w-full rounded-lg" />
-            )}
+            {videoUrl && <video src={videoUrl} controls className="w-full rounded-lg" />}
+            {item.video_error && <p className="text-xs text-destructive">{item.video_error}</p>}
           </div>
         )}
 
-        {item.format !== "carrossel" && item.format !== "reels" && item.image_url && (
+        {item.format !== "carrossel" && item.format !== "reels" && imageUrl && (
           <img
-            src={item.image_url}
+            src={imageUrl}
             alt={`Arte da publicação ${item.title}`}
             className="w-full rounded-lg border border-border"
             loading="lazy"
@@ -300,7 +364,7 @@ function ItemCard({
             size="sm"
             variant="outline"
             onClick={() => onGerarArte(item)}
-            disabled={gerandoArte}
+            disabled={gerandoArte || rendering}
           >
             {item.format === "carrossel" ? (
               <GalleryHorizontal className="size-4" />
@@ -309,7 +373,7 @@ function ItemCard({
             ) : (
               <ImageIcon className="size-4" />
             )}
-            {gerandoArte
+            {gerandoArte || rendering
               ? "Gerando..."
               : hasContent
                 ? `Refazer · ${FORMAT_LABEL[item.format] ?? "Gerar arte"}`

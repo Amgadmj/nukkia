@@ -11,7 +11,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { NukkiaLogo } from "@/components/nukkia-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { CONSENT_VERSION } from "@/lib/consent";
 
 const searchSchema = z.object({
@@ -54,41 +53,13 @@ function AuthPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/painel" });
     });
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!session) return;
-      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-        // Google sign-up has no form for us to attach consent_version to
-        // (handle_new_user only sees it for email/password signup, via
-        // signUp's options.data). Record it here instead, once, the first
-        // time a Google-authenticated account shows up with no consent on
-        // file yet — a returning user who already has one is left alone.
-        await supabase
-          .from("profiles")
-          .update({
-            consent_version: CONSENT_VERSION,
-            consent_accepted_at: new Date().toISOString(),
-          })
-          .eq("id", session.user.id)
-          .is("consent_version", null);
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
         navigate({ to: "/painel" });
       }
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
-
-  async function handleGoogle() {
-    if (modo === "cadastro" && !consent) {
-      toast.error("Aceite os termos e a política de privacidade para continuar.");
-      return;
-    }
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      toast.error("Não foi possível entrar com o Google. Tente novamente.");
-      return;
-    }
-  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -252,15 +223,6 @@ function AuthPage() {
                 </Button>
               </form>
             )}
-
-            <div className="relative text-center text-xs uppercase text-muted-foreground">
-              <span className="bg-card px-2">ou</span>
-              <div className="absolute inset-x-0 top-1/2 -z-10 h-px bg-border" />
-            </div>
-
-            <Button type="button" variant="outline" className="w-full" onClick={handleGoogle}>
-              Continuar com Google
-            </Button>
           </CardContent>
         </Card>
       </main>

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Download, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,6 +38,27 @@ export const Route = createFileRoute("/_authenticated/conta")({
 function Conta() {
   const navigate = useNavigate();
   const [excluindo, setExcluindo] = useState(false);
+  const [exportando, setExportando] = useState(false);
+
+  async function exportarDados() {
+    setExportando(true);
+    try {
+      const response = await apiFetch("/api/exportar-dados", undefined, { method: "GET" });
+      if (!response.ok) {
+        toast.error("Não foi possível exportar seus dados. Tente novamente.");
+        return;
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "nukkia-dados.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportando(false);
+    }
+  }
 
   async function excluirConta() {
     setExcluindo(true);
@@ -77,6 +98,12 @@ function Conta() {
             .
           </CardDescription>
         </CardHeader>
+        <CardFooter>
+          <Button variant="outline" onClick={exportarDados} disabled={exportando}>
+            <Download className="size-4" />
+            {exportando ? "Exportando..." : "Exportar meus dados (JSON)"}
+          </Button>
+        </CardFooter>
       </Card>
 
       <Card className="border-destructive/40">

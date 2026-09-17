@@ -5,7 +5,7 @@ import {
   generateCarousel,
   generateStaticArt,
   generateVideoStoryboard,
-  renderVideo,
+  startVideoRender,
 } from "@/lib/content-engine";
 import type { BrandKitLike } from "@/lib/content-engine/types";
 import { checkAiQuota, quotaExceededResponse } from "@/lib/quota.server";
@@ -81,7 +81,7 @@ export const Route = createFileRoute("/api/arte")({
 
         try {
           if (item.format === "carrossel") {
-            const { slides, coverPath, coverUrl } = await generateCarousel(supabase, {
+            const { slides, coverPath } = await generateCarousel(supabase, {
               company,
               brandKit,
               item: brief,
@@ -90,36 +90,48 @@ export const Route = createFileRoute("/api/arte")({
             });
             await supabase
               .from("content_items")
-              .update({ slides, image_path: coverPath, image_url: coverUrl })
+              .update({ slides, image_path: coverPath })
               .eq("id", item.id);
             return Response.json({ ok: true, format: "carrossel", slides: slides.length });
           }
 
           if (item.format === "reels") {
             const storyboard = await generateVideoStoryboard({ company, brandKit, item: brief });
-            const rendered = await renderVideo(storyboard);
+
+            // Kicking off the actual Veo render spends a second, separate
+            // quota unit from the storyboard generation above — video
+            // rendering is materially more expensive than a text call.
+            const renderAllowed = await checkAiQuota(supabase, item.company_id, "video_render");
+            if (!renderAllowed) {
+              await supabase
+                .from("content_items")
+                .update({ storyboard, video_operation: null, video_error: null })
+                .eq("id", item.id);
+              return quotaExceededResponse("video_render");
+            }
+
+            const { operationName } = await startVideoRender({ company, brandKit, storyboard });
             await supabase
               .from("content_items")
               .update({
                 storyboard,
-                video_url: rendered.status === "rendered" ? rendered.videoUrl : null,
+                video_operation: operationName,
+                video_error: null,
+                video_path: null,
               })
               .eq("id", item.id);
-            return Response.json({ ok: true, format: "reels", status: rendered.status });
+            return Response.json({ ok: true, format: "reels", status: "rendering" });
           }
 
-          const { imagePath, imageUrl } = await generateStaticArt(supabase, {
+          const { imagePath } = await generateStaticArt(supabase, {
             company,
             brandKit,
             item: brief,
             contentItemId: item.id,
             companyId: item.company_id,
           });
-          await supabase
-            .from("content_items")
-            .update({ image_path: imagePath, image_url: imageUrl })
-            .eq("id", item.id);
-          return Response.json({ ok: true, format: item.format, url: imageUrl });
+          await supabase.from("content_items").update({ image_path: imagePath }).eq("id", item.id);
+          return Response.json({ ok: true, format: item.format });
         } catch (err) {
           const message = err instanceof AiError ? err.userMessage : "Erro ao gerar a peça.";
           if (!(err instanceof AiError)) console.error("[api/arte] unexpected error:", err);

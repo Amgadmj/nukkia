@@ -153,6 +153,9 @@ export type Database = {
           storyboard: Json | null;
           title: string;
           updated_at: string;
+          video_error: string | null;
+          video_operation: string | null;
+          video_path: string | null;
           video_url: string | null;
         };
         Insert: {
@@ -175,6 +178,9 @@ export type Database = {
           storyboard?: Json | null;
           title: string;
           updated_at?: string;
+          video_error?: string | null;
+          video_operation?: string | null;
+          video_path?: string | null;
           video_url?: string | null;
         };
         Update: {
@@ -197,6 +203,9 @@ export type Database = {
           storyboard?: Json | null;
           title?: string;
           updated_at?: string;
+          video_error?: string | null;
+          video_operation?: string | null;
+          video_path?: string | null;
           video_url?: string | null;
         };
         Relationships: [

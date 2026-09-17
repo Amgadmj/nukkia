@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { OnboardingProgress } from "@/components/onboarding-progress";
 import { supabase } from "@/integrations/supabase/client";
 import { apiFetch } from "@/lib/api";
 import { useCompany, useDiagnostic, useMissions, useProgress } from "@/lib/company";
@@ -46,7 +47,13 @@ function Painel() {
 
   if (!company) return <CadastroEmpresa />;
 
-  return <Overview companyId={company.id} companyName={company.name} />;
+  return (
+    <Overview
+      companyId={company.id}
+      companyName={company.name}
+      onboardingStep={company.onboarding_step}
+    />
+  );
 }
 
 function CadastroEmpresa() {
@@ -166,7 +173,15 @@ function CadastroEmpresa() {
   );
 }
 
-function Overview({ companyId, companyName }: { companyId: string; companyName: string }) {
+function Overview({
+  companyId,
+  companyName,
+  onboardingStep,
+}: {
+  companyId: string;
+  companyName: string;
+  onboardingStep: string;
+}) {
   const { data: diagnostic } = useDiagnostic(companyId);
   const { data: progress } = useProgress(companyId);
   const { data: missions } = useMissions(companyId);
@@ -197,6 +212,8 @@ function Overview({ companyId, companyName }: { companyId: string; companyName: 
           Veja o estado da sua presença digital e o próximo passo da sua trilha.
         </p>
       </div>
+
+      <OnboardingProgress step={onboardingStep} />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export async function apiFetch(
   path: string,
   body?: unknown,
-  options?: { method?: "POST" | "DELETE" },
+  options?: { method?: "POST" | "DELETE" | "GET" },
 ) {
   const { data } = await supabase.auth.getSession();
   return fetch(path, {

@@ -53,6 +53,13 @@ function Trilha() {
     toast.success(`Missão concluída! +${mission.xp} XP`);
     queryClient.invalidateQueries({ queryKey: ["missions", company.id] });
     queryClient.invalidateQueries({ queryKey: ["progress", company.id] });
+
+    // First mission completed → the onboarding stepper's next suggested
+    // stop is Conteúdo. Only advance forward, never overwrite a later step.
+    if (company.onboarding_step === "missions") {
+      await supabase.from("companies").update({ onboarding_step: "content" }).eq("id", company.id);
+      queryClient.invalidateQueries({ queryKey: ["company"] });
+    }
   }
 
   if (!company) {

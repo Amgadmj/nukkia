@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as TermosRouteImport } from './routes/termos'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedContaRouteImport } from './routes/_authenticated/conta'
 import { Route as AuthenticatedConteudoRouteImport } from './routes/_authenticated/conteudo'
 import { Route as AuthenticatedDiagnosticoRouteImport } from './routes/_authenticated/diagnostico'
@@ -25,8 +26,10 @@ import { Route as AuthenticatedTrilhaRouteImport } from './routes/_authenticated
 import { Route as ApiArteRouteImport } from './routes/api/arte'
 import { Route as ApiContaRouteImport } from './routes/api/conta'
 import { Route as ApiDiagnosticoRouteImport } from './routes/api/diagnostico'
+import { Route as ApiExportarDadosRouteImport } from './routes/api/exportar-dados'
 import { Route as ApiPesquisaEmpresaRouteImport } from './routes/api/pesquisa-empresa'
 import { Route as ApiPlanoRouteImport } from './routes/api/plano'
+import { Route as ApiVideoStatusRouteImport } from './routes/api/video-status'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -51,6 +54,11 @@ const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedContaRoute = AuthenticatedContaRouteImport.update({
   id: '/conta',
@@ -108,6 +116,11 @@ const ApiDiagnosticoRoute = ApiDiagnosticoRouteImport.update({
   path: '/api/diagnostico',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiExportarDadosRoute = ApiExportarDadosRouteImport.update({
+  id: '/api/exportar-dados',
+  path: '/api/exportar-dados',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPesquisaEmpresaRoute = ApiPesquisaEmpresaRouteImport.update({
   id: '/api/pesquisa-empresa',
   path: '/api/pesquisa-empresa',
@@ -118,12 +131,18 @@ const ApiPlanoRoute = ApiPlanoRouteImport.update({
   path: '/api/plano',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVideoStatusRoute = ApiVideoStatusRouteImport.update({
+  id: '/api/video-status',
+  path: '/api/video-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/conta': typeof AuthenticatedContaRoute
   '/conteudo': typeof AuthenticatedConteudoRoute
   '/diagnostico': typeof AuthenticatedDiagnosticoRoute
@@ -135,14 +154,17 @@ export interface FileRoutesByFullPath {
   '/api/arte': typeof ApiArteRoute
   '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
+  '/api/exportar-dados': typeof ApiExportarDadosRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
+  '/api/video-status': typeof ApiVideoStatusRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/conta': typeof AuthenticatedContaRoute
   '/conteudo': typeof AuthenticatedConteudoRoute
   '/diagnostico': typeof AuthenticatedDiagnosticoRoute
@@ -154,8 +176,10 @@ export interface FileRoutesByTo {
   '/api/arte': typeof ApiArteRoute
   '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
+  '/api/exportar-dados': typeof ApiExportarDadosRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
+  '/api/video-status': typeof ApiVideoStatusRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -164,6 +188,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/conta': typeof AuthenticatedContaRoute
   '/_authenticated/conteudo': typeof AuthenticatedConteudoRoute
   '/_authenticated/diagnostico': typeof AuthenticatedDiagnosticoRoute
@@ -175,8 +200,10 @@ export interface FileRoutesById {
   '/api/arte': typeof ApiArteRoute
   '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
+  '/api/exportar-dados': typeof ApiExportarDadosRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
+  '/api/video-status': typeof ApiVideoStatusRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -185,6 +212,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/privacidade'
     | '/termos'
+    | '/admin'
     | '/conta'
     | '/conteudo'
     | '/diagnostico'
@@ -196,14 +224,17 @@ export interface FileRouteTypes {
     | '/api/arte'
     | '/api/conta'
     | '/api/diagnostico'
+    | '/api/exportar-dados'
     | '/api/pesquisa-empresa'
     | '/api/plano'
+    | '/api/video-status'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/privacidade'
     | '/termos'
+    | '/admin'
     | '/conta'
     | '/conteudo'
     | '/diagnostico'
@@ -215,8 +246,10 @@ export interface FileRouteTypes {
     | '/api/arte'
     | '/api/conta'
     | '/api/diagnostico'
+    | '/api/exportar-dados'
     | '/api/pesquisa-empresa'
     | '/api/plano'
+    | '/api/video-status'
   id:
     | '__root__'
     | '/'
@@ -224,6 +257,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/privacidade'
     | '/termos'
+    | '/_authenticated/admin'
     | '/_authenticated/conta'
     | '/_authenticated/conteudo'
     | '/_authenticated/diagnostico'
@@ -235,8 +269,10 @@ export interface FileRouteTypes {
     | '/api/arte'
     | '/api/conta'
     | '/api/diagnostico'
+    | '/api/exportar-dados'
     | '/api/pesquisa-empresa'
     | '/api/plano'
+    | '/api/video-status'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -248,8 +284,10 @@ export interface RootRouteChildren {
   ApiArteRoute: typeof ApiArteRoute
   ApiContaRoute: typeof ApiContaRoute
   ApiDiagnosticoRoute: typeof ApiDiagnosticoRoute
+  ApiExportarDadosRoute: typeof ApiExportarDadosRoute
   ApiPesquisaEmpresaRoute: typeof ApiPesquisaEmpresaRoute
   ApiPlanoRoute: typeof ApiPlanoRoute
+  ApiVideoStatusRoute: typeof ApiVideoStatusRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -288,6 +326,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/termos'
       preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/conta': {
       id: '/_authenticated/conta'
@@ -366,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDiagnosticoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/exportar-dados': {
+      id: '/api/exportar-dados'
+      path: '/api/exportar-dados'
+      fullPath: '/api/exportar-dados'
+      preLoaderRoute: typeof ApiExportarDadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/pesquisa-empresa': {
       id: '/api/pesquisa-empresa'
       path: '/api/pesquisa-empresa'
@@ -380,10 +432,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPlanoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/video-status': {
+      id: '/api/video-status'
+      path: '/api/video-status'
+      fullPath: '/api/video-status'
+      preLoaderRoute: typeof ApiVideoStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedContaRoute: typeof AuthenticatedContaRoute
   AuthenticatedConteudoRoute: typeof AuthenticatedConteudoRoute
   AuthenticatedDiagnosticoRoute: typeof AuthenticatedDiagnosticoRoute
@@ -395,6 +455,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedContaRoute: AuthenticatedContaRoute,
   AuthenticatedConteudoRoute: AuthenticatedConteudoRoute,
   AuthenticatedDiagnosticoRoute: AuthenticatedDiagnosticoRoute,
@@ -417,8 +478,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiArteRoute: ApiArteRoute,
   ApiContaRoute: ApiContaRoute,
   ApiDiagnosticoRoute: ApiDiagnosticoRoute,
+  ApiExportarDadosRoute: ApiExportarDadosRoute,
   ApiPesquisaEmpresaRoute: ApiPesquisaEmpresaRoute,
   ApiPlanoRoute: ApiPlanoRoute,
+  ApiVideoStatusRoute: ApiVideoStatusRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

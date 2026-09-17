@@ -97,6 +97,9 @@ export const Route = createFileRoute("/api/diagnostico")({
           report = await generateJson<Report>({
             schemaName: "diagnostico_presenca_digital",
             schema: reportSchema,
+            // The one client-facing AI artifact worth the extra cost/latency
+            // (per the mixed Gemini-tier decision — everything else uses "fast").
+            tier: "quality",
             instructions:
               "Você é consultor sênior de marketing digital para pequenas empresas e clínicas no Brasil. Responda sempre em português do Brasil, com linguagem simples e acionável. Máximo de 5 itens por lista, cada item com até 220 caracteres. Gere de 5 a 7 missões prioritárias com XP entre 50 e 200. score é de 0 a 100. Se houver restrições éticas/regulatórias do segmento (ex.: CFM para clínicas, OAB para escritórios de advocacia), respeite-as nas recomendações e nunca sugira promessas de resultado.",
             input: [

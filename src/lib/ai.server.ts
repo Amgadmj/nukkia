@@ -1,17 +1,31 @@
-const GATEWAY = "https://ai.gateway.lovable.dev/v1";
+/**
+ * Gemini API client (replaces the Lovable AI gateway). Raw REST, no SDK —
+ * confirmed against ai.google.dev's own docs (generateContent, image output
+ * via inlineData/responseModalities, Veo via predictLongRunning) rather
+ * than assumed, since model names and exact field shapes drift.
+ *
+ * Model IDs are env-driven with conservative defaults (see .env.example).
+ * Verify current model availability at
+ * https://generativelanguage.googleapis.com/v1beta/models before relying on
+ * a default in production — Google's naming has moved fast; treat these as
+ * a starting point, not gospel.
+ */
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-const TEXT_MODEL = "openai/gpt-6-astra";
-const IMAGE_MODEL = "openai/gpt-image-2.5-sunburst";
+const TEXT_MODEL_FAST = process.env["GEMINI_TEXT_MODEL_FAST"] || "gemini-2.5-flash";
+const TEXT_MODEL_QUALITY = process.env["GEMINI_TEXT_MODEL_QUALITY"] || "gemini-2.5-pro";
+const IMAGE_MODEL = process.env["GEMINI_IMAGE_MODEL"] || "gemini-2.5-flash-image";
+const VIDEO_MODEL = process.env["GEMINI_VIDEO_MODEL"] || "veo-3.1-generate-preview";
 
 const DEFAULT_TIMEOUT_MS = 45_000;
 const MAX_RETRIES = 1;
 
 /**
  * Thrown by every function in this module. `userMessage` is safe to show a
- * customer (short, generic, Portuguese). The full upstream error — which
- * can contain gateway internals, quota state, or request IDs — is logged
+ * customer (short, generic, Portuguese). The full upstream error is logged
  * server-side via `cause`/`console.error` and MUST NOT be relayed to the
- * client (S-4 in the security review).
+ * client (S-4 in the security review — the Lovable-gateway version of this
+ * file used to do exactly that).
  */
 export class AiError extends Error {
   readonly userMessage: string;
@@ -22,12 +36,15 @@ export class AiError extends Error {
   }
 }
 
-export function getApiKey() {
-  const key = process.env["LOVABLE_API_KEY"];
-  if (!key)
+class RetryableAiError extends Error {}
+
+export function getApiKey(): string {
+  const key = process.env["GEMINI_API_KEY"];
+  if (!key) {
     throw new AiError("Geração por IA temporariamente indisponível.", {
-      cause: new Error("LOVABLE_API_KEY não configurada"),
+      cause: new Error("GEMINI_API_KEY não configurada"),
     });
+  }
   return key;
 }
 
@@ -35,17 +52,14 @@ function isRetryable(status: number) {
   return status === 429 || status >= 500;
 }
 
-async function withRetry<T>(label: string, fn: (attempt: number) => Promise<T>): Promise<T> {
+async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      return await fn(attempt);
+      return await fn();
     } catch (err) {
       lastError = err;
-      const retryable =
-        err instanceof RetryableAiError ||
-        (err instanceof AiError && err.cause instanceof RetryableAiError);
-      if (!retryable || attempt === MAX_RETRIES) break;
+      if (!(err instanceof RetryableAiError) || attempt === MAX_RETRIES) break;
       await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
       console.warn(`[ai] retrying ${label} after transient failure (attempt ${attempt + 2})`);
     }
@@ -53,66 +67,93 @@ async function withRetry<T>(label: string, fn: (attempt: number) => Promise<T>):
   throw lastError;
 }
 
-class RetryableAiError extends Error {}
+function geminiHeaders(): HeadersInit {
+  return { "Content-Type": "application/json", "x-goog-api-key": getApiKey() };
+}
+
+async function callGemini(model: string, body: unknown, timeoutMs: number): Promise<unknown> {
+  const response = await fetch(`${GEMINI_BASE}/models/${model}:generateContent`, {
+    method: "POST",
+    signal: AbortSignal.timeout(timeoutMs),
+    headers: geminiHeaders(),
+    body: JSON.stringify(body),
+  }).catch((err) => {
+    throw new AiError("Não foi possível conectar ao serviço de IA.", { cause: err });
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    console.error(`[ai] Gemini ${model} error [${response.status}]:`, text.slice(0, 2000));
+    if (isRetryable(response.status)) throw new RetryableAiError(`gemini ${response.status}`);
+    throw new AiError("O serviço de IA não conseguiu processar o pedido agora.");
+  }
+  return response.json();
+}
 
 /**
- * Structured text generation against the Lovable AI gateway's Responses API
- * (streaming, strict JSON schema). Hardened version of the original:
- *  - full SSE parsing: normalizes CRLF, flushes the final partial frame,
- *    handles multi-line `data:` fields.
- *  - handles response.failed / response.incomplete / error events instead
- *    of silently falling through to "no content returned".
- *  - request timeout via AbortSignal, one retry on 429/5xx.
- *  - never leaks the upstream error body to the caller.
+ * Gemini's responseSchema is a subset of OpenAPI 3.0 Schema — it doesn't
+ * recognize `additionalProperties` (an OpenAI-strict-mode-specific field
+ * these schemas were originally written with). Strip it recursively rather
+ * than maintaining two parallel schema definitions per route.
+ */
+function toGeminiSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(toGeminiSchema);
+  if (schema && typeof schema === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(schema as Record<string, unknown>)) {
+      if (key === "additionalProperties") continue;
+      out[key] = toGeminiSchema(value);
+    }
+    return out;
+  }
+  return schema;
+}
+
+type GenerateContentResponse = {
+  candidates?: {
+    content?: { parts?: { text?: string; inlineData?: { data?: string; mimeType?: string } }[] };
+  }[];
+};
+
+/**
+ * Structured JSON generation. `tier` picks the model: "fast" (gemini-2.5-flash
+ * by default) for routine drafts — plans, carousel outlines, storyboards,
+ * onboarding research — and "quality" (gemini-2.5-pro) for the one
+ * client-facing artifact worth the extra cost/latency, the diagnostic
+ * report. Non-streaming: the original Lovable-gateway version streamed for
+ * no real benefit (the caller still waited for the full JSON body before
+ * doing anything with it) — this only adds SSE-parsing complexity, so it's
+ * gone.
  */
 export async function generateJson<T>(options: {
   instructions: string;
   input: string;
   schemaName: string;
   schema: Record<string, unknown>;
+  tier?: "fast" | "quality";
   timeoutMs?: number;
 }): Promise<T> {
+  const model = options.tier === "quality" ? TEXT_MODEL_QUALITY : TEXT_MODEL_FAST;
+
   const text = await withRetry("generateJson", async () => {
-    const response = await fetch(`${GATEWAY}/responses`, {
-      method: "POST",
-      signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS),
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": getApiKey(),
-        "X-Lovable-AIG-SDK": "fetch",
-      },
-      body: JSON.stringify({
-        model: TEXT_MODEL,
-        instructions: options.instructions,
-        input: options.input,
-        stream: true,
-        store: false,
-        reasoning: { effort: "low" },
-        text: {
-          format: {
-            type: "json_schema",
-            name: options.schemaName,
-            strict: true,
-            schema: options.schema,
-          },
+    const json = (await callGemini(
+      model,
+      {
+        systemInstruction: { parts: [{ text: options.instructions }] },
+        contents: [{ role: "user", parts: [{ text: options.input }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: toGeminiSchema(options.schema),
         },
-      }),
-    }).catch((err) => {
-      throw new AiError("Não foi possível conectar ao serviço de IA.", { cause: err });
-    });
+      },
+      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    )) as GenerateContentResponse;
 
-    if (!response.ok || !response.body) {
-      const body = await response.text().catch(() => "");
-      console.error(`[ai] generateJson gateway error [${response.status}]:`, body.slice(0, 2000));
-      if (isRetryable(response.status)) throw new RetryableAiError(`gateway ${response.status}`);
-      throw new AiError("O serviço de IA não conseguiu processar o pedido agora.");
-    }
-
-    return parseResponsesStream(response.body);
+    const parts = json.candidates?.[0]?.content?.parts ?? [];
+    return parts.map((p) => p.text ?? "").join("");
   });
 
   if (!text.trim()) throw new AiError("A IA não retornou conteúdo. Tente novamente.");
-
   try {
     return JSON.parse(text) as T;
   } catch (err) {
@@ -121,114 +162,104 @@ export async function generateJson<T>(options: {
   }
 }
 
-async function parseResponsesStream(body: ReadableStream<Uint8Array>): Promise<string> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let text = "";
-  let sawCompletion = false;
-
-  const handleFrame = (frame: string) => {
-    // A frame is one or more `field: value` lines; data fields can repeat
-    // per the SSE spec and should be joined with "\n".
-    const dataLines: string[] = [];
-    for (const line of frame.split("\n")) {
-      if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
-    }
-    const payload = dataLines.join("\n").trim();
-    if (!payload || payload === "[DONE]") return;
-
-    let event: {
-      type?: string;
-      delta?: string;
-      response?: { output_text?: string };
-      error?: { message?: string } | string;
-      message?: string;
-    };
-    try {
-      event = JSON.parse(payload);
-    } catch {
-      return; // partial/malformed frame — ignore rather than crash the stream
-    }
-
-    switch (event.type) {
-      case "response.output_text.delta":
-        if (event.delta) text += event.delta;
-        break;
-      case "response.completed":
-        if (event.response?.output_text) text = event.response.output_text;
-        sawCompletion = true;
-        break;
-      case "response.failed":
-      case "response.incomplete":
-      case "error": {
-        const message =
-          (typeof event.error === "object" ? event.error?.message : event.error) ??
-          event.message ??
-          event.type;
-        console.error(`[ai] stream reported ${event.type}:`, message);
-        throw new AiError("A geração foi interrompida pelo serviço de IA. Tente novamente.");
-      }
-    }
-  };
-
-  const drain = (flushing: boolean) => {
-    const frames = buffer.split(/\r?\n\r?\n/);
-    buffer = flushing ? "" : (frames.pop() ?? "");
-    if (flushing && frames.length && frames[frames.length - 1] === "") frames.pop();
-    for (const frame of frames) handleFrame(frame);
-  };
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    drain(false);
-  }
-  buffer += decoder.decode(); // flush any pending multi-byte sequence
-  drain(true);
-
-  void sawCompletion; // deltas already accumulate the text; kept for clarity/debugging
-  return text;
-}
-
-/** Gera uma imagem e devolve os bytes em base64. */
+/** Gera uma imagem via Gemini (gemini-2.5-flash-image / "Nano Banana") e devolve os bytes em base64. */
 export async function generateImageBase64(
   prompt: string,
   options?: { timeoutMs?: number },
 ): Promise<string> {
   return withRetry("generateImageBase64", async () => {
-    const response = await fetch(`${GATEWAY}/images/generations`, {
-      method: "POST",
-      signal: AbortSignal.timeout(options?.timeoutMs ?? DEFAULT_TIMEOUT_MS),
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getApiKey()}`,
+    const json = (await callGemini(
+      IMAGE_MODEL,
+      {
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ["IMAGE"] },
       },
-      body: JSON.stringify({
-        model: IMAGE_MODEL,
-        prompt,
-        size: "1024x1024",
-      }),
-    }).catch((err) => {
-      throw new AiError("Não foi possível conectar ao serviço de imagens.", { cause: err });
-    });
+      options?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    )) as GenerateContentResponse;
 
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      console.error(
-        `[ai] generateImageBase64 gateway error [${response.status}]:`,
-        body.slice(0, 2000),
-      );
-      if (isRetryable(response.status)) throw new RetryableAiError(`gateway ${response.status}`);
-      throw new AiError("Não foi possível gerar a imagem agora.");
-    }
-
-    const json = (await response.json().catch(() => null)) as {
-      data?: { b64_json?: string }[];
-    } | null;
-    const b64 = json?.data?.[0]?.b64_json;
-    if (!b64) throw new AiError("A IA não retornou imagem. Tente novamente.");
-    return b64;
+    const parts = json.candidates?.[0]?.content?.parts ?? [];
+    const imagePart = parts.find((p) => p.inlineData?.data);
+    if (!imagePart?.inlineData?.data)
+      throw new AiError("A IA não retornou imagem. Tente novamente.");
+    return imagePart.inlineData.data;
   });
+}
+
+// --- Veo video generation: async (predictLongRunning) — see src/lib/content-engine/video.ts
+// for how this is turned into a poll-able job instead of a blocking call. ---
+
+export async function startVideoGeneration(
+  prompt: string,
+  options?: { aspectRatio?: "16:9" | "9:16" },
+): Promise<{ operationName: string }> {
+  const response = await fetch(`${GEMINI_BASE}/models/${VIDEO_MODEL}:predictLongRunning`, {
+    method: "POST",
+    signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    headers: geminiHeaders(),
+    body: JSON.stringify({
+      instances: [{ prompt }],
+      parameters: { aspectRatio: options?.aspectRatio ?? "9:16" },
+    }),
+  }).catch((err) => {
+    throw new AiError("Não foi possível conectar ao serviço de vídeo.", { cause: err });
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    console.error(`[ai] Veo start error [${response.status}]:`, text.slice(0, 2000));
+    throw new AiError("Não foi possível iniciar a geração do vídeo.");
+  }
+  const json = (await response.json()) as { name?: string };
+  if (!json.name)
+    throw new AiError("O serviço de vídeo não retornou um identificador de operação.");
+  return { operationName: json.name };
+}
+
+export type VeoOperationStatus =
+  { done: false } | { done: true; videoUri: string } | { done: true; error: string };
+
+export async function checkVideoOperation(operationName: string): Promise<VeoOperationStatus> {
+  const response = await fetch(`${GEMINI_BASE}/${operationName}`, {
+    signal: AbortSignal.timeout(15_000),
+    headers: { "x-goog-api-key": getApiKey() },
+  }).catch((err) => {
+    throw new AiError("Não foi possível verificar o status do vídeo.", { cause: err });
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    console.error(`[ai] Veo poll error [${response.status}]:`, text.slice(0, 2000));
+    throw new AiError("Não foi possível verificar o status do vídeo.");
+  }
+
+  const json = (await response.json()) as {
+    done?: boolean;
+    error?: { message?: string };
+    response?: {
+      generateVideoResponse?: { generatedSamples?: { video?: { uri?: string } }[] };
+    };
+  };
+  if (!json.done) return { done: false };
+  if (json.error) return { done: true, error: json.error.message ?? "Falha ao gerar o vídeo." };
+
+  const uri = json.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
+  if (!uri) return { done: true, error: "Vídeo gerado sem URI de saída." };
+  return { done: true, videoUri: uri };
+}
+
+/**
+ * The operation's video URI is a Google-hosted download link that itself
+ * needs the API key — per Google's own docs, as a query param on this
+ * specific request (not the `x-goog-api-key` header used everywhere else
+ * in this file), because the header doesn't reliably survive the redirect
+ * this URI issues.
+ */
+export async function downloadVideoBytes(uri: string): Promise<Uint8Array> {
+  const key = getApiKey();
+  const url = `${uri}${uri.includes("?") ? "&" : "?"}key=${encodeURIComponent(key)}`;
+  const response = await fetch(url, { signal: AbortSignal.timeout(120_000) }).catch((err) => {
+    throw new AiError("Não foi possível baixar o vídeo gerado.", { cause: err });
+  });
+  if (!response.ok) throw new AiError("Não foi possível baixar o vídeo gerado.");
+  return new Uint8Array(await response.arrayBuffer());
 }

@@ -1,6 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { AiError, generateImageBase64, generateJson } from "@/lib/ai.server";
+import {
+  AiError,
+  checkVideoOperation,
+  downloadVideoBytes,
+  generateImageBase64,
+  generateJson,
+  startVideoGeneration,
+} from "@/lib/ai.server";
 import { buildStyleAnchor } from "./style-anchor";
 import type {
   BrandKitLike,
@@ -8,12 +15,10 @@ import type {
   CompanyLike,
   ContentBrief,
   Storyboard,
-  VideoRenderResult,
+  VideoJobStatus,
 } from "./types";
 
-export type { CarouselSlide, ContentBrief, Storyboard, VideoRenderResult } from "./types";
-
-const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days — see migration 20260916210100 note
+export type { CarouselSlide, ContentBrief, Storyboard, VideoJobStatus } from "./types";
 
 function base64ToBytes(b64: string): Uint8Array {
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -32,19 +37,28 @@ async function uploadGeneratedImage(
   contentItemId: string,
   bytes: Uint8Array,
   slideIndex = 0,
-): Promise<{ path: string; signedUrl: string }> {
+): Promise<{ path: string }> {
   const path = `${companyId}/${contentItemId}-${slideIndex}-${Date.now()}.png`;
   const { error: uploadError } = await supabase.storage
     .from("content-media")
     .upload(path, bytes, { contentType: "image/png", upsert: true });
   if (uploadError) throw new AiError("Falha ao salvar a arte gerada.");
+  return { path };
+}
 
-  const { data: signed, error: signError } = await supabase.storage
+/** Same as uploadGeneratedImage but for a rendered video (mp4). */
+async function uploadGeneratedVideo(
+  supabase: SupabaseClient<Database>,
+  companyId: string,
+  contentItemId: string,
+  bytes: Uint8Array,
+): Promise<{ path: string }> {
+  const path = `${companyId}/${contentItemId}-${Date.now()}.mp4`;
+  const { error: uploadError } = await supabase.storage
     .from("content-media")
-    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
-  if (signError || !signed?.signedUrl) throw new AiError("Falha ao publicar a arte gerada.");
-
-  return { path, signedUrl: signed.signedUrl };
+    .upload(path, bytes, { contentType: "video/mp4", upsert: true });
+  if (uploadError) throw new AiError("Falha ao salvar o vídeo gerado.");
+  return { path };
 }
 
 function briefLines(company: CompanyLike, item: ContentBrief): string[] {
@@ -65,7 +79,7 @@ export async function generateStaticArt(
     contentItemId: string;
     companyId: string;
   },
-): Promise<{ imagePath: string; imageUrl: string }> {
+): Promise<{ imagePath: string }> {
   const anchor = buildStyleAnchor(params.company, params.brandKit);
   const prompt = [
     anchor,
@@ -75,13 +89,13 @@ export async function generateStaticArt(
   ].join(" ");
 
   const b64 = await generateImageBase64(prompt);
-  const { path, signedUrl } = await uploadGeneratedImage(
+  const { path } = await uploadGeneratedImage(
     supabase,
     params.companyId,
     params.contentItemId,
     base64ToBytes(b64),
   );
-  return { imagePath: path, imageUrl: signedUrl };
+  return { imagePath: path };
 }
 
 const carouselOutlineSchema = {
@@ -121,7 +135,7 @@ export async function generateCarousel(
     contentItemId: string;
     companyId: string;
   },
-): Promise<{ slides: CarouselSlide[]; coverPath: string; coverUrl: string }> {
+): Promise<{ slides: CarouselSlide[]; coverPath: string }> {
   const outline = await generateJson<{ slides: { titulo: string; subtitulo: string }[] }>({
     schemaName: "carrossel_outline",
     schema: carouselOutlineSchema,
@@ -175,11 +189,7 @@ export async function generateCarousel(
   }
 
   const cover = slides[0]!;
-  const { data: signed } = await supabase.storage
-    .from("content-media")
-    .createSignedUrl(cover.path, SIGNED_URL_TTL_SECONDS);
-
-  return { slides, coverPath: cover.path, coverUrl: signed?.signedUrl ?? "" };
+  return { slides, coverPath: cover.path };
 }
 
 const storyboardSchema = {
@@ -242,21 +252,66 @@ export async function generateVideoStoryboard(params: {
 }
 
 /**
- * Pluggable video-render seam. No render provider is wired into this
- * backend yet — this is deliberately not faked. Wire a real provider (e.g.
- * an API key for Higgsfield or another text/image-to-video service) by
- * filling in the branch below; until then every call returns the storyboard
- * with `status: "awaiting_provider"` so nothing generated is ever lost, and
- * a human can produce the video from the stored storyboard today.
+ * Turns a storyboard into a single Veo prompt. Veo takes one text prompt
+ * per generation, not a multi-shot API — this collapses the storyboard's
+ * blocks into one continuous scene description rather than attempting to
+ * generate and stitch multiple clips (a real multi-shot editor is future
+ * scope, not this pass).
  */
-export async function renderVideo(storyboard: Storyboard): Promise<VideoRenderResult> {
-  const provider = process.env["VIDEO_PROVIDER"];
-  if (!provider) return { status: "awaiting_provider", videoUrl: null };
+function buildVideoPrompt(
+  company: CompanyLike,
+  brandKit: BrandKitLike,
+  storyboard: Storyboard,
+): string {
+  const anchor = buildStyleAnchor(company, brandKit);
+  const scenes = storyboard.shots
+    .sort((a, b) => a.ordem - b.ordem)
+    .map((shot) => shot.visual_descricao)
+    .join(" Em seguida, ");
+  return [
+    anchor,
+    `Vídeo vertical curto para redes sociais, ${storyboard.duracao_total_seg} segundos.`,
+    `Sequência: ${scenes}.`,
+    "Sem texto sobreposto ilegível, sem marcas d'água.",
+  ].join(" ");
+}
 
-  console.error(
-    `[content-engine] VIDEO_PROVIDER="${provider}" is configured but no provider integration ` +
-      `exists yet in renderVideo() (src/lib/content-engine/index.ts). Falling back to storyboard-only.`,
+/**
+ * Kicks off a Veo render — an async, long-running operation (minutes), so
+ * this returns immediately with the operation name rather than blocking.
+ * The caller persists `operationName` (content_items.video_operation) and
+ * polls it later via checkVideoRender.
+ */
+export async function startVideoRender(params: {
+  company: CompanyLike;
+  brandKit: BrandKitLike;
+  storyboard: Storyboard;
+  aspectRatio?: "16:9" | "9:16";
+}): Promise<{ operationName: string }> {
+  const prompt = buildVideoPrompt(params.company, params.brandKit, params.storyboard);
+  return startVideoGeneration(prompt, { aspectRatio: params.aspectRatio ?? "9:16" });
+}
+
+/**
+ * Polls a pending Veo operation. When it's finished successfully, downloads
+ * the rendered video and uploads it into `content-media` (same
+ * store-the-path-not-a-long-lived-URL pattern as generated images) before
+ * returning "ready" — callers persist the result onto the content_items row.
+ */
+export async function checkVideoRender(
+  supabase: SupabaseClient<Database>,
+  params: { operationName: string; companyId: string; contentItemId: string },
+): Promise<VideoJobStatus> {
+  const status = await checkVideoOperation(params.operationName);
+  if (!status.done) return { status: "rendering" };
+  if ("error" in status) return { status: "failed", error: status.error };
+
+  const bytes = await downloadVideoBytes(status.videoUri);
+  const { path } = await uploadGeneratedVideo(
+    supabase,
+    params.companyId,
+    params.contentItemId,
+    bytes,
   );
-  void storyboard;
-  return { status: "awaiting_provider", videoUrl: null };
+  return { status: "ready", videoPath: path };
 }

@@ -17,7 +17,7 @@ noted) · **BLOCKED** = needs the user's action, not more code, to finish.
 |---|---|
 | Database | New Supabase project, user's own account (not self-hosted Docker — no Docker on this machine) |
 | AI provider | Gemini API direct, replacing the Lovable AI gateway entirely |
-| Text models | Mixed tier: `gemini-2.5-flash` for drafts (plan/carousel/storyboard/onboarding-research), `gemini-2.5-pro` for the diagnostic report |
+| Text models | Mixed tier: `gemini-2.5-flash` for drafts (plan/carousel/storyboard/onboarding-research), `gemini-2.5-pro` for the diagnostic report — **superseded 2026-09-17, see below** |
 | Image model | `gemini-2.5-flash-image` ("Nano Banana") |
 | Video | Veo (`veo-3.1-generate-preview`) wired in for real, async job + polling |
 | Google login | Dropped — email/password only |
@@ -34,27 +34,51 @@ noted) · **BLOCKED** = needs the user's action, not more code, to finish.
 
 ## BLOCKED on the user
 
-1. **Create the new Supabase project.** This session has no Supabase account/API token and
-   can't do this itself (account/billing action). Steps:
-   - `supabase.com` → New project → note the project ref, URL, publishable key, and (Settings →
-     API) the service-role key and DB password.
-   - Apply every migration in `supabase/migrations/` in order (`npx supabase db push` after
-     `supabase login` + `supabase link --project-ref <new-ref>`, or paste each file into the
-     SQL editor in order).
-   - In Auth settings: turn **off** Google as a provider (dropped this pass); email/password is
-     the only one this app uses now.
-   - Update `.env` (see `.env.example`) with the new `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
-     `SUPABASE_PROJECT_ID` (and their `VITE_` twins), and `SUPABASE_SERVICE_ROLE_KEY`.
-   - Regenerate `src/integrations/supabase/types.ts` for real:
-     `npx supabase gen types typescript --project-id <new-ref> > src/integrations/supabase/types.ts`
-     (this repo's copy was hand-written to match what the migrations *should* produce).
-2. **Gemini API key** — user is adding `GEMINI_API_KEY` to `.env` directly (their choice from
-   the MCQ round) and will confirm when done. Nothing AI-dependent can be tested until then.
-   Optional overrides for the model IDs are in `.env.example` — the defaults are a reasonable
-   starting point, not a guarantee of current availability (see the comment in `ai.server.ts`).
-3. **Veo cost.** Video rendering is real now, not a stub — every "Gerar roteiro + vídeo" click
-   spends actual money once the key is live. `src/lib/quota.server.ts` caps it (5/day, 20/month
-   per company by default) but the per-call cost itself is the user's to monitor.
+1. ~~Create the new Supabase project~~ **DONE (2026-09-16).** `Amgadmj's Project` /
+   `ihppmpnlpsvxqsqenjfl.supabase.co`. All 6 migrations applied and verified directly against
+   `pg_catalog`/`information_schema` (not just trusted from the SQL editor's UI, which had a
+   stale-render issue mid-session — caught by cross-checking). `.env` updated with the new
+   `SUPABASE_URL`/`SUPABASE_PUBLISHABLE_KEY`/`SUPABASE_SERVICE_ROLE_KEY`. `types.ts` is still the
+   hand-written version, though — regenerate for real once a Supabase access token is available:
+   `npx supabase gen types typescript --project-id ihppmpnlpsvxqsqenjfl > src/integrations/supabase/types.ts`.
+2. ~~Gemini API key~~ **DONE, but see the model swap below** — image/video still use Gemini
+   (`GEMINI_API_KEY` in `.env`, went through two bad values first: a non-Gemini-shaped token, then
+   a key whose Google Cloud project had the Generative Language API blocked — both confirmed by
+   direct test calls before the working key landed).
+3. **`ANTHROPIC_API_KEY`** — added by the user (2026-09-17), not yet tested end-to-end at their
+   request (they're testing it themselves).
+4. **Veo cost.** Video rendering is real, not a stub — every "Gerar roteiro + vídeo" click spends
+   actual money once Gemini's key is confirmed working. `src/lib/quota.server.ts` caps it (5/day,
+   20/month per company by default) but the per-call cost itself is the user's to monitor.
+
+---
+
+## Round 3 (2026-09-17): text generation moved to Claude
+
+Explicit, scoped request: "all the text and all diagnostic work" → Claude, not Gemini. Image
+generation and Veo video were **not** in scope and stay on Gemini.
+
+- `src/lib/ai.server.ts`: `generateJson()` now calls Claude (`claude-sonnet-4-6` by default,
+  `ANTHROPIC_TEXT_MODEL` to override) via the official `@anthropic-ai/sdk`, using native
+  structured outputs (`messages.parse()` + a Zod schema — confirmed against the bundled
+  `claude-api` skill's TypeScript docs, not assumed). The old fast/quality Gemini-model tier
+  split is gone — one model for all text now, per the request.
+- **Real quality win, not just a provider swap:** every call site previously hand-maintained a
+  raw JSON Schema *and* a parallel TypeScript type that could drift (flagged in the original code
+  review). They're now one Zod schema each — `diagnostico.ts`, `plano.ts`,
+  `content-engine/index.ts` (carousel outline + storyboard), `pesquisa-empresa.ts`.
+- **Caught before it shipped:** `@anthropic-ai/sdk`'s structured-output helper is typed against
+  `zod/v4`'s internals specifically, while the rest of the app validates request bodies with
+  plain `"zod"` (v3 API surface — zod 3.25.x ships both). Fixed by importing `zod/v4` only for
+  the AI-output schemas (`import { z as z4 } from "zod/v4"` alongside the existing v3 `z` in each
+  route file) rather than migrating the whole app's zod usage as a side effect of this change.
+- Gemini's SSE/JSON-schema plumbing in `ai.server.ts` is untouched for image/video; the
+  Gemini-only bits were renamed (`getApiKey` → `getGeminiApiKey`) for clarity now that there are
+  two providers in one file.
+- Verified: clean `tsc`, clean `eslint` on every touched file, a full production build with the
+  Anthropic SDK bundled. **Not yet verified: an actual Claude API call** — `ANTHROPIC_API_KEY`
+  was added after this was built; the user is testing it themselves rather than me spending their
+  API credits on a verification call.
 
 ---
 

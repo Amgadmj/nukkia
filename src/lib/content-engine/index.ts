@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+// generateJson's schema must be a zod/v4 schema — see the note in ai.server.ts.
+import { z } from "zod/v4";
 import type { Database } from "@/integrations/supabase/types";
 import {
   AiError,
@@ -98,27 +100,17 @@ export async function generateStaticArt(
   return { imagePath: path };
 }
 
-const carouselOutlineSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["slides"],
-  properties: {
-    slides: {
-      type: "array",
-      minItems: 4,
-      maxItems: 6,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["titulo", "subtitulo"],
-        properties: {
-          titulo: { type: "string" },
-          subtitulo: { type: "string" },
-        },
-      },
-    },
-  },
-};
+const carouselOutlineSchema = z.object({
+  slides: z
+    .array(
+      z.object({
+        titulo: z.string(),
+        subtitulo: z.string(),
+      }),
+    )
+    .min(4)
+    .max(6),
+});
 
 /**
  * N-slide carousel (cover → body → CTA), generalizing the AgrosTech carousel
@@ -136,8 +128,7 @@ export async function generateCarousel(
     companyId: string;
   },
 ): Promise<{ slides: CarouselSlide[]; coverPath: string }> {
-  const outline = await generateJson<{ slides: { titulo: string; subtitulo: string }[] }>({
-    schemaName: "carrossel_outline",
+  const outline = await generateJson({
     schema: carouselOutlineSchema,
     instructions:
       "Você é redator de carrosséis para Instagram no Brasil. A partir do tema, quebre em 4 a 6 slides: " +
@@ -192,31 +183,21 @@ export async function generateCarousel(
   return { slides, coverPath: cover.path };
 }
 
-const storyboardSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["titulo", "duracao_total_seg", "shots"],
-  properties: {
-    titulo: { type: "string" },
-    duracao_total_seg: { type: "integer" },
-    shots: {
-      type: "array",
-      minItems: 2,
-      maxItems: 6,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["ordem", "duracao_seg", "narracao", "visual_descricao"],
-        properties: {
-          ordem: { type: "integer" },
-          duracao_seg: { type: "integer" },
-          narracao: { type: "string" },
-          visual_descricao: { type: "string" },
-        },
-      },
-    },
-  },
-};
+const storyboardSchema = z.object({
+  titulo: z.string(),
+  duracao_total_seg: z.number().int(),
+  shots: z
+    .array(
+      z.object({
+        ordem: z.number().int(),
+        duracao_seg: z.number().int(),
+        narracao: z.string(),
+        visual_descricao: z.string(),
+      }),
+    )
+    .min(2)
+    .max(6),
+});
 
 /**
  * Script + shot list for a short vertical video (reels/stories), in the same
@@ -231,8 +212,7 @@ export async function generateVideoStoryboard(params: {
   item: ContentBrief;
 }): Promise<Storyboard> {
   const tone = params.brandKit?.tone?.trim() || "profissional e acolhedor";
-  return generateJson<Storyboard>({
-    schemaName: "video_storyboard",
+  return generateJson({
     schema: storyboardSchema,
     instructions:
       "Você é roteirista de vídeos curtos verticais (Reels/Stories) para pequenas empresas brasileiras. " +

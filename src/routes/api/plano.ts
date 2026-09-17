@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+// generateJson's schema must be a zod/v4 schema — see the note in ai.server.ts.
+import { z as z4 } from "zod/v4";
 import { AiError, generateJson } from "@/lib/ai.server";
 import { checkAiQuota, quotaExceededResponse } from "@/lib/quota.server";
 import { userClientFromRequest } from "@/lib/supabase-request.server";
@@ -9,44 +11,20 @@ const bodySchema = z.object({
   postsPorSemana: z.number().int().min(1).max(14).nullable().optional(),
 });
 
-const planSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["publicacoes"],
-  properties: {
-    publicacoes: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["dia", "canal", "formato", "pilar", "titulo", "legenda", "hashtags", "cta"],
-        properties: {
-          dia: { type: "integer" },
-          canal: { type: "string", enum: ["instagram", "linkedin"] },
-          formato: { type: "string", enum: ["post", "carrossel", "reels", "stories", "artigo"] },
-          pilar: { type: "string" },
-          titulo: { type: "string" },
-          legenda: { type: "string" },
-          hashtags: { type: "string" },
-          cta: { type: "string" },
-        },
-      },
-    },
-  },
-};
-
-type Plan = {
-  publicacoes: {
-    dia: number;
-    canal: string;
-    formato: string;
-    pilar: string;
-    titulo: string;
-    legenda: string;
-    hashtags: string;
-    cta: string;
-  }[];
-};
+const planSchema = z4.object({
+  publicacoes: z4.array(
+    z4.object({
+      dia: z4.number().int(),
+      canal: z4.enum(["instagram", "linkedin"]),
+      formato: z4.enum(["post", "carrossel", "reels", "stories", "artigo"]),
+      pilar: z4.string(),
+      titulo: z4.string(),
+      legenda: z4.string(),
+      hashtags: z4.string(),
+      cta: z4.string(),
+    }),
+  ),
+});
 
 export const Route = createFileRoute("/api/plano")({
   server: {
@@ -96,10 +74,9 @@ export const Route = createFileRoute("/api/plano")({
         const report = (diagnostic?.report ?? {}) as { pilares?: string[]; resumo?: string };
         const frequencia = parsed.data.postsPorSemana ?? 3;
 
-        let plan: Plan;
+        let plan: z4.infer<typeof planSchema>;
         try {
-          plan = await generateJson<Plan>({
-            schemaName: "plano_mensal_conteudo",
+          plan = await generateJson({
             schema: planSchema,
             instructions:
               "Você é estrategista de conteúdo para pequenas empresas brasileiras. Responda em português do Brasil. Crie o plano do próximo mês com 12 publicações no máximo, distribuídas entre os dias 1 e 28. Legendas de até 700 caracteres, hashtags em uma linha só, CTA curto. Nada de promessas de resultado em saúde.",
@@ -118,11 +95,9 @@ export const Route = createFileRoute("/api/plano")({
           return new Response(message, { status: 502 });
         }
 
-        if (!Array.isArray(plan.publicacoes) || plan.publicacoes.length === 0) {
-          console.error("[api/plano] AI plan shape was unexpected:", plan);
-          return new Response("A IA retornou uma resposta inesperada. Tente novamente.", {
-            status: 502,
-          });
+        if (plan.publicacoes.length === 0) {
+          console.error("[api/plano] AI returned an empty plan");
+          return new Response("A IA não retornou publicações. Tente novamente.", { status: 502 });
         }
 
         const hoje = new Date();

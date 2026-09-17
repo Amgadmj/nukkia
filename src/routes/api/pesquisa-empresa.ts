@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+// generateJson's schema must be a zod/v4 schema — see the note in ai.server.ts.
+import { z as z4 } from "zod/v4";
 import { AiError, generateJson } from "@/lib/ai.server";
 import { checkAiQuota, quotaExceededResponse } from "@/lib/quota.server";
 import { userClientFromRequest } from "@/lib/supabase-request.server";
@@ -8,35 +10,14 @@ const bodySchema = z.object({
   companyId: z.string().uuid(),
 });
 
-const draftSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: [
-    "segmento_sugerido",
-    "publico_alvo",
-    "mercado_concorrencia",
-    "diferenciais_provaveis",
-    "objetivos_provaveis",
-    "confianca",
-  ],
-  properties: {
-    segmento_sugerido: { type: "string" },
-    publico_alvo: { type: "string" },
-    mercado_concorrencia: { type: "string" },
-    diferenciais_provaveis: { type: "string" },
-    objetivos_provaveis: { type: "string" },
-    confianca: { type: "string", enum: ["alta", "media", "baixa"] },
-  },
-};
-
-type Draft = {
-  segmento_sugerido: string;
-  publico_alvo: string;
-  mercado_concorrencia: string;
-  diferenciais_provaveis: string;
-  objetivos_provaveis: string;
-  confianca: "alta" | "media" | "baixa";
-};
+const draftSchema = z4.object({
+  segmento_sugerido: z4.string(),
+  publico_alvo: z4.string(),
+  mercado_concorrencia: z4.string(),
+  diferenciais_provaveis: z4.string(),
+  objetivos_provaveis: z4.string(),
+  confianca: z4.enum(["alta", "media", "baixa"]),
+});
 
 /**
  * Two-phase onboarding, phase one: from just what the client typed at
@@ -90,10 +71,9 @@ export const Route = createFileRoute("/api/pesquisa-empresa")({
         const allowed = await checkAiQuota(supabase, company.id, "pesquisa_empresa");
         if (!allowed) return quotaExceededResponse("pesquisa_empresa");
 
-        let draft: Draft;
+        let draft: z4.infer<typeof draftSchema>;
         try {
-          draft = await generateJson<Draft>({
-            schemaName: "pesquisa_empresa_draft",
+          draft = await generateJson({
             schema: draftSchema,
             instructions:
               "Você ajuda a pré-preencher um formulário de diagnóstico de marketing para uma pequena empresa " +

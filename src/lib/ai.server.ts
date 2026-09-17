@@ -1,19 +1,31 @@
 /**
- * Gemini API client (replaces the Lovable AI gateway). Raw REST, no SDK —
- * confirmed against ai.google.dev's own docs (generateContent, image output
- * via inlineData/responseModalities, Veo via predictLongRunning) rather
- * than assumed, since model names and exact field shapes drift.
+ * Two providers, split by task:
+ *  - Anthropic (Claude) for all text/structured-JSON generation — the
+ *    diagnostic report, content plan, carousel outline, storyboard script,
+ *    and onboarding research draft. Moved off Gemini per an explicit,
+ *    scoped request ("all the text and diagnostic work").
+ *  - Gemini stays for image generation (gemini-2.5-flash-image / "Nano
+ *    Banana") and Veo video — those weren't in scope for this change.
  *
- * Model IDs are env-driven with conservative defaults (see .env.example).
- * Verify current model availability at
+ * The Gemini REST calls are confirmed against ai.google.dev's own docs
+ * (generateContent, image output via inlineData/responseModalities, Veo via
+ * predictLongRunning) rather than assumed. Model IDs are env-driven with
+ * conservative defaults (see .env.example) — verify current availability at
  * https://generativelanguage.googleapis.com/v1beta/models before relying on
- * a default in production — Google's naming has moved fast; treat these as
- * a starting point, not gospel.
+ * a default in production.
  */
+import Anthropic from "@anthropic-ai/sdk";
+import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+// The rest of this app validates against plain "zod" (v3 API surface).
+// @anthropic-ai/sdk's zodOutputFormat is typed against zod/v4's internals
+// specifically (zod 3.25+ ships both APIs in one package) — schemas built
+// with plain "zod" don't structurally satisfy it. Callers of generateJson()
+// must build their `schema` with `import { z } from "zod/v4"`, not "zod".
+import type { z } from "zod/v4";
+
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-const TEXT_MODEL_FAST = process.env["GEMINI_TEXT_MODEL_FAST"] || "gemini-2.5-flash";
-const TEXT_MODEL_QUALITY = process.env["GEMINI_TEXT_MODEL_QUALITY"] || "gemini-2.5-pro";
+const TEXT_MODEL = process.env["ANTHROPIC_TEXT_MODEL"] || "claude-sonnet-4-6";
 const IMAGE_MODEL = process.env["GEMINI_IMAGE_MODEL"] || "gemini-2.5-flash-image";
 const VIDEO_MODEL = process.env["GEMINI_VIDEO_MODEL"] || "veo-3.1-generate-preview";
 
@@ -38,10 +50,80 @@ export class AiError extends Error {
 
 class RetryableAiError extends Error {}
 
-export function getApiKey(): string {
+// --- Anthropic (Claude) — text / structured JSON --------------------------
+
+let _anthropic: Anthropic | undefined;
+function getAnthropicClient(): Anthropic {
+  if (!_anthropic) {
+    const apiKey = process.env["ANTHROPIC_API_KEY"];
+    if (!apiKey) {
+      throw new AiError("Geração de texto por IA temporariamente indisponível.", {
+        cause: new Error("ANTHROPIC_API_KEY não configurada"),
+      });
+    }
+    _anthropic = new Anthropic({ apiKey });
+  }
+  return _anthropic;
+}
+
+/**
+ * Structured JSON generation via Claude's native structured outputs
+ * (`messages.parse` + a Zod schema — see typescript/claude-api/tool-use.md
+ * in the claude-api skill). This replaces both the old Gemini responseSchema
+ * plumbing AND the hand-written JSON-schema-in-parallel-with-a-TS-type
+ * pattern the Gemini version needed: callers now pass one Zod schema and
+ * get a fully-typed, already-validated result back — `z.infer` is the
+ * return type, no `<T>` generic to keep in sync by hand.
+ */
+export async function generateJson<S extends z.ZodType>(options: {
+  instructions: string;
+  input: string;
+  schema: S;
+}): Promise<z.infer<S>> {
+  try {
+    const response = await getAnthropicClient().messages.parse({
+      model: TEXT_MODEL,
+      max_tokens: 16000,
+      system: options.instructions,
+      messages: [{ role: "user", content: options.input }],
+      output_config: { format: zodOutputFormat(options.schema) },
+    });
+
+    if (response.stop_reason === "refusal") {
+      throw new AiError("A IA não conseguiu processar esse pedido. Tente reformular.");
+    }
+    if (!response.parsed_output) {
+      throw new AiError("A IA retornou uma resposta inesperada. Tente novamente.");
+    }
+    return response.parsed_output;
+  } catch (err) {
+    if (err instanceof AiError) throw err;
+    // Most-specific-first: the SDK's typed exception chain (never string-match errors).
+    if (err instanceof Anthropic.AuthenticationError) {
+      console.error("[ai] Anthropic authentication error:", err.message);
+      throw new AiError("Geração por IA temporariamente indisponível.", { cause: err });
+    }
+    if (err instanceof Anthropic.RateLimitError) {
+      console.error("[ai] Anthropic rate limited:", err.message);
+      throw new AiError("O serviço de IA está sobrecarregado. Tente novamente em instantes.", {
+        cause: err,
+      });
+    }
+    if (err instanceof Anthropic.APIError) {
+      console.error(`[ai] Anthropic API error [${err.status}]:`, err.message);
+      throw new AiError("O serviço de IA não conseguiu processar o pedido agora.", { cause: err });
+    }
+    console.error("[ai] Anthropic unexpected error:", err);
+    throw new AiError("Não foi possível conectar ao serviço de IA.", { cause: err });
+  }
+}
+
+// --- Gemini — image generation + Veo video ---------------------------------
+
+export function getGeminiApiKey(): string {
   const key = process.env["GEMINI_API_KEY"];
   if (!key) {
-    throw new AiError("Geração por IA temporariamente indisponível.", {
+    throw new AiError("Geração de imagem/vídeo por IA temporariamente indisponível.", {
       cause: new Error("GEMINI_API_KEY não configurada"),
     });
   }
@@ -68,7 +150,7 @@ async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
 }
 
 function geminiHeaders(): HeadersInit {
-  return { "Content-Type": "application/json", "x-goog-api-key": getApiKey() };
+  return { "Content-Type": "application/json", "x-goog-api-key": getGeminiApiKey() };
 }
 
 async function callGemini(model: string, body: unknown, timeoutMs: number): Promise<unknown> {
@@ -78,7 +160,7 @@ async function callGemini(model: string, body: unknown, timeoutMs: number): Prom
     headers: geminiHeaders(),
     body: JSON.stringify(body),
   }).catch((err) => {
-    throw new AiError("Não foi possível conectar ao serviço de IA.", { cause: err });
+    throw new AiError("Não foi possível conectar ao serviço de imagens.", { cause: err });
   });
 
   if (!response.ok) {
@@ -90,77 +172,11 @@ async function callGemini(model: string, body: unknown, timeoutMs: number): Prom
   return response.json();
 }
 
-/**
- * Gemini's responseSchema is a subset of OpenAPI 3.0 Schema — it doesn't
- * recognize `additionalProperties` (an OpenAI-strict-mode-specific field
- * these schemas were originally written with). Strip it recursively rather
- * than maintaining two parallel schema definitions per route.
- */
-function toGeminiSchema(schema: unknown): unknown {
-  if (Array.isArray(schema)) return schema.map(toGeminiSchema);
-  if (schema && typeof schema === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(schema as Record<string, unknown>)) {
-      if (key === "additionalProperties") continue;
-      out[key] = toGeminiSchema(value);
-    }
-    return out;
-  }
-  return schema;
-}
-
 type GenerateContentResponse = {
   candidates?: {
     content?: { parts?: { text?: string; inlineData?: { data?: string; mimeType?: string } }[] };
   }[];
 };
-
-/**
- * Structured JSON generation. `tier` picks the model: "fast" (gemini-2.5-flash
- * by default) for routine drafts — plans, carousel outlines, storyboards,
- * onboarding research — and "quality" (gemini-2.5-pro) for the one
- * client-facing artifact worth the extra cost/latency, the diagnostic
- * report. Non-streaming: the original Lovable-gateway version streamed for
- * no real benefit (the caller still waited for the full JSON body before
- * doing anything with it) — this only adds SSE-parsing complexity, so it's
- * gone.
- */
-export async function generateJson<T>(options: {
-  instructions: string;
-  input: string;
-  schemaName: string;
-  schema: Record<string, unknown>;
-  tier?: "fast" | "quality";
-  timeoutMs?: number;
-}): Promise<T> {
-  const model = options.tier === "quality" ? TEXT_MODEL_QUALITY : TEXT_MODEL_FAST;
-
-  const text = await withRetry("generateJson", async () => {
-    const json = (await callGemini(
-      model,
-      {
-        systemInstruction: { parts: [{ text: options.instructions }] },
-        contents: [{ role: "user", parts: [{ text: options.input }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: toGeminiSchema(options.schema),
-        },
-      },
-      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    )) as GenerateContentResponse;
-
-    const parts = json.candidates?.[0]?.content?.parts ?? [];
-    return parts.map((p) => p.text ?? "").join("");
-  });
-
-  if (!text.trim()) throw new AiError("A IA não retornou conteúdo. Tente novamente.");
-  try {
-    return JSON.parse(text) as T;
-  } catch (err) {
-    console.error("[ai] generateJson: model output was not valid JSON:", text.slice(0, 2000));
-    throw new AiError("A IA retornou uma resposta inesperada. Tente novamente.", { cause: err });
-  }
-}
 
 /** Gera uma imagem via Gemini (gemini-2.5-flash-image / "Nano Banana") e devolve os bytes em base64. */
 export async function generateImageBase64(
@@ -185,8 +201,9 @@ export async function generateImageBase64(
   });
 }
 
-// --- Veo video generation: async (predictLongRunning) — see src/lib/content-engine/video.ts
-// for how this is turned into a poll-able job instead of a blocking call. ---
+// --- Veo video generation: async (predictLongRunning) — see
+// src/lib/content-engine/index.ts for how this is turned into a poll-able
+// job instead of a blocking call. ---
 
 export async function startVideoGeneration(
   prompt: string,
@@ -221,7 +238,7 @@ export type VeoOperationStatus =
 export async function checkVideoOperation(operationName: string): Promise<VeoOperationStatus> {
   const response = await fetch(`${GEMINI_BASE}/${operationName}`, {
     signal: AbortSignal.timeout(15_000),
-    headers: { "x-goog-api-key": getApiKey() },
+    headers: { "x-goog-api-key": getGeminiApiKey() },
   }).catch((err) => {
     throw new AiError("Não foi possível verificar o status do vídeo.", { cause: err });
   });
@@ -255,7 +272,7 @@ export async function checkVideoOperation(operationName: string): Promise<VeoOpe
  * this URI issues.
  */
 export async function downloadVideoBytes(uri: string): Promise<Uint8Array> {
-  const key = getApiKey();
+  const key = getGeminiApiKey();
   const url = `${uri}${uri.includes("?") ? "&" : "?"}key=${encodeURIComponent(key)}`;
   const response = await fetch(url, { signal: AbortSignal.timeout(120_000) }).catch((err) => {
     throw new AiError("Não foi possível baixar o vídeo gerado.", { cause: err });

@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+// generateJson's schema must be a zod/v4 schema — see the note in ai.server.ts.
+import { z as z4 } from "zod/v4";
 import { AiError, generateJson } from "@/lib/ai.server";
 import { checkAiQuota, quotaExceededResponse } from "@/lib/quota.server";
 import { userClientFromRequest } from "@/lib/supabase-request.server";
@@ -19,51 +21,22 @@ const bodySchema = z.object({
   }),
 });
 
-const reportSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: [
-    "resumo",
-    "pontos_fortes",
-    "oportunidades",
-    "recomendacoes",
-    "pilares",
-    "score",
-    "missoes",
-  ],
-  properties: {
-    resumo: { type: "string" },
-    pontos_fortes: { type: "array", items: { type: "string" } },
-    oportunidades: { type: "array", items: { type: "string" } },
-    recomendacoes: { type: "array", items: { type: "string" } },
-    pilares: { type: "array", items: { type: "string" } },
-    score: { type: "integer" },
-    missoes: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["titulo", "descricao", "categoria", "xp"],
-        properties: {
-          titulo: { type: "string" },
-          descricao: { type: "string" },
-          categoria: { type: "string" },
-          xp: { type: "integer" },
-        },
-      },
-    },
-  },
-};
-
-type Report = {
-  resumo: string;
-  pontos_fortes: string[];
-  oportunidades: string[];
-  recomendacoes: string[];
-  pilares: string[];
-  score: number;
-  missoes: { titulo: string; descricao: string; categoria: string; xp: number }[];
-};
+const reportSchema = z4.object({
+  resumo: z4.string(),
+  pontos_fortes: z4.array(z4.string()),
+  oportunidades: z4.array(z4.string()),
+  recomendacoes: z4.array(z4.string()),
+  pilares: z4.array(z4.string()),
+  score: z4.number().int(),
+  missoes: z4.array(
+    z4.object({
+      titulo: z4.string(),
+      descricao: z4.string(),
+      categoria: z4.string(),
+      xp: z4.number().int(),
+    }),
+  ),
+});
 
 export const Route = createFileRoute("/api/diagnostico")({
   server: {
@@ -92,14 +65,10 @@ export const Route = createFileRoute("/api/diagnostico")({
         if (!allowed) return quotaExceededResponse("diagnostico");
 
         const a = parsed.data.answers;
-        let report: Report;
+        let report: z4.infer<typeof reportSchema>;
         try {
-          report = await generateJson<Report>({
-            schemaName: "diagnostico_presenca_digital",
+          report = await generateJson({
             schema: reportSchema,
-            // The one client-facing AI artifact worth the extra cost/latency
-            // (per the mixed Gemini-tier decision — everything else uses "fast").
-            tier: "quality",
             instructions:
               "Você é consultor sênior de marketing digital para pequenas empresas e clínicas no Brasil. Responda sempre em português do Brasil, com linguagem simples e acionável. Máximo de 5 itens por lista, cada item com até 220 caracteres. Gere de 5 a 7 missões prioritárias com XP entre 50 e 200. score é de 0 a 100. Se houver restrições éticas/regulatórias do segmento (ex.: CFM para clínicas, OAB para escritórios de advocacia), respeite-as nas recomendações e nunca sugira promessas de resultado.",
             input: [
@@ -123,13 +92,8 @@ export const Route = createFileRoute("/api/diagnostico")({
           return new Response(message, { status: 502 });
         }
 
-        if (!Array.isArray(report.missoes) || !Array.isArray(report.pontos_fortes)) {
-          console.error("[api/diagnostico] AI report shape was unexpected:", report);
-          return new Response("A IA retornou uma resposta inesperada. Tente novamente.", {
-            status: 502,
-          });
-        }
-
+        // Zod already validated this shape (generateJson's structured output) —
+        // no need for a defensive Array.isArray check the type already guarantees.
         const score = Math.max(0, Math.min(100, Math.round(report.score)));
 
         const { error: insertError } = await supabase.from("diagnostics").insert({

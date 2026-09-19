@@ -16,6 +16,7 @@ export const AI_LIMITS = {
   video_storyboard: { daily: 10, monthly: 60 },
   video_render: { daily: 5, monthly: 20 },
   pesquisa_empresa: { daily: 15, monthly: 60 },
+  paleta: { daily: 15, monthly: 60 },
 } as const satisfies Record<string, { daily: number; monthly: number }>;
 
 export type AiUsageKind = keyof typeof AI_LIMITS;

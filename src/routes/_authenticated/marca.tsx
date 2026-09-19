@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, Upload } from "lucide-react";
+import { Check, Sparkles, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { apiFetch } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useBrandKit, useCompany, type Company } from "@/lib/company";
@@ -36,7 +37,13 @@ export const Route = createFileRoute("/_authenticated/marca")({
   component: Marca,
 });
 
-const paletas = [
+export type PaletteOption = { nome: string; cores: string[]; justificativa?: string };
+
+// Only ever shown before the AI has generated a company-specific set (first
+// paint, pre-fetch) or if generation itself fails outright (missing API
+// key, quota exhausted, network error) — never the default a user actually
+// picks from once /api/paleta has had a chance to run.
+const FALLBACK_PALETTES: PaletteOption[] = [
   { nome: "Confiança Clínica", cores: ["#0F3D6E", "#2E8BC0", "#B1D4E0", "#F5F9FC"] },
   { nome: "Energia Moderna", cores: ["#2A0845", "#3B82F6", "#06B6D4", "#F8FAFC"] },
   { nome: "Acolhimento Natural", cores: ["#2F4F3E", "#7BA88B", "#E4C58B", "#FBF7F0"] },
@@ -89,7 +96,6 @@ function Marca() {
       const { error: saveError } = await supabase.from("brand_kits").upsert(
         {
           company_id: company.id,
-          options: paletas,
           logo_url: data?.signedUrl ?? null,
           selected_index: brandKit?.selected_index ?? null,
           palette: brandKit?.palette ?? null,
@@ -182,19 +188,60 @@ function IdentityForm({
   logoUrl: string | null;
 }) {
   const queryClient = useQueryClient();
-  const [selected, setSelected] = useState<number>(brandKit?.selected_index ?? 1);
+  const savedOptions = (brandKit?.options as unknown as PaletteOption[] | null) ?? null;
+  const [options, setOptions] = useState<PaletteOption[]>(
+    savedOptions?.length ? savedOptions : FALLBACK_PALETTES,
+  );
+  const [generating, setGenerating] = useState(false);
+  const [selected, setSelected] = useState<number>(brandKit?.selected_index ?? 0);
   const [saving, setSaving] = useState(false);
+  const autoRequested = useRef(false);
+
+  async function gerarPaletas(auto: boolean) {
+    setGenerating(true);
+    try {
+      const response = await apiFetch("/api/paleta", { companyId: company.id });
+      if (!response.ok) {
+        if (!auto) {
+          const message = await response.text();
+          toast.error(message || "Não foi possível gerar novas paletas.");
+        }
+        return;
+      }
+      const { paletas: novas } = (await response.json()) as { paletas: PaletteOption[] };
+      setOptions(novas);
+      setSelected(0);
+      if (!auto) toast.success("Novas paletas geradas pela IA!");
+    } catch {
+      if (!auto) toast.error("Não foi possível gerar novas paletas.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  // The first time this company has no AI-generated options saved yet, ask
+  // for them automatically so the page never falls back to showing the
+  // same three generic options to everyone. A returning user who already
+  // has saved options never re-spends a quota unit just by opening this
+  // page — regenerating after that is only ever an explicit click below.
+  useEffect(() => {
+    if (!savedOptions?.length && !autoRequested.current) {
+      autoRequested.current = true;
+      void gerarPaletas(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedOptions]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setSaving(true);
     try {
-      const paleta = paletas[selected] ?? paletas[1]!;
+      const paleta = options[selected] ?? options[0]!;
       const { error } = await supabase.from("brand_kits").upsert(
         {
           company_id: company.id,
-          options: paletas,
+          options,
           logo_url: logoUrl,
           selected_index: selected,
           palette: paleta,
@@ -218,20 +265,38 @@ function IdentityForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Escolha sua paleta</CardTitle>
-          <CardDescription>Três direções sugeridas para o seu segmento.</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle>Escolha sua paleta</CardTitle>
+            <CardDescription>
+              {generating
+                ? "Gerando três direções para o seu segmento..."
+                : "Três direções geradas por IA para o seu segmento."}
+            </CardDescription>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => gerarPaletas(false)}
+            disabled={generating}
+          >
+            <Sparkles className="mr-1.5 size-3.5" />
+            {generating ? "Gerando..." : "Gerar novas opções"}
+          </Button>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
-          {paletas.map((paleta, index) => (
+          {options.map((paleta, index) => (
             <button
               type="button"
-              key={paleta.nome}
+              key={`${paleta.nome}-${index}`}
               onClick={() => setSelected(index)}
               aria-pressed={selected === index}
+              disabled={generating}
               className={cn(
                 "rounded-xl border p-4 text-left transition-colors",
                 selected === index ? "border-primary ring-2 ring-primary/30" : "border-border",
+                generating && "opacity-60",
               )}
             >
               <div className="flex items-center justify-between">
@@ -239,15 +304,18 @@ function IdentityForm({
                 {selected === index && <Check className="size-4 text-primary" />}
               </div>
               <div className="mt-3 flex gap-1.5">
-                {paleta.cores.map((cor) => (
+                {paleta.cores.map((cor, corIndex) => (
                   <span
-                    key={cor}
+                    key={`${cor}-${corIndex}`}
                     title={cor}
                     className="size-8 rounded-md border border-border"
                     style={{ backgroundColor: cor }}
                   />
                 ))}
               </div>
+              {paleta.justificativa && (
+                <p className="mt-2 text-xs text-muted-foreground">{paleta.justificativa}</p>
+              )}
             </button>
           ))}
         </CardContent>

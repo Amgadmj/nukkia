@@ -27,6 +27,7 @@ import { Route as ApiArteRouteImport } from './routes/api/arte'
 import { Route as ApiContaRouteImport } from './routes/api/conta'
 import { Route as ApiDiagnosticoRouteImport } from './routes/api/diagnostico'
 import { Route as ApiExportarDadosRouteImport } from './routes/api/exportar-dados'
+import { Route as ApiPaletaRouteImport } from './routes/api/paleta'
 import { Route as ApiPesquisaEmpresaRouteImport } from './routes/api/pesquisa-empresa'
 import { Route as ApiPlanoRouteImport } from './routes/api/plano'
 import { Route as ApiVideoStatusRouteImport } from './routes/api/video-status'
@@ -121,6 +122,11 @@ const ApiExportarDadosRoute = ApiExportarDadosRouteImport.update({
   path: '/api/exportar-dados',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPaletaRoute = ApiPaletaRouteImport.update({
+  id: '/api/paleta',
+  path: '/api/paleta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPesquisaEmpresaRoute = ApiPesquisaEmpresaRouteImport.update({
   id: '/api/pesquisa-empresa',
   path: '/api/pesquisa-empresa',
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
   '/api/exportar-dados': typeof ApiExportarDadosRoute
+  '/api/paleta': typeof ApiPaletaRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
   '/api/video-status': typeof ApiVideoStatusRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
   '/api/exportar-dados': typeof ApiExportarDadosRoute
+  '/api/paleta': typeof ApiPaletaRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
   '/api/video-status': typeof ApiVideoStatusRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
   '/api/exportar-dados': typeof ApiExportarDadosRoute
+  '/api/paleta': typeof ApiPaletaRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
   '/api/video-status': typeof ApiVideoStatusRoute
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
     | '/api/conta'
     | '/api/diagnostico'
     | '/api/exportar-dados'
+    | '/api/paleta'
     | '/api/pesquisa-empresa'
     | '/api/plano'
     | '/api/video-status'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/api/conta'
     | '/api/diagnostico'
     | '/api/exportar-dados'
+    | '/api/paleta'
     | '/api/pesquisa-empresa'
     | '/api/plano'
     | '/api/video-status'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '/api/conta'
     | '/api/diagnostico'
     | '/api/exportar-dados'
+    | '/api/paleta'
     | '/api/pesquisa-empresa'
     | '/api/plano'
     | '/api/video-status'
@@ -285,6 +297,7 @@ export interface RootRouteChildren {
   ApiContaRoute: typeof ApiContaRoute
   ApiDiagnosticoRoute: typeof ApiDiagnosticoRoute
   ApiExportarDadosRoute: typeof ApiExportarDadosRoute
+  ApiPaletaRoute: typeof ApiPaletaRoute
   ApiPesquisaEmpresaRoute: typeof ApiPesquisaEmpresaRoute
   ApiPlanoRoute: typeof ApiPlanoRoute
   ApiVideoStatusRoute: typeof ApiVideoStatusRoute
@@ -418,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiExportarDadosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/paleta': {
+      id: '/api/paleta'
+      path: '/api/paleta'
+      fullPath: '/api/paleta'
+      preLoaderRoute: typeof ApiPaletaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/pesquisa-empresa': {
       id: '/api/pesquisa-empresa'
       path: '/api/pesquisa-empresa'
@@ -479,6 +499,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiContaRoute: ApiContaRoute,
   ApiDiagnosticoRoute: ApiDiagnosticoRoute,
   ApiExportarDadosRoute: ApiExportarDadosRoute,
+  ApiPaletaRoute: ApiPaletaRoute,
   ApiPesquisaEmpresaRoute: ApiPesquisaEmpresaRoute,
   ApiPlanoRoute: ApiPlanoRoute,
   ApiVideoStatusRoute: ApiVideoStatusRoute,

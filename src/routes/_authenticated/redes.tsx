@@ -1,32 +1,32 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Instagram, Linkedin } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ChannelOverview } from "@/components/channel-overview";
+import { ChannelRecommendations } from "@/components/channel-recommendations";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/lib/company";
+import { useMarketingWorkspace } from "@/components/marketing-provider";
+import { projectChannelReferences } from "@/lib/brand-sources";
 
 export const Route = createFileRoute("/_authenticated/redes")({
   head: () => ({
     meta: [
-      { title: "Redes conectadas | Nukkia" },
+      { title: "Canais | Nukkia" },
       {
         name: "description",
-        content: "Conecte Instagram e LinkedIn para publicar automaticamente e acompanhar métricas.",
+        content: "Seus links públicos e o status registrado das suas contas.",
       },
-      { property: "og:title", content: "Redes conectadas | Nukkia" },
-      { property: "og:description", content: "Publicação automática no Instagram e LinkedIn." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Redes,
 });
 
 function Redes() {
-  const { data: company } = useCompany();
-  const { data: accounts } = useQuery({
+  const { data: workspace, setData, sync } = useMarketingWorkspace();
+  const navigate = Route.useNavigate();
+  const companyQuery = useCompany();
+  const company = companyQuery.data;
+  const accounts = useQuery({
     enabled: Boolean(company?.id),
     queryKey: ["social-accounts", company?.id],
     queryFn: async () => {
@@ -38,70 +38,87 @@ function Redes() {
       return data ?? [];
     },
   });
+  const latestData = useQuery({
+    enabled: Boolean(company?.id),
+    queryKey: ["channel-latest-metrics", company?.id],
+    queryFn: async () => {
+      const rows = await Promise.all(
+        ["instagram", "linkedin"].map(async (provider) => {
+          const { data, error } = await supabase
+            .from("metrics_snapshots")
+            .select("provider, captured_for")
+            .eq("company_id", company!.id)
+            .eq("provider", provider)
+            .order("captured_for", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (error) throw error;
+          return data;
+        }),
+      );
+      return rows.filter((row) => row !== null);
+    },
+  });
 
-  const status = (provider: string) =>
-    accounts?.find((a) => a.provider === provider)?.status ?? "disconnected";
-
-  if (!company) {
-    return <p className="text-muted-foreground">Cadastre sua empresa no painel para começar.</p>;
-  }
+  if (companyQuery.isPending || sync === "loading")
+    return (
+      <p role="status" className="text-muted-foreground">
+        Carregando seus canais…
+      </p>
+    );
+  if (companyQuery.isError)
+    return (
+      <div role="alert" className="space-y-4">
+        <p>Não foi possível carregar sua empresa.</p>
+        <Button variant="outline" onClick={() => void companyQuery.refetch()}>
+          Tentar novamente
+        </Button>
+      </div>
+    );
+  if (!company)
+    return (
+      <div className="space-y-4 py-8">
+        <h1 className="text-3xl font-semibold">Canais</h1>
+        <p className="text-muted-foreground">Cadastre sua empresa para reunir seus canais.</p>
+        <Button asChild>
+          <Link to="/boas-vindas">Cadastrar empresa</Link>
+        </Button>
+      </div>
+    );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Redes sociais</h1>
-        <p className="mt-1 text-muted-foreground">
-          Conecte seus perfis para a Nukkia publicar e trazer as métricas automaticamente.
-        </p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Instagram className="size-5" /> Instagram
-            </CardTitle>
-            <CardDescription>
-              Publicação de feed, carrossel e reels, além de alcance, engajamento e visitas ao perfil.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Badge variant={status("instagram") === "connected" ? "default" : "secondary"}>
-              {status("instagram") === "connected" ? "Conectado" : "Não conectado"}
-            </Badge>
-            <p className="text-sm text-muted-foreground">
-              Para conectar seu Instagram profissional precisamos das credenciais do aplicativo Meta
-              da sua empresa. Assim que você enviar, habilitamos a publicação automática.
-            </p>
-            <Button variant="outline" disabled>
-              Aguardando credenciais Meta
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Linkedin className="size-5" /> LinkedIn
-            </CardTitle>
-            <CardDescription>
-              Publicação na página da empresa e acompanhamento de impressões e engajamento.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Badge variant={status("linkedin") === "connected" ? "default" : "secondary"}>
-              {status("linkedin") === "connected" ? "Conectado" : "Não conectado"}
-            </Badge>
-            <p className="text-sm text-muted-foreground">
-              A conexão do LinkedIn é autorizada uma única vez pelo responsável da página. Peça a
-              liberação no chat da Nukkia para ativar.
-            </p>
-            <Button variant="outline" disabled>
-              Autorização pendente
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <ChannelOverview
+      references={projectChannelReferences(workspace)}
+      priority={
+        <ChannelRecommendations
+          data={workspace}
+          onData={setData}
+          onDiagnose={() =>
+            void navigate({
+              to: "/diagnostico",
+              search: { editar: "diagnostico", retorno: "redes", capitulo: 1 },
+            })
+          }
+        />
+      }
+      company={{
+        website: workspace.answers.website,
+        instagram_handle: workspace.answers.instagram,
+        linkedin_url: workspace.answers.linkedin,
+      }}
+      accounts={accounts.data ?? []}
+      accountsState={accounts.isError ? "error" : accounts.isPending ? "loading" : "ready"}
+      latestData={latestData.data ?? []}
+      dataState={latestData.isError ? "error" : latestData.isPending ? "loading" : "ready"}
+      onRetry={() => {
+        void accounts.refetch();
+        void latestData.refetch();
+      }}
+      action={
+        <Link to="/diagnostico" search={{ editar: "contexto", retorno: "redes" }}>
+          Revisar meus links
+        </Link>
+      }
+    />
   );
 }

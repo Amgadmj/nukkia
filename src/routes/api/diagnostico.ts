@@ -5,20 +5,11 @@ import { z as z4 } from "zod/v4";
 import { AiError, generateJson } from "@/lib/ai.server";
 import { checkAiQuota, quotaExceededResponse } from "@/lib/quota.server";
 import { userClientFromRequest } from "@/lib/supabase-request.server";
+import { answersSchema, diagnosticPrompt } from "@/lib/onboarding";
 
 const bodySchema = z.object({
   companyId: z.string().uuid(),
-  answers: z.object({
-    audience: z.string().max(1000),
-    market: z.string().max(1000),
-    offers: z.string().max(1000),
-    differentials: z.string().max(1000),
-    goals: z.string().max(1000),
-    website: z.string().max(200),
-    instagram: z.string().max(100),
-    linkedin: z.string().max(200),
-    restrictions: z.string().max(1000).optional(),
-  }),
+  answers: answersSchema.refine((a) => Boolean(a.audience && a.offers), "Informe público e oferta"),
 });
 
 const reportSchema = z4.object({
@@ -75,15 +66,8 @@ export const Route = createFileRoute("/api/diagnostico")({
               `Empresa: ${company.name}`,
               `Segmento: ${company.segment ?? "não informado"}`,
               `Funcionários: ${company.employees ?? "não informado"}`,
-              `Público-alvo: ${a.audience}`,
-              `Produtos/serviços: ${a.offers}`,
-              `Mercado e concorrência: ${a.market}`,
-              `Diferenciais: ${a.differentials}`,
-              `Objetivos de 3 meses: ${a.goals}`,
+              diagnosticPrompt(a),
               `Restrições éticas/regulatórias do segmento: ${a.restrictions || "não informado"}`,
-              `Site: ${a.website || "não possui"}`,
-              `Instagram: ${a.instagram || "não possui"}`,
-              `LinkedIn: ${a.linkedin || "não possui"}`,
             ].join("\n"),
           });
         } catch (err) {
@@ -107,6 +91,24 @@ export const Route = createFileRoute("/api/diagnostico")({
           console.error("[api/diagnostico] failed to save diagnostic:", insertError.message);
           return new Response("Não foi possível salvar o diagnóstico.", { status: 500 });
         }
+
+        // Only advance after the report is actually saved. A failed AI request
+        // must not mark the diagnostic complete or discard the user's draft.
+        const { error: linksError } = await supabase
+          .from("companies")
+          .update({
+            website: a.website || null,
+            instagram_handle: a.instagram || null,
+            linkedin_url: a.linkedin || null,
+          })
+          .eq("id", company.id);
+        if (linksError)
+          console.error("[api/diagnostico] failed to update company links:", linksError.message);
+        await supabase
+          .from("companies")
+          .update({ onboarding_step: "brand" })
+          .eq("id", company.id)
+          .eq("onboarding_step", "diagnostic");
 
         const { data: existing } = await supabase
           .from("missions")

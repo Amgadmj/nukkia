@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedBoasVindasRouteImport } from './routes/_authenticated/boas-vindas'
 import { Route as AuthenticatedContaRouteImport } from './routes/_authenticated/conta'
 import { Route as AuthenticatedConteudoRouteImport } from './routes/_authenticated/conteudo'
 import { Route as AuthenticatedDiagnosticoRouteImport } from './routes/_authenticated/diagnostico'
@@ -24,9 +26,13 @@ import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedRedesRouteImport } from './routes/_authenticated/redes'
 import { Route as AuthenticatedTrilhaRouteImport } from './routes/_authenticated/trilha'
 import { Route as ApiArteRouteImport } from './routes/api/arte'
+import { Route as ApiBrandPreviewRouteImport } from './routes/api/brand-preview'
+import { Route as ApiBrandStoryRouteImport } from './routes/api/brand-story'
 import { Route as ApiContaRouteImport } from './routes/api/conta'
 import { Route as ApiDiagnosticoRouteImport } from './routes/api/diagnostico'
 import { Route as ApiExportarDadosRouteImport } from './routes/api/exportar-dados'
+import { Route as ApiMarketingWorkspaceRouteImport } from './routes/api/marketing-workspace'
+import { Route as ApiOnboardingDraftRouteImport } from './routes/api/onboarding-draft'
 import { Route as ApiPaletaRouteImport } from './routes/api/paleta'
 import { Route as ApiPesquisaEmpresaRouteImport } from './routes/api/pesquisa-empresa'
 import { Route as ApiPlanoRouteImport } from './routes/api/plano'
@@ -46,6 +52,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
@@ -59,6 +70,11 @@ const TermosRoute = TermosRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBoasVindasRoute = AuthenticatedBoasVindasRouteImport.update({
+  id: '/boas-vindas',
+  path: '/boas-vindas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedContaRoute = AuthenticatedContaRouteImport.update({
@@ -107,6 +123,16 @@ const ApiArteRoute = ApiArteRouteImport.update({
   path: '/api/arte',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBrandPreviewRoute = ApiBrandPreviewRouteImport.update({
+  id: '/api/brand-preview',
+  path: '/api/brand-preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBrandStoryRoute = ApiBrandStoryRouteImport.update({
+  id: '/api/brand-story',
+  path: '/api/brand-story',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiContaRoute = ApiContaRouteImport.update({
   id: '/api/conta',
   path: '/api/conta',
@@ -120,6 +146,16 @@ const ApiDiagnosticoRoute = ApiDiagnosticoRouteImport.update({
 const ApiExportarDadosRoute = ApiExportarDadosRouteImport.update({
   id: '/api/exportar-dados',
   path: '/api/exportar-dados',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMarketingWorkspaceRoute = ApiMarketingWorkspaceRouteImport.update({
+  id: '/api/marketing-workspace',
+  path: '/api/marketing-workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOnboardingDraftRoute = ApiOnboardingDraftRouteImport.update({
+  id: '/api/onboarding-draft',
+  path: '/api/onboarding-draft',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPaletaRoute = ApiPaletaRouteImport.update({
@@ -146,9 +182,11 @@ const ApiVideoStatusRoute = ApiVideoStatusRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/demo': typeof DemoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/conta': typeof AuthenticatedContaRoute
   '/conteudo': typeof AuthenticatedConteudoRoute
   '/diagnostico': typeof AuthenticatedDiagnosticoRoute
@@ -158,9 +196,13 @@ export interface FileRoutesByFullPath {
   '/redes': typeof AuthenticatedRedesRoute
   '/trilha': typeof AuthenticatedTrilhaRoute
   '/api/arte': typeof ApiArteRoute
+  '/api/brand-preview': typeof ApiBrandPreviewRoute
+  '/api/brand-story': typeof ApiBrandStoryRoute
   '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
   '/api/exportar-dados': typeof ApiExportarDadosRoute
+  '/api/marketing-workspace': typeof ApiMarketingWorkspaceRoute
+  '/api/onboarding-draft': typeof ApiOnboardingDraftRoute
   '/api/paleta': typeof ApiPaletaRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
@@ -169,9 +211,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/demo': typeof DemoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/conta': typeof AuthenticatedContaRoute
   '/conteudo': typeof AuthenticatedConteudoRoute
   '/diagnostico': typeof AuthenticatedDiagnosticoRoute
@@ -181,9 +225,13 @@ export interface FileRoutesByTo {
   '/redes': typeof AuthenticatedRedesRoute
   '/trilha': typeof AuthenticatedTrilhaRoute
   '/api/arte': typeof ApiArteRoute
+  '/api/brand-preview': typeof ApiBrandPreviewRoute
+  '/api/brand-story': typeof ApiBrandStoryRoute
   '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
   '/api/exportar-dados': typeof ApiExportarDadosRoute
+  '/api/marketing-workspace': typeof ApiMarketingWorkspaceRoute
+  '/api/onboarding-draft': typeof ApiOnboardingDraftRoute
   '/api/paleta': typeof ApiPaletaRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
@@ -194,9 +242,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/demo': typeof DemoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/_authenticated/conta': typeof AuthenticatedContaRoute
   '/_authenticated/conteudo': typeof AuthenticatedConteudoRoute
   '/_authenticated/diagnostico': typeof AuthenticatedDiagnosticoRoute
@@ -206,9 +256,13 @@ export interface FileRoutesById {
   '/_authenticated/redes': typeof AuthenticatedRedesRoute
   '/_authenticated/trilha': typeof AuthenticatedTrilhaRoute
   '/api/arte': typeof ApiArteRoute
+  '/api/brand-preview': typeof ApiBrandPreviewRoute
+  '/api/brand-story': typeof ApiBrandStoryRoute
   '/api/conta': typeof ApiContaRoute
   '/api/diagnostico': typeof ApiDiagnosticoRoute
   '/api/exportar-dados': typeof ApiExportarDadosRoute
+  '/api/marketing-workspace': typeof ApiMarketingWorkspaceRoute
+  '/api/onboarding-draft': typeof ApiOnboardingDraftRoute
   '/api/paleta': typeof ApiPaletaRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
@@ -219,9 +273,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/demo'
     | '/privacidade'
     | '/termos'
     | '/admin'
+    | '/boas-vindas'
     | '/conta'
     | '/conteudo'
     | '/diagnostico'
@@ -231,9 +287,13 @@ export interface FileRouteTypes {
     | '/redes'
     | '/trilha'
     | '/api/arte'
+    | '/api/brand-preview'
+    | '/api/brand-story'
     | '/api/conta'
     | '/api/diagnostico'
     | '/api/exportar-dados'
+    | '/api/marketing-workspace'
+    | '/api/onboarding-draft'
     | '/api/paleta'
     | '/api/pesquisa-empresa'
     | '/api/plano'
@@ -242,9 +302,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/demo'
     | '/privacidade'
     | '/termos'
     | '/admin'
+    | '/boas-vindas'
     | '/conta'
     | '/conteudo'
     | '/diagnostico'
@@ -254,9 +316,13 @@ export interface FileRouteTypes {
     | '/redes'
     | '/trilha'
     | '/api/arte'
+    | '/api/brand-preview'
+    | '/api/brand-story'
     | '/api/conta'
     | '/api/diagnostico'
     | '/api/exportar-dados'
+    | '/api/marketing-workspace'
+    | '/api/onboarding-draft'
     | '/api/paleta'
     | '/api/pesquisa-empresa'
     | '/api/plano'
@@ -266,9 +332,11 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/demo'
     | '/privacidade'
     | '/termos'
     | '/_authenticated/admin'
+    | '/_authenticated/boas-vindas'
     | '/_authenticated/conta'
     | '/_authenticated/conteudo'
     | '/_authenticated/diagnostico'
@@ -278,9 +346,13 @@ export interface FileRouteTypes {
     | '/_authenticated/redes'
     | '/_authenticated/trilha'
     | '/api/arte'
+    | '/api/brand-preview'
+    | '/api/brand-story'
     | '/api/conta'
     | '/api/diagnostico'
     | '/api/exportar-dados'
+    | '/api/marketing-workspace'
+    | '/api/onboarding-draft'
     | '/api/paleta'
     | '/api/pesquisa-empresa'
     | '/api/plano'
@@ -291,12 +363,17 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DemoRoute: typeof DemoRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
   ApiArteRoute: typeof ApiArteRoute
+  ApiBrandPreviewRoute: typeof ApiBrandPreviewRoute
+  ApiBrandStoryRoute: typeof ApiBrandStoryRoute
   ApiContaRoute: typeof ApiContaRoute
   ApiDiagnosticoRoute: typeof ApiDiagnosticoRoute
   ApiExportarDadosRoute: typeof ApiExportarDadosRoute
+  ApiMarketingWorkspaceRoute: typeof ApiMarketingWorkspaceRoute
+  ApiOnboardingDraftRoute: typeof ApiOnboardingDraftRoute
   ApiPaletaRoute: typeof ApiPaletaRoute
   ApiPesquisaEmpresaRoute: typeof ApiPesquisaEmpresaRoute
   ApiPlanoRoute: typeof ApiPlanoRoute
@@ -326,6 +403,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacidade': {
       id: '/privacidade'
       path: '/privacidade'
@@ -345,6 +429,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/boas-vindas': {
+      id: '/_authenticated/boas-vindas'
+      path: '/boas-vindas'
+      fullPath: '/boas-vindas'
+      preLoaderRoute: typeof AuthenticatedBoasVindasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/conta': {
@@ -410,6 +501,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiArteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/brand-preview': {
+      id: '/api/brand-preview'
+      path: '/api/brand-preview'
+      fullPath: '/api/brand-preview'
+      preLoaderRoute: typeof ApiBrandPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/brand-story': {
+      id: '/api/brand-story'
+      path: '/api/brand-story'
+      fullPath: '/api/brand-story'
+      preLoaderRoute: typeof ApiBrandStoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/conta': {
       id: '/api/conta'
       path: '/api/conta'
@@ -429,6 +534,20 @@ declare module '@tanstack/react-router' {
       path: '/api/exportar-dados'
       fullPath: '/api/exportar-dados'
       preLoaderRoute: typeof ApiExportarDadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/marketing-workspace': {
+      id: '/api/marketing-workspace'
+      path: '/api/marketing-workspace'
+      fullPath: '/api/marketing-workspace'
+      preLoaderRoute: typeof ApiMarketingWorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/onboarding-draft': {
+      id: '/api/onboarding-draft'
+      path: '/api/onboarding-draft'
+      fullPath: '/api/onboarding-draft'
+      preLoaderRoute: typeof ApiOnboardingDraftRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/paleta': {
@@ -464,6 +583,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedBoasVindasRoute: typeof AuthenticatedBoasVindasRoute
   AuthenticatedContaRoute: typeof AuthenticatedContaRoute
   AuthenticatedConteudoRoute: typeof AuthenticatedConteudoRoute
   AuthenticatedDiagnosticoRoute: typeof AuthenticatedDiagnosticoRoute
@@ -476,6 +596,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedBoasVindasRoute: AuthenticatedBoasVindasRoute,
   AuthenticatedContaRoute: AuthenticatedContaRoute,
   AuthenticatedConteudoRoute: AuthenticatedConteudoRoute,
   AuthenticatedDiagnosticoRoute: AuthenticatedDiagnosticoRoute,
@@ -493,12 +614,17 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  DemoRoute: DemoRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,
   ApiArteRoute: ApiArteRoute,
+  ApiBrandPreviewRoute: ApiBrandPreviewRoute,
+  ApiBrandStoryRoute: ApiBrandStoryRoute,
   ApiContaRoute: ApiContaRoute,
   ApiDiagnosticoRoute: ApiDiagnosticoRoute,
   ApiExportarDadosRoute: ApiExportarDadosRoute,
+  ApiMarketingWorkspaceRoute: ApiMarketingWorkspaceRoute,
+  ApiOnboardingDraftRoute: ApiOnboardingDraftRoute,
   ApiPaletaRoute: ApiPaletaRoute,
   ApiPesquisaEmpresaRoute: ApiPesquisaEmpresaRoute,
   ApiPlanoRoute: ApiPlanoRoute,

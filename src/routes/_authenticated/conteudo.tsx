@@ -1,4 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { z } from "zod";
+import { useMarketingWorkspace } from "@/components/marketing-provider";
+import { ContentStudio } from "@/components/content-studio";
+import { ContentReadiness } from "@/components/content-readiness";
+import { briefIssues, identityReady } from "@/lib/brand-preview";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -10,10 +15,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { apiFetch } from "@/lib/api";
+import type { DemoData } from "@/lib/quick-start";
+import { contentPlanReady } from "@/lib/content-readiness";
 import { useBrandKit, useCompany } from "@/lib/company";
 import type { CarouselSlide, Storyboard } from "@/lib/content-engine/types";
 
 export const Route = createFileRoute("/_authenticated/conteudo")({
+  validateSearch: z.object({ aba: z.enum(["peca", "abordagens", "calendario"]).catch("peca") }),
   head: () => ({
     meta: [
       { title: "Calendário de conteúdo | Nukkia" },
@@ -58,11 +66,72 @@ const FORMAT_LABEL: Record<string, string> = {
 };
 
 function Conteudo() {
+  const { data, setData } = useMarketingWorkspace();
+  const { aba } = Route.useSearch();
+  const navigate = useNavigate();
+  const setView = (view: "peca" | "abordagens" | "calendario") =>
+    void navigate({ to: "/conteudo", search: { aba: view } });
+  return (
+    <div className="space-y-7">
+      <div className="workspace-tabs" role="tablist" aria-label="Conteúdo">
+        {(
+          [
+            ["peca", "Minha peça"],
+            ["abordagens", "Três abordagens"],
+            ["calendario", "Planejamento mensal"],
+          ] as const
+        ).map(([id, label]) => (
+          <button key={id} role="tab" aria-selected={aba === id} onClick={() => setView(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {aba === "calendario" ? (
+        <Calendario
+          data={data}
+          onIdentity={() => void navigate({ to: "/marca", search: { retorno: "conteudo" } })}
+          onContext={() =>
+            void navigate({
+              to: "/diagnostico",
+              search: { editar: "contexto", retorno: "conteudo" },
+            })
+          }
+        />
+      ) : (
+        <ContentStudio
+          data={data}
+          onData={setData}
+          onEditBrief={() =>
+            void navigate({
+              to: "/diagnostico",
+              search: { editar: "contexto", retorno: "conteudo" },
+            })
+          }
+          onTrail={() => void navigate({ to: "/trilha" })}
+          onIdentity={() => void navigate({ to: "/marca", search: { retorno: "conteudo" } })}
+          view={aba}
+          onView={setView}
+        />
+      )}
+    </div>
+  );
+}
+
+function Calendario({
+  data,
+  onIdentity,
+  onContext,
+}: {
+  data: DemoData;
+  onIdentity: () => void;
+  onContext: () => void;
+}) {
   const { data: company } = useCompany();
   const { data: brandKit } = useBrandKit(company?.id);
   const queryClient = useQueryClient();
   const [gerando, setGerando] = useState(false);
   const [gerandoArte, setGerandoArte] = useState<string | null>(null);
+  const planReady = contentPlanReady(data, Boolean(brandKit));
 
   const { data: itens } = useQuery({
     enabled: Boolean(company?.id),
@@ -140,16 +209,19 @@ function Conteudo() {
             Textos e peças criados no tom da sua marca, prontos para aprovar e agendar.
           </p>
         </div>
-        <Button onClick={gerarPlano} disabled={gerando || !brandKit}>
+        <Button onClick={gerarPlano} disabled={gerando || !planReady}>
           <Sparkles className="size-4" />
           {gerando ? "Criando plano..." : "Gerar plano do mês"}
         </Button>
       </div>
 
-      {!brandKit && (
-        <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-          Defina a identidade da sua marca antes de gerar o plano de conteúdo.
-        </p>
+      {(briefIssues(data).length > 0 || !identityReady(data.brand)) && (
+        <ContentReadiness
+          data={data}
+          context="calendar"
+          onIdentity={onIdentity}
+          onContext={onContext}
+        />
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">

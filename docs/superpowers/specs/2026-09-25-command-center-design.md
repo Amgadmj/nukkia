@@ -1,6 +1,6 @@
 # Meu painel: diagnóstico, prioridades e execução
 
-Data: 25/09/2026. Direção aprovada na conversa; especificação escrita aguardando revisão. Este documento descreve a próxima entrega, não funcionalidades já implementadas.
+Data: 25/09/2026. Direção aprovada na conversa e implementação local autorizada pelo usuário. Este documento preserva o desenho e as evidências iniciais; o plano de implementação registra a entrega e seus limites.
 
 ## Resultado esperado e escopo
 
@@ -131,6 +131,10 @@ As referências apoiam a direção, não garantem conversão para Nukkia. [Buffe
 
 Aplicação à Nukkia: tornar dependências acionáveis e usar diagnóstico para escolher o que medir antes de recomendar produção indiscriminada de conteúdo.
 
-## Próxima etapa
+## Estado da entrega local
 
-Revisar esta especificação e então preparar o plano técnico com arquivos, testes e ordem de execução. Código de produto ainda não foi alterado nesta etapa.
+Meu painel, diagnóstico interno, trilha, identidade e canais foram integrados no checkout existente. A navegação preserva seção de origem e capítulo, sem reiniciar o onboarding. Deep links para um campo individual e foco automático no primeiro campo pendente permanecem como refinamento; nesta versão as prioridades abrem o editor ou seção correspondente.
+
+O kit salvo fica visível e sua aplicação à peça continua explícita. Não foi introduzida aplicação automática silenciosa. Conexões OAuth, coleta periódica de métricas e correção da persistência remota não fazem parte da entrega concluída. A conta inspecionada ainda informa “Somente nesta aba”; não fechar a aba contando com sincronização em nuvem. A história de marca informa migração indisponível. Nenhuma migração foi aplicada.
+
+Ver [plano e evidências](../plans/2026-09-25-command-center.md).

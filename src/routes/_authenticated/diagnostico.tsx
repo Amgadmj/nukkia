@@ -1,42 +1,54 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, BrainCircuit, CheckCircle2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { DiagnosticWizard } from "@/components/diagnostic-wizard";
+import { useCompany, useDiagnostic } from "@/lib/company";
+import { useMarketingWorkspace } from "@/components/marketing-provider";
+import { BrandBrain } from "@/components/marketing-views";
+import {
+  WORKSPACE_NAV,
+  contextSearch,
+  editWorkspaceAnswers,
+  type ContextSearch,
+} from "@/lib/marketing-workspace";
+import { WorkspaceContextEditor } from "@/components/workspace-context-editor";
+import { DiagnosticReportStart } from "@/components/diagnostic-report-start";
 import { apiFetch } from "@/lib/api";
 import {
-  useCompany,
-  useDiagnostic,
-  type Company,
-  type CompanyResearch,
-  type CompanyResearchDraft,
-} from "@/lib/company";
+  answersSchema,
+  CHAPTERS,
+  chapterMissing,
+  diagnosticMatchesAnswers,
+} from "@/lib/onboarding";
 
 export const Route = createFileRoute("/_authenticated/diagnostico")({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { etapa?: number; relatorio?: boolean } & ContextSearch => {
+    const step = Number(search["etapa"]);
+    return {
+      ...contextSearch(search),
+      ...(Number.isInteger(step) && step >= 0 && step < 5 ? { etapa: step } : {}),
+      ...(search["relatorio"] === true || search["relatorio"] === "true"
+        ? { relatorio: true }
+        : {}),
+    };
+  },
   head: () => ({
     meta: [
-      { title: "Diagnóstico | Nukkia" },
+      { title: "Cérebro da marca | Nukkia" },
       {
         name: "description",
-        content:
-          "Responda sobre público, mercado e serviços e receba seu relatório de presença digital.",
+        content: "Construa o cérebro de marketing da sua empresa, uma resposta de cada vez.",
       },
-      { property: "og:title", content: "Diagnóstico | Nukkia" },
-      { property: "og:description", content: "Relatório de presença digital gerado por IA." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Diagnostico,
 });
-
 type Report = {
   resumo: string;
   pontos_fortes: string[];
@@ -44,75 +56,197 @@ type Report = {
   recomendacoes: string[];
   pilares: string[];
 };
-
-type FieldKey = "audience" | "offers" | "market" | "differentials" | "goals" | "restrictions";
-
-const FIELD_LABELS: Record<FieldKey, string> = {
-  audience: "Quem é seu público-alvo?",
-  offers: "Quais produtos ou serviços você vende?",
-  market: "Como é o seu mercado e concorrência?",
-  differentials: "Quais são seus diferenciais?",
-  goals: "O que você quer alcançar nos próximos 3 meses?",
-  restrictions:
-    "Há restrições éticas ou regulatórias do seu segmento? (ex.: normas do CFM para clínicas, da OAB para escritórios de advocacia)",
-};
-
-function draftToFields(draft: CompanyResearchDraft | undefined): Partial<Record<FieldKey, string>> {
-  if (!draft) return {};
-  return {
-    audience: draft.publico_alvo,
-    market: draft.mercado_concorrencia,
-    differentials: draft.diferenciais_provaveis,
-    goals: draft.objetivos_provaveis,
-  };
-}
-
 function Diagnostico() {
-  const { data: company, isLoading: companyLoading } = useCompany();
-  const { data: diagnostic, isLoading: diagnosticLoading } = useDiagnostic(company?.id);
-
-  if (!company) {
-    return companyLoading ? (
-      <p className="text-muted-foreground">Carregando...</p>
-    ) : (
-      <p className="text-muted-foreground">Cadastre sua empresa no painel para começar.</p>
-    );
-  }
-
-  if (diagnosticLoading) {
-    return <p className="text-muted-foreground">Carregando...</p>;
-  }
-
-  const report = (diagnostic?.report ?? null) as Report | null;
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <DiagnosticoForm
-        company={company}
-        previousAnswers={(diagnostic?.answers ?? null) as Record<string, string> | null}
-        score={diagnostic?.score ?? null}
+  const workspace = useMarketingWorkspace();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const queryClient = useQueryClient();
+  const [generating, setGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState("");
+  const companyQuery = useCompany();
+  const company = companyQuery.data;
+  const diagnosticQuery = useDiagnostic(company?.id);
+  const diagnostic = diagnosticQuery.data;
+  const reportStale = Boolean(
+    diagnostic?.report && !diagnosticMatchesAnswers(diagnostic.answers, workspace.data.answers),
+  );
+  const showReport = Boolean(search.relatorio);
+  if (search.editar)
+    return (
+      <WorkspaceContextEditor
+        data={workspace.data}
+        onData={workspace.setData}
+        mode={search.editar}
+        chapter={search.capitulo}
+        onReport={company ? () => void navigate({ search: { relatorio: true } }) : undefined}
+        onReturn={() =>
+          void navigate({
+            to: WORKSPACE_NAV.find((item) => item.id === (search.retorno ?? "painel"))!.to,
+            search: {},
+          })
+        }
+        onChapter={(chapter) =>
+          void navigate({
+            to: "/diagnostico",
+            search: {
+              editar: chapter === undefined ? "contexto" : "diagnostico",
+              retorno: search.retorno ?? "painel",
+              capitulo: chapter,
+            },
+          })
+        }
       />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Relatório</CardTitle>
-          <CardDescription>
-            {diagnostic?.score != null
-              ? `Sua presença digital hoje: ${diagnostic.score}/100`
-              : "Responda ao formulário para receber sua análise."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {!report && <p className="text-sm text-muted-foreground">Nenhum relatório ainda.</p>}
-          {report && (
-            <>
-              <p className="text-sm leading-relaxed">{report.resumo}</p>
+    );
+  if (search.etapa === undefined && !showReport)
+    return (
+      <BrandBrain
+        data={workspace.data}
+        onData={workspace.setData}
+        onSection={(id) => void navigate({ to: WORKSPACE_NAV.find((item) => item.id === id)!.to })}
+        onEditBrief={() =>
+          void navigate({ to: "/diagnostico", search: { editar: "contexto", retorno: "cerebro" } })
+        }
+        onReport={company ? () => void navigate({ search: { relatorio: true } }) : undefined}
+        reportLabel={
+          diagnostic?.status === "ready" && diagnostic.report
+            ? "Meu relatório salvo"
+            : "Revisar para gerar análise"
+        }
+      />
+    );
+  if (companyQuery.isLoading || diagnosticQuery.isLoading)
+    return (
+      <p role="status" className="text-muted-foreground">
+        Carregando seu cérebro de marketing…
+      </p>
+    );
+  if (companyQuery.error || diagnosticQuery.error)
+    return (
+      <p role="alert">
+        Não foi possível carregar suas respostas. Atualize a página para tentar novamente.
+      </p>
+    );
+  if (!company)
+    return (
+      <div className="py-12 text-center">
+        <BrainCircuit className="mx-auto mb-5 size-10 text-primary" />
+        <h1 className="text-2xl font-semibold">Tudo começa com sua empresa.</h1>
+        <p className="mb-6 mt-3 text-muted-foreground">
+          Cadastre seu negócio para construir seu cérebro de marketing.
+        </p>
+        <Button asChild>
+          <Link to="/painel">
+            Cadastrar empresa
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
+      </div>
+    );
+  const companyId = company.id;
+  const report = (diagnostic?.status === "ready" ? diagnostic.report : null) as Report | null;
+  const missing = CHAPTERS.map((_, chapter) => ({
+    chapter,
+    count: chapterMissing(chapter, workspace.data.answers).length,
+  })).filter((item) => item.count > 0);
+  async function generateReport() {
+    if (generating) return;
+    const parsed = answersSchema.safeParse(workspace.data.answers);
+    if (!parsed.success) {
+      setGenerationError("Revise suas respostas antes de gerar a análise.");
+      return;
+    }
+    setGenerating(true);
+    setGenerationError("");
+    try {
+      const response = await apiFetch("/api/diagnostico", {
+        companyId,
+        answers: parsed.data,
+      });
+      if (!response.ok)
+        throw new Error(
+          (await response.text()).slice(0, 240) || "Não foi possível gerar a análise.",
+        );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["diagnostic", companyId] }),
+        queryClient.invalidateQueries({ queryKey: ["missions", companyId] }),
+        queryClient.invalidateQueries({ queryKey: ["company"] }),
+      ]);
+      window.scrollTo({ top: 0 });
+    } catch (error) {
+      setGenerationError(
+        (error instanceof Error ? error.message : "Não foi possível gerar a análise.") +
+          " Suas respostas continuam salvas.",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  }
+  return (
+    <div className="space-y-8">
+      {(report || showReport) && (
+        <div className="mx-auto flex max-w-[880px] gap-2 border-b border-border pb-4">
+          <Button
+            variant={!showReport ? "secondary" : "ghost"}
+            onClick={() => navigate({ search: {} })}
+          >
+            <BrainCircuit className="size-4" />
+            Visão do cérebro
+          </Button>
+          <Button
+            variant={showReport ? "secondary" : "ghost"}
+            onClick={() => navigate({ search: { relatorio: true } })}
+          >
+            <FileText className="size-4" />
+            Meu relatório
+          </Button>
+        </div>
+      )}
+      {showReport && report ? (
+        <div className="mx-auto max-w-[880px] space-y-6">
+          {reportStale && (
+            <div
+              role="status"
+              className="rounded-xl border border-border p-4 text-sm text-muted-foreground"
+            >
+              Relatório anterior. Suas respostas mudaram desde esta análise; as recomendações abaixo
+              ainda não refletem o contexto atual.
+              <Button
+                variant="link"
+                className="h-auto p-0 ml-2"
+                onClick={() => navigate({ search: { etapa: 0 } })}
+              >
+                Revisar e atualizar análise
+              </Button>
+            </div>
+          )}
+          <div className="flex items-start gap-4">
+            <CheckCircle2 className="mt-1 size-8 shrink-0 text-emerald-400" />
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-widest text-emerald-400">
+                {reportStale ? "Análise anterior" : "Diagnóstico concluído"}
+              </p>
+              <h1 className="text-3xl font-semibold">Seu próximo passo está mais claro.</h1>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Suas respostas viraram prioridades. Agora, dê uma identidade à sua estratégia.
+              </p>
+            </div>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Seu ponto de partida</CardTitle>
+              <CardDescription>
+                Presença digital: {diagnostic?.score ?? "—"}/100 · Esta é a análise de marketing,
+                separada do progresso na trilha.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-7">
+              <p className="text-sm leading-7">{report.resumo}</p>
               <Section title="Pontos fortes" items={report.pontos_fortes} />
               <Section title="Oportunidades" items={report.oportunidades} />
               <Section title="Recomendações" items={report.recomendacoes} />
               {report.pilares?.length > 0 && (
                 <div>
-                  <p className="mb-2 text-sm font-semibold">Pilares de conteúdo</p>
+                  <p className="mb-3 text-sm font-semibold">Pilares de conteúdo</p>
                   <div className="flex flex-wrap gap-2">
                     {report.pilares.map((p) => (
                       <Badge key={p} variant="secondary">
@@ -122,237 +256,55 @@ function Diagnostico() {
                   </div>
                 </div>
               )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild>
+              <Link to="/marca">
+                Continuar para identidade
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/trilha">Ver minhas conquistas</Link>
+            </Button>
+          </div>
+        </div>
+      ) : showReport ? (
+        <DiagnosticReportStart
+          missing={missing}
+          generating={generating}
+          error={generationError}
+          onGenerate={() => void generateReport()}
+          onResume={(chapter) => void navigate({ search: { etapa: chapter } })}
+        />
+      ) : (
+        <DiagnosticWizard
+          key={company.id}
+          company={company}
+          previousAnswers={workspace.data.answers}
+          onAnswersChange={(answers) =>
+            workspace.setData((current) => editWorkspaceAnswers(current, answers))
+          }
+          initialStep={search.etapa}
+          onComplete={() => {
+            void navigate({ search: { relatorio: true } });
+            window.scrollTo({ top: 0 });
+          }}
+        />
+      )}
     </div>
   );
 }
-
-/**
- * Only mounts once company/diagnostic have actually loaded (see Diagnostico
- * above) — the previous version read `defaultValue={previous[...]}` and
- * `defaultValue={company.website}` while those queries were still in
- * flight, so a returning user saw blank fields and saving overwrote their
- * real answers with empty strings.
- */
-function DiagnosticoForm({
-  company,
-  previousAnswers,
-  score,
-}: {
-  company: Company;
-  previousAnswers: Record<string, string> | null;
-  score: number | null;
-}) {
-  const queryClient = useQueryClient();
-  const [loading, setLoading] = useState(false);
-  const [pesquisando, setPesquisando] = useState(false);
-
-  const initialDraft = draftToFields(company.research?.draft);
-  const [fields, setFields] = useState<Record<FieldKey, string>>({
-    audience: previousAnswers?.["audience"] ?? initialDraft.audience ?? "",
-    offers: previousAnswers?.["offers"] ?? "",
-    market: previousAnswers?.["market"] ?? initialDraft.market ?? "",
-    differentials: previousAnswers?.["differentials"] ?? initialDraft.differentials ?? "",
-    goals: previousAnswers?.["goals"] ?? initialDraft.goals ?? "",
-    restrictions: previousAnswers?.["restrictions"] ?? "",
-  });
-  const [aiFilled, setAiFilled] = useState<Set<FieldKey>>(
-    () => new Set(previousAnswers ? [] : (Object.keys(initialDraft) as FieldKey[])),
-  );
-
-  const podeSugerir = Boolean(company.website || company.instagram_handle || company.linkedin_url);
-
-  function updateField(key: FieldKey, value: string) {
-    setFields((prev) => ({ ...prev, [key]: value }));
-    setAiFilled((prev) => {
-      if (!prev.has(key)) return prev;
-      const next = new Set(prev);
-      next.delete(key);
-      return next;
-    });
-  }
-
-  async function sugerirComIA() {
-    setPesquisando(true);
-    try {
-      const response = await apiFetch("/api/pesquisa-empresa", { companyId: company.id });
-      if (!response.ok) {
-        toast.error(`Não foi possível gerar sugestões. ${(await response.text()).slice(0, 120)}`);
-        return;
-      }
-      const { research } = (await response.json()) as { research: CompanyResearch };
-      const draft = draftToFields(research.draft);
-      setFields((prev) => ({ ...prev, ...draft }) as Record<FieldKey, string>);
-      setAiFilled(new Set(Object.keys(draft) as FieldKey[]));
-      queryClient.invalidateQueries({ queryKey: ["company"] });
-      toast.success("Sugestões da IA aplicadas — revise antes de enviar.");
-    } finally {
-      setPesquisando(false);
-    }
-  }
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const answers = {
-      audience: fields.audience.slice(0, 1000),
-      market: fields.market.slice(0, 1000),
-      offers: fields.offers.slice(0, 1000),
-      differentials: fields.differentials.slice(0, 1000),
-      goals: fields.goals.slice(0, 1000),
-      restrictions: fields.restrictions.slice(0, 1000),
-      website: String(form.get("website") ?? "").slice(0, 200),
-      instagram: String(form.get("instagram") ?? "").slice(0, 100),
-      linkedin: String(form.get("linkedin") ?? "").slice(0, 200),
-    };
-
-    if (!answers.audience || !answers.offers) {
-      toast.error("Conte pelo menos sobre seu público e seus serviços.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error: updateError } = await supabase
-        .from("companies")
-        .update({
-          website: answers.website || null,
-          instagram_handle: answers.instagram || null,
-          linkedin_url: answers.linkedin || null,
-          onboarding_step: "brand",
-        })
-        .eq("id", company.id);
-      if (updateError) {
-        toast.error("Não foi possível salvar os dados da empresa.");
-        return;
-      }
-
-      const response = await apiFetch("/api/diagnostico", { companyId: company.id, answers });
-      if (!response.ok) {
-        toast.error(`Não foi possível gerar o relatório. ${(await response.text()).slice(0, 120)}`);
-        return;
-      }
-      toast.success("Relatório pronto!");
-      queryClient.invalidateQueries({ queryKey: ["diagnostic", company.id] });
-      queryClient.invalidateQueries({ queryKey: ["missions", company.id] });
-      queryClient.invalidateQueries({ queryKey: ["company"] });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle>Diagnóstico da sua presença digital</CardTitle>
-            <CardDescription>
-              Quanto mais detalhe, mais preciso o plano que a Nukkia vai montar.
-            </CardDescription>
-          </div>
-          {podeSugerir && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={sugerirComIA}
-              disabled={pesquisando}
-            >
-              <Wand2 className="size-4" />
-              {pesquisando ? "Analisando..." : "Sugerir com IA"}
-            </Button>
-          )}
-        </div>
-        {score != null && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Você já tem um relatório (score {score}/100). Enviar de novo gera uma nova análise.
-          </p>
-        )}
-      </CardHeader>
-      <CardContent>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          {(
-            [
-              ["audience", true],
-              ["offers", true],
-              ["market", false],
-              ["differentials", false],
-              ["goals", false],
-              ["restrictions", false],
-            ] as [FieldKey, boolean][]
-          ).map(([key, required]) => (
-            <div className="space-y-2" key={key}>
-              <div className="flex items-center gap-2">
-                <Label htmlFor={key}>{FIELD_LABELS[key]}</Label>
-                {aiFilled.has(key) && (
-                  <Badge variant="secondary" className="gap-1 text-[10px]">
-                    <Sparkles className="size-3" /> Sugestão da IA — revise
-                  </Badge>
-                )}
-              </div>
-              <Textarea
-                id={key}
-                name={key}
-                maxLength={1000}
-                value={fields[key]}
-                onChange={(event) => updateField(key, event.target.value)}
-                required={required}
-              />
-            </div>
-          ))}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="website">Site</Label>
-              <Input
-                id="website"
-                name="website"
-                maxLength={200}
-                defaultValue={company.website ?? ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="instagram">Instagram</Label>
-              <Input
-                id="instagram"
-                name="instagram"
-                placeholder="@suaempresa"
-                maxLength={100}
-                defaultValue={company.instagram_handle ?? ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="linkedin">LinkedIn</Label>
-              <Input
-                id="linkedin"
-                name="linkedin"
-                maxLength={200}
-                defaultValue={company.linkedin_url ?? ""}
-              />
-            </div>
-          </div>
-          <Button type="submit" disabled={loading} className="w-full">
-            <Sparkles className="size-4" />
-            {loading ? "Analisando..." : "Gerar meu relatório"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
-
 function Section({ title, items }: { title: string; items?: string[] }) {
   if (!items?.length) return null;
   return (
     <div>
-      <p className="mb-2 text-sm font-semibold">{title}</p>
-      <ul className="space-y-1.5 text-sm text-muted-foreground">
+      <h2 className="mb-3 text-sm font-semibold">{title}</h2>
+      <ul className="space-y-2 text-sm leading-6 text-muted-foreground">
         {items.map((item) => (
-          <li key={item} className="flex gap-2">
-            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent" />
+          <li key={item} className="flex gap-3">
+            <span className="mt-2.5 size-1 shrink-0 rounded-full bg-primary" />
             {item}
           </li>
         ))}

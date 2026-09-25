@@ -87,6 +87,9 @@ export async function generateStaticArt(
     anchor,
     "Peça publicitária quadrada para redes sociais.",
     ...briefLines(params.company, params.item),
+    params.item.caption
+      ? `Contexto da publicação (preserve a oferta e suas condições, sem inventar informações): ${params.item.caption}`
+      : "",
     `Inclua um título curto em português do Brasil, legível, com no máximo 6 palavras: "${params.item.title.slice(0, 60)}".`,
   ].join(" ");
 
@@ -202,9 +205,8 @@ const storyboardSchema = z.object({
 /**
  * Script + shot list for a short vertical video (reels/stories), in the same
  * 10-second-block shape used by the explainer-video production workflow.
- * This always succeeds and is always persisted — rendering the actual video
- * is a separate, optional step (see renderVideo below) so a missing render
- * provider never loses the creative work.
+ * The caller saves the completed script before attempting the separate video
+ * render, so a render failure does not discard the creative work.
  */
 export async function generateVideoStoryboard(params: {
   company: CompanyLike;

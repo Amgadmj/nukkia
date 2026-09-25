@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NukkiaLogo } from "@/components/nukkia-logo";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { CONSENT_VERSION } from "@/lib/consent";
 
 const searchSchema = z.object({
   modo: z.enum(["entrar", "cadastro"]).catch("entrar"),
+  inicio: z.enum(["onboarding"]).optional(),
 });
 
 export const Route = createFileRoute("/auth")({
@@ -43,27 +44,38 @@ const cadastroSchema = z.object({
 });
 
 function AuthPage() {
-  const { modo } = Route.useSearch();
+  const { modo, inicio } = Route.useSearch();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const submitting = useRef(false);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [consent, setConsent] = useState(false);
 
   useEffect(() => {
+    // An explicit welcome replay keeps the login form visible even if the
+    // shared account already has a session. Normal visits resume automatically.
+    if (inicio === "onboarding") return;
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/painel" });
+      if (data.session && !submitting.current) void navigate({ to: "/boas-vindas" });
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
-        navigate({ to: "/painel" });
+      if (
+        session &&
+        !submitting.current &&
+        (event === "SIGNED_IN" || event === "INITIAL_SESSION")
+      ) {
+        queryClient.clear();
+        void navigate({ to: "/boas-vindas" });
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, inicio, queryClient]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    submitting.current = true;
     setLoading(true);
     try {
       if (modo === "cadastro") {
@@ -99,7 +111,8 @@ function AuthPage() {
           toast.success("Conta criada! Confirme seu e-mail para entrar.");
           return;
         }
-        navigate({ to: "/painel" });
+        queryClient.clear();
+        void navigate({ to: "/boas-vindas", search: { rever: inicio === "onboarding" } });
       } else {
         const email = String(form.get("email") ?? "").trim();
         const password = String(form.get("password") ?? "");
@@ -108,39 +121,45 @@ function AuthPage() {
           toast.error("E-mail ou senha incorretos.");
           return;
         }
-        navigate({ to: "/painel" });
+        queryClient.clear();
+        void navigate({ to: "/boas-vindas", search: { rever: inicio === "onboarding" } });
       }
+    } catch {
+      toast.error("Não foi possível conectar. Verifique sua conexão e tente novamente.");
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="nukkia-workspace dark flex min-h-screen flex-col bg-background text-foreground">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
         <Link to="/">
           <NukkiaLogo />
         </Link>
-        <ThemeToggle />
+        <span className="text-xs text-muted-foreground">Marketing intelligence</span>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-4 pb-16">
-        <Card className="w-full max-w-md surface-glow">
+        <Card className="w-full max-w-md rounded-3xl border-white/10 bg-card p-2 shadow-none">
           <CardHeader>
-            <CardTitle className="text-2xl">
-              {modo === "cadastro" ? "Criar sua conta" : "Entrar na plataforma"}
+            <CardTitle className="text-3xl font-semibold leading-tight">
+              {modo === "cadastro"
+                ? "O próximo capítulo da sua marca."
+                : "Seu próximo nível começa aqui."}
             </CardTitle>
             <CardDescription>
               {modo === "cadastro"
-                ? "Alguns dados para começarmos o diagnóstico da sua empresa."
-                : "Bem-vindo de volta ao cérebro da sua empresa."}
+                ? "Crie sua conta e transforme o que sabe sobre seu negócio em direção para crescer."
+                : "Entre para continuar construindo o cérebro de marketing da sua empresa."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <Tabs
               value={modo}
               onValueChange={(value) =>
-                navigate({ to: "/auth", search: { modo: value as "entrar" | "cadastro" } })
+                navigate({ to: "/auth", search: { modo: value as "entrar" | "cadastro", inicio } })
               }
             >
               <TabsList className="grid w-full grid-cols-2">
@@ -216,7 +235,7 @@ function AuthPage() {
                 )}
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="h-12 w-full rounded-xl bg-white font-semibold text-zinc-950 hover:bg-white/90"
                   disabled={loading || (modo === "cadastro" && !consent)}
                 >
                   {loading ? "Aguarde..." : modo === "cadastro" ? "Criar conta" : "Entrar"}

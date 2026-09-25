@@ -1,0 +1,719 @@
+import { Resolver } from "node:dns/promises";
+import { request as httpsRequest } from "node:https";
+import { isIP } from "node:net";
+import { load } from "cheerio";
+import { suggestionSchema, type BrandResearch } from "./brand-preview.ts";
+import { mergeDiscoveredLinks, sourceIdentity } from "./brand-sources.ts";
+
+export function publicWebsiteUrl(raw: string): URL {
+  const url = new URL(raw);
+  if (
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    (url.port && url.port !== "443") ||
+    isIP(url.hostname.replace(/^\[|\]$/g, "")) ||
+    !url.hostname.includes(".") ||
+    /\.(localhost|local|internal|test|invalid)$/i.test(url.hostname)
+  ) {
+    throw new Error("Use o endereço HTTPS público do site da marca.");
+  }
+  url.hash = "";
+  return url;
+}
+export function isPublicIpv4(address: string): boolean {
+  if (isIP(address) !== 4) return false;
+  const [a = 0, b = 0, c = 0] = address.split(".").map(Number);
+  return !(
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    a >= 224 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && (b === 168 || b === 0 || (b === 88 && c === 99))) ||
+    (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) ||
+    (a === 203 && b === 0 && c === 113)
+  );
+}
+const sameSite = (a: string, b: string) => a.replace(/^www\./, "") === b.replace(/^www\./, "");
+
+// Resolve once, reject mixed private/public answers, then connect directly to that
+// address with the original TLS servername/Host. No second DNS lookup/rebinding.
+export async function fetchPublicResource(
+  raw: string,
+  options: {
+    image?: boolean;
+    originHost?: string;
+    robots?: boolean;
+    sitemap?: boolean;
+    allowedPath?: (path: string) => boolean;
+    signal: AbortSignal;
+  },
+) {
+  let url = publicWebsiteUrl(raw);
+  for (let redirect = 0; redirect <= 3; redirect++) {
+    options.signal.throwIfAborted();
+    if (options.originHost && !sameSite(url.hostname, options.originHost))
+      throw new Error("O site redirecionou para outro domínio.");
+    if (options.allowedPath && !options.allowedPath(url.pathname + url.search))
+      throw new Error("O site limita a leitura automática deste conteúdo.");
+    const resolver = new Resolver({ timeout: 1500, tries: 1 });
+    const addresses = await new Promise<string[]>((resolve, reject) => {
+      const abort = () => {
+        resolver.cancel();
+        reject(options.signal.reason);
+      };
+      options.signal.addEventListener("abort", abort, { once: true });
+      resolver
+        .resolve4(url.hostname)
+        .then(resolve, reject)
+        .finally(() => {
+          options.signal.removeEventListener("abort", abort);
+        });
+      if (options.signal.aborted) abort();
+    });
+    options.signal.throwIfAborted();
+    if (!addresses.length || addresses.some((address) => !isPublicIpv4(address)))
+      throw new Error("Este endereço não é um site público permitido.");
+    const result = await new Promise<{
+      status: number;
+      location: string;
+      mime: string;
+      bytes: Buffer;
+    }>((resolve, reject) => {
+      const req = httpsRequest(
+        {
+          hostname: addresses[0]!,
+          servername: url.hostname,
+          port: 443,
+          path: url.pathname + url.search,
+          method: "GET",
+          agent: false,
+          signal: options.signal,
+          headers: {
+            Host: url.hostname,
+            "User-Agent": "NukkiaBrandPreview/1.0",
+            Accept: options.image
+              ? "image/png,image/jpeg,image/webp"
+              : options.sitemap
+                ? "application/xml,text/xml,text/plain"
+                : "text/html,text/plain",
+            "Accept-Encoding": "identity",
+          },
+        },
+        (res) => {
+          const status = res.statusCode ?? 500;
+          const mime = String(res.headers["content-type"] ?? "")
+            .split(";")[0]!
+            .toLowerCase();
+          if (options.robots && (status === 404 || status === 410)) {
+            res.destroy();
+            resolve({ status, location: "", mime, bytes: Buffer.alloc(0) });
+            return;
+          }
+          if (status >= 300 && status < 400) {
+            res.destroy();
+            resolve({
+              status,
+              location: String(res.headers.location ?? ""),
+              mime,
+              bytes: Buffer.alloc(0),
+            });
+            return;
+          }
+          const expected = options.image
+            ? /^image\/(png|jpeg|webp)$/
+            : options.robots
+              ? /^text\//
+              : options.sitemap
+                ? /^(application\/(xml|[\w.-]+\+xml)|text\/(xml|plain))$/
+                : /^(text\/html|application\/xhtml\+xml)$/;
+          if (
+            status !== 200 ||
+            !expected.test(mime) ||
+            (res.headers["content-encoding"] && res.headers["content-encoding"] !== "identity")
+          ) {
+            res.destroy();
+            reject(new Error("Não foi possível ler este conteúdo público."));
+            return;
+          }
+          const maxBytes = options.robots ? 100_000 : options.image ? 600_000 : 1_000_000;
+          const chunks: Buffer[] = [];
+          let size = 0;
+          res.on("data", (chunk: Buffer) => {
+            size += chunk.length;
+            if (size > maxBytes) {
+              res.destroy(new Error("Conteúdo acima do limite de leitura."));
+              return;
+            }
+            chunks.push(chunk);
+          });
+          res.on("error", reject);
+          res.on("end", () =>
+            resolve({ status, location: "", mime, bytes: Buffer.concat(chunks) }),
+          );
+        },
+      );
+      req.setTimeout(6000, () => req.destroy(new Error("O site demorou para responder.")));
+      req.on("error", reject);
+      req.end();
+    });
+    if (result.status >= 300 && result.status < 400) {
+      url = publicWebsiteUrl(new URL(result.location, url).href);
+      continue;
+    }
+    return { ...result, url: url.href };
+  }
+  throw new Error("O site redirecionou muitas vezes.");
+}
+
+export function robotsAllows(robots: string, pathname: string): boolean {
+  let agents: string[] = [];
+  let sawRule = false;
+  const matches: { length: number; allowed: boolean }[] = [];
+  for (const raw of robots.split(/\r?\n/)) {
+    const line = raw.split("#")[0]!.trim();
+    const colon = line.indexOf(":");
+    if (colon < 0) continue;
+    const key = line.slice(0, colon).trim().toLowerCase(),
+      value = line.slice(colon + 1).trim();
+    if (key === "user-agent") {
+      if (sawRule) {
+        agents = [];
+        sawRule = false;
+      }
+      agents.push(value.toLowerCase());
+      continue;
+    }
+    if (key !== "allow" && key !== "disallow") continue;
+    sawRule = true;
+    if (!value || !agents.some((agent) => agent === "*" || agent.includes("nukkia"))) continue;
+    // Conservative wildcard handling, without evaluating arbitrary regexes:
+    // block a wildcard disallow's prefix; don't broaden wildcard allows.
+    const wildcard = value.indexOf("*");
+    if (wildcard >= 0 && key === "allow") continue;
+    const matchesPath =
+      wildcard >= 0
+        ? pathname.startsWith(value.slice(0, wildcard))
+        : value.endsWith("$")
+          ? pathname === value.slice(0, -1)
+          : pathname.startsWith(value);
+    if (matchesPath)
+      matches.push({ length: wildcard >= 0 ? wildcard : value.length, allowed: key === "allow" });
+  }
+  matches.sort((a, b) => b.length - a.length || Number(b.allowed) - Number(a.allowed));
+  return matches[0]?.allowed ?? true;
+}
+
+const MAX_CANDIDATES = 100;
+const MAX_SITEMAPS = 4;
+const fold = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+// Query-bearing pages can be search, cart or mutation endpoints. Only known
+// tracking parameters are disposable; never convert arbitrary queries to pages.
+export function canonicalCrawlUrl(raw: string, base: string): string | null {
+  try {
+    if (raw.length > 2048) return null;
+    const origin = publicWebsiteUrl(base);
+    const url = publicWebsiteUrl(new URL(raw, origin).href);
+    if (!sameSite(url.hostname, origin.hostname)) return null;
+    for (const key of [...url.searchParams.keys()]) {
+      if (/^(utm_.+|[fg]clid|fbclid|dclid|msclkid|gbraid|wbraid|mc_cid|mc_eid)$/i.test(key))
+        url.searchParams.delete(key);
+    }
+    if (url.search) return null;
+    url.hostname = origin.hostname;
+    url.pathname = url.pathname.replace(/\/+$/, "") || "/";
+    return url.href.length <= 2048 ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function pagePriority(url: string): number {
+  let path: string;
+  try {
+    path = fold(decodeURIComponent(new URL(url).pathname));
+  } catch {
+    return 0;
+  }
+  if (
+    /(?:^|\/)(?:wp-admin|wp-json|admin|login|logout|sign-?in|sign-?out|account|cart|checkout|search|agenda|booking|privacy|privacidade|terms|termos)(?:[/._-]|$)/.test(
+      path,
+    ) ||
+    /\.(?!html?$|php$)[a-z\d]{1,8}$/.test(path)
+  )
+    return 0;
+  const priorities = [
+    /servi|treatment|tratamento|especialidade|fisioterapia|condicionamento|simulador/,
+    /product|produto|producto|catalog/,
+    /offer|oferta|promo|deal/,
+    /sobre|about|quem-somos|nosotros|clinica/,
+    /price|pricing|preco|precio|valor|plano|plan(?:s|es)?(?:\/|$)|pacote/,
+    /faq|pergunta|duvida|question/,
+    /contact|contato|fale-conosco/,
+  ];
+  const index = priorities.findIndex((pattern) => pattern.test(path));
+  return index < 0 ? 0 : priorities.length - index;
+}
+
+export function prioritizePageLinks(
+  links: string[],
+  base: string,
+  limit = MAX_CANDIDATES,
+): string[] {
+  const unique = new Set<string>();
+  for (const link of links) {
+    const canonical = canonicalCrawlUrl(link, base);
+    if (canonical && pagePriority(canonical)) unique.add(canonical);
+  }
+  return [...unique]
+    .sort((a, b) => pagePriority(b) - pagePriority(a))
+    .slice(0, Math.max(0, Math.min(MAX_CANDIDATES, limit)));
+}
+
+export function parseSitemap(xml: string, base: string): { urls: string[]; sitemaps: string[] } {
+  const result: { urls: string[]; sitemaps: string[] } = { urls: [], sitemaps: [] };
+  // Do not interpret DTDs/entities or accept oversized documents in this pure
+  // parser either. The network layer enforces its own byte and MIME limits.
+  if (xml.length > 1_000_000 || /<!DOCTYPE|<!ENTITY/i.test(xml)) return result;
+  const $ = load(xml, { xmlMode: true });
+  const root = $.root().children().first();
+  const kind = root.get(0)?.tagName?.split(":").pop();
+  if (kind !== "urlset" && kind !== "sitemapindex") return result;
+  const entries = root.children().toArray().slice(0, MAX_CANDIDATES);
+  const seen = new Set<string>();
+  for (const entry of entries) {
+    if (entry.tagName.split(":").pop() !== (kind === "urlset" ? "url" : "sitemap")) continue;
+    const location = $(entry)
+      .children()
+      .toArray()
+      .find((el) => el.tagName.split(":").pop() === "loc");
+    if (!location) continue;
+    const url = canonicalCrawlUrl($(location).text().trim(), base);
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    (kind === "urlset" ? result.urls : result.sitemaps).push(url);
+  }
+  return result;
+}
+
+export function extractPage(html: string, url: string) {
+  const $ = load(html);
+  const noiseHeading =
+    /^(?:testimonials?|depoimentos?(?: de clientes)?|reviews?|avaliacoes|comentarios?|comments?|(?:our |meet (?:our |the ))?team|nossa equipe|equipe|staff|cookies?|preferencias de cookies)$/;
+  const serviceHeading =
+    /servi|product|produto|oferta|promo|preco|price|faq|contato|contact|fisioterapia|tratamento/;
+  $("section, aside, article, div, ul, ol").each((_, el) => {
+    const node = $(el);
+    const marker = fold([node.attr("id"), node.attr("class"), node.attr("aria-label")].join(" "));
+    if (
+      !/(?:^|[\s_-])(?:testimonials?|depoimentos?|reviews?|comments?|comentarios?|team|equipe|staff|cookies?)(?:$|[\s_-])/.test(
+        marker,
+      )
+    )
+      return;
+    if (
+      node
+        .find("h1, h2, h3")
+        .toArray()
+        .some((heading) => serviceHeading.test(fold($(heading).text())))
+    )
+      return;
+    node.remove();
+  });
+  $("h1, h2, h3").each((_, el) => {
+    const heading = $(el);
+    if (!noiseHeading.test(fold(heading.text().replace(/\s+/g, " ").trim()))) return;
+    const parent = heading.parent();
+    if (
+      parent.is("section, aside, article, div") &&
+      parent.find("h1, h2, h3").first().get(0) === el &&
+      !parent
+        .find("h1, h2, h3")
+        .toArray()
+        .some((node) => serviceHeading.test(fold($(node).text())))
+    ) {
+      parent.remove();
+      return;
+    }
+    const level = Number(el.tagName.slice(1));
+    let next = heading.next();
+    while (next.length) {
+      const tag = next.get(0)?.tagName ?? "";
+      if (/^h[1-6]$/.test(tag) && Number(tag.slice(1)) <= level) break;
+      if (next.is("section, article") || next.find("h1, h2, h3").length) break;
+      const following = next.next();
+      next.remove();
+      next = following;
+    }
+    heading.remove();
+  });
+  const discovered: BrandResearch["discoveredLinks"] = [];
+  const discover = (href: string, explicitlyAssociated = false) => {
+    try {
+      const target = publicWebsiteUrl(new URL(href, url).href);
+      const identity = sourceIdentity(target.href);
+      if (!identity || sameSite(target.hostname, new URL(url).hostname)) return;
+      if (identity.kind !== "Site" || explicitlyAssociated)
+        discovered.push({ url: identity.url, foundOn: url });
+    } catch {
+      /* Ignore malformed or non-public links. */
+    }
+  };
+  // Capture social links before nav/footer/script removal. An ordinary outbound
+  // website link may be a vendor or partner, so only rel=me / business sameAs
+  // qualifies it as an associated website. These links are never crawl targets.
+  $("a[href]").each((_, el) => {
+    const anchor = $(el);
+    discover(anchor.attr("href") ?? "", /(?:^|\s)me(?:\s|$)/i.test(anchor.attr("rel") ?? ""));
+  });
+  $("script[type='application/ld+json']").each((_, el) => {
+    try {
+      const parsed: unknown = JSON.parse($(el).text());
+      const nodes = Array.isArray(parsed) ? parsed : [parsed];
+      for (const node of [...nodes]) {
+        if (node && typeof node === "object" && Array.isArray(node["@graph"]))
+          nodes.push(...node["@graph"]);
+      }
+      for (const node of nodes) {
+        if (!node || typeof node !== "object") continue;
+        const types = Array.isArray(node["@type"]) ? node["@type"] : [node["@type"]];
+        if (
+          !types.some(
+            (type: unknown) =>
+              typeof type === "string" &&
+              /(?:^|\/)(Organization|Corporation|LocalBusiness|MedicalBusiness|MedicalOrganization|MedicalClinic|Dentist|Hospital|HealthClub|Store|Restaurant|ProfessionalService|EducationalOrganization)$/.test(
+                type,
+              ),
+          )
+        )
+          continue;
+        const links = Array.isArray(node.sameAs) ? node.sameAs : [node.sameAs];
+        for (const link of links) if (typeof link === "string") discover(link, true);
+      }
+    } catch {
+      /* Invalid metadata must not block regular page extraction. */
+    }
+  });
+  const clean = (s: string) => s.replace(/\s+/g, " ").trim();
+  const title = clean($("title").first().text()).slice(0, 200);
+  const name = clean($("meta[property='og:site_name']").attr("content") ?? "").slice(0, 120);
+  const description = clean(
+    $("meta[name='description']").attr("content") ??
+      $("meta[property='og:description']").attr("content") ??
+      "",
+  );
+  const logoHref =
+    $("img[src][alt*='logo' i], img[src][class*='logo' i]").first().attr("src") ??
+    $("img[src]")
+      .toArray()
+      .map((el) => $(el).attr("src") ?? "")
+      .find((src) => /(?:^|\/)logo(?:[-_.\d]|$)/i.test(src)) ??
+    "";
+  const links = prioritizePageLinks(
+    $("a[href]")
+      .toArray()
+      .map((el) => $(el).attr("href") ?? ""),
+    url,
+  );
+  $("script, style, nav, footer, form, noscript, iframe, [hidden], [aria-hidden='true']").remove();
+  // Template biographies are not evidence of real staff. Drop the whole
+  // placeholder card when it is an inert link, otherwise only the text block.
+  let placeholderRemoved = false;
+  $("h1, h2, h3, p, li").each((_, el) => {
+    if (!/lorem\s+ipsum/i.test($(el).text())) return;
+    placeholderRemoved = true;
+    const card = $(el).closest('a[href="#"]');
+    if (card.length) card.remove();
+    else $(el).remove();
+  });
+  const blocks = $("h1, h2, h3, p, li")
+    .toArray()
+    .map((el) => clean($(el).text()))
+    .filter(Boolean);
+  const text = [...new Set([name, title, description, ...blocks])]
+    .filter(Boolean)
+    .join("\n")
+    .slice(0, 10000);
+  let logo = "";
+  try {
+    if (logoHref) logo = publicWebsiteUrl(new URL(logoHref, url).href).href;
+  } catch {
+    /* optional */
+  }
+  return {
+    title,
+    name,
+    text,
+    links,
+    logo,
+    placeholderRemoved,
+    discoveredLinks: mergeDiscoveredLinks(discovered),
+  };
+}
+
+export type CollectBrandSiteOptions = {
+  /** Total source limit, including previous evidence. Defaults to 8, at most 16. */
+  maxPages?: number;
+  budgetMs?: number;
+  signal?: AbortSignal;
+  onProgress?: (research: BrandResearch) => void;
+  previous?: BrandResearch;
+};
+
+export async function collectBrandSite(
+  raw: string,
+  options: CollectBrandSiteOptions = {},
+): Promise<BrandResearch> {
+  const url = publicWebsiteUrl(raw);
+  if (
+    /(^|\.)(instagram\.com|linkedin\.com|facebook\.com|tiktok\.com|x\.com|twitter\.com|youtube\.com|youtu\.be|pinterest\.com|threads\.(net|com))$/.test(
+      url.hostname,
+    )
+  ) {
+    throw new Error(
+      "Para este perfil, cole um texto da marca abaixo ou informe o site da empresa.",
+    );
+  }
+  const seed = canonicalCrawlUrl(url.href, url.href);
+  if (!seed) throw new Error("Informe o endereço público do site sem parâmetros de consulta.");
+  const maxPages = Number.isFinite(options.maxPages)
+    ? Math.max(1, Math.min(16, Math.floor(options.maxPages!)))
+    : 8;
+  const budgetMs = Number.isFinite(options.budgetMs)
+    ? Math.max(0, Math.min(2_147_483_647, Math.floor(options.budgetMs!)))
+    : 10_000;
+  const deadline = new AbortController();
+  const timer = setTimeout(() => deadline.abort(), budgetMs);
+  if (!budgetMs) deadline.abort();
+  const signal = options.signal
+    ? AbortSignal.any([deadline.signal, options.signal])
+    : deadline.signal;
+  const finished = new AbortController();
+  const networkSignal = AbortSignal.any([signal, finished.signal]);
+  const research: BrandResearch = options.previous
+    ? structuredClone(options.previous)
+    : {
+        status: "loading",
+        sources: [],
+        discoveredLinks: [],
+        suggestions: [],
+        message: "",
+        logo: "",
+        logoSource: "",
+      };
+  research.status = "loading";
+  const sourceUrls = new Set(
+    research.sources.map((source) => canonicalCrawlUrl(source.url, seed) ?? source.url),
+  );
+  const publish = () => {
+    // Each callback owns its snapshot; subsequent workers cannot mutate evidence
+    // that has already been delivered, and observers cannot mutate the collector.
+    try {
+      options.onProgress?.(structuredClone(research));
+    } catch {
+      /* An observer is optional. */
+    }
+  };
+  let placeholderRemoved = false;
+  let failedPages = 0;
+  try {
+    signal.throwIfAborted();
+    if (research.sources.length < maxPages) {
+      const robots = (
+        await fetchPublicResource(url.origin + "/robots.txt", {
+          originHost: url.hostname,
+          robots: true,
+          signal,
+        })
+      ).bytes.toString("utf8");
+      const allowedPath = (path: string) =>
+        robotsAllows(robots, path) && canonicalCrawlUrl(path, seed) !== null;
+      if (!allowedPath(new URL(seed).pathname))
+        throw new Error(
+          "O site limita a leitura automática. Cole um texto da marca para continuar.",
+        );
+
+      const pages = new Map<string, number>();
+      const visited = new Set<string>();
+      const enqueue = (href: string, refresh = false, priority?: number) => {
+        const target = canonicalCrawlUrl(href, seed);
+        if (!target || visited.has(target) || (!refresh && sourceUrls.has(target))) return;
+        if (!allowedPath(new URL(target).pathname)) return;
+        pages.set(target, priority ?? (refresh ? 0 : pagePriority(target)));
+        if (pages.size > MAX_CANDIDATES) {
+          const lowest = [...pages].sort((a, b) => a[1] - b[1]).at(0)!;
+          pages.delete(lowest[0]);
+        }
+      };
+      enqueue(seed, true, 100);
+      // Prior sources hold extracted evidence, not HTML. Revisit their links only
+      // after unseen priority pages; the stored source itself is never replaced.
+      for (const source of research.sources) if (source.url !== seed) enqueue(source.url, true);
+
+      const sitemapQueue: { url: string; depth: number }[] = [];
+      const sitemapSeen = new Set<string>();
+      const addSitemap = (rawUrl: string, depth: number) => {
+        const target = canonicalCrawlUrl(rawUrl, seed);
+        if (!target || sitemapSeen.has(target) || sitemapSeen.size >= MAX_SITEMAPS) return;
+        if (!allowedPath(new URL(target).pathname)) return;
+        sitemapSeen.add(target);
+        sitemapQueue.push({ url: target, depth });
+      };
+      for (const line of robots.split(/\r?\n/)) {
+        const match = /^\s*sitemap\s*:\s*(\S+)/i.exec(line);
+        if (match && sitemapQueue.length < 2) addSitemap(match[1]!, 0);
+      }
+      // The conventional root also covers missing/stale robots declarations.
+      addSitemap(url.origin + "/sitemap.xml", 0);
+      let sitemapUrls = 0;
+      let sitemapActive = false;
+      let pageAttempts = 0;
+      let activePages = 0;
+      const active = new Set<Promise<void>>();
+      const start = (work: () => Promise<void>) => {
+        const job = work()
+          .catch(() => {
+            /* Optional page/discovery failure. */
+          })
+          .finally(() => active.delete(job));
+        active.add(job);
+      };
+      const readPage = async (target: string) => {
+        activePages++;
+        pageAttempts++;
+        visited.add(target);
+        pages.delete(target);
+        try {
+          const response = await fetchPublicResource(target, {
+            originHost: url.hostname,
+            allowedPath,
+            signal: networkSignal,
+          });
+          signal.throwIfAborted();
+          const canonical = canonicalCrawlUrl(response.url, seed);
+          if (!canonical) return;
+          visited.add(canonical);
+          pages.delete(canonical);
+          const page = extractPage(response.bytes.toString("utf8"), response.url);
+          for (const link of page.links) enqueue(link);
+          placeholderRemoved ||= page.placeholderRemoved;
+          const discovered = mergeDiscoveredLinks([
+            ...research.discoveredLinks,
+            ...page.discoveredLinks.map((link) => ({ ...link, foundOn: canonical })),
+          ]);
+          let changed = JSON.stringify(discovered) !== JSON.stringify(research.discoveredLinks);
+          research.discoveredLinks = discovered;
+          if (
+            page.text.length >= 100 &&
+            !sourceUrls.has(canonical) &&
+            research.sources.length < maxPages
+          ) {
+            sourceUrls.add(canonical);
+            const fetchedAt = new Date().toISOString();
+            research.sources.push({
+              url: canonical,
+              title: page.title,
+              text: page.text,
+              fetchedAt,
+            });
+            if (target === seed && page.name && !options.previous) {
+              research.suggestions.push(
+                suggestionSchema.parse({
+                  field: "name",
+                  value: page.name,
+                  quote: page.name,
+                  sourceUrl: canonical,
+                  foundAt: fetchedAt,
+                }),
+              );
+            }
+            changed = true;
+          }
+          if (changed) publish();
+        } catch {
+          if (!finished.signal.aborted) failedPages++;
+        } finally {
+          activePages--;
+        }
+      };
+      const readSitemap = async (target: { url: string; depth: number }) => {
+        sitemapActive = true;
+        try {
+          const response = await fetchPublicResource(target.url, {
+            originHost: url.hostname,
+            allowedPath,
+            sitemap: true,
+            signal: networkSignal,
+          });
+          signal.throwIfAborted();
+          const parsed = parseSitemap(response.bytes.toString("utf8"), seed);
+          const candidates = parsed.urls.slice(0, MAX_CANDIDATES - sitemapUrls);
+          sitemapUrls += candidates.length;
+          for (const link of prioritizePageLinks(candidates, seed)) enqueue(link);
+          if (target.depth === 0) for (const child of parsed.sitemaps) addSitemap(child, 1);
+        } finally {
+          sitemapActive = false;
+        }
+      };
+      while (!signal.aborted && research.sources.length < maxPages) {
+        // Sitemap requests share the same three slots as pages. Serial sitemap
+        // traversal makes the 100-URL budget deterministic across child files.
+        if (
+          !sitemapActive &&
+          active.size < 3 &&
+          sitemapUrls < MAX_CANDIDATES &&
+          sitemapQueue.length
+        ) {
+          const next = sitemapQueue.shift()!;
+          start(() => readSitemap(next));
+        }
+        while (
+          active.size < 3 &&
+          pageAttempts < maxPages &&
+          research.sources.length + activePages < maxPages &&
+          pages.size
+        ) {
+          const next = [...pages].sort((a, b) => b[1] - a[1])[0]![0];
+          start(() => readPage(next));
+        }
+        if (!active.size) break;
+        await Promise.race(active);
+      }
+      if (research.sources.length >= maxPages) finished.abort();
+      // Aborted transport/DNS promises settle promptly; drain them before return
+      // so callbacks cannot outlive the final snapshot.
+      await Promise.all(active);
+    }
+    if (!research.sources.length && !signal.aborted)
+      throw new Error(
+        "Não encontramos texto suficiente. Cole uma apresentação da marca para continuar.",
+      );
+  } catch (error) {
+    if (!signal.aborted && !research.sources.length) throw error;
+    if (!signal.aborted) failedPages++;
+  } finally {
+    clearTimeout(timer);
+    finished.abort();
+  }
+  research.status = research.sources.length ? "ready" : "unavailable";
+  const messages = [research.message];
+  if (placeholderRemoved)
+    messages.push(
+      "Encontramos textos de exemplo no site e os excluímos da leitura. Confirme as informações da marca antes de usar.",
+    );
+  if (signal.aborted || failedPages)
+    messages.push("A leitura ficou parcial; preservamos as fontes disponíveis até a interrupção.");
+  research.message = [...new Set(messages.filter(Boolean))].join(" ").slice(0, 500);
+  // No image request competes with text collection. Existing, validated logo
+  // data from the previous research is preserved alongside its provenance.
+  publish();
+  return research;
+}

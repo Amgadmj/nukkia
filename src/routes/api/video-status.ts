@@ -9,6 +9,14 @@ const bodySchema = z.object({
   contentItemId: z.string().uuid(),
 });
 
+const failedVideoMessage = "Não foi possível gerar o vídeo. Tente novamente.";
+function saveFailure() {
+  console.error("[api/video-status] video-status-save failed");
+  return new Response("Não foi possível salvar o estado do vídeo. Tente verificar novamente.", {
+    status: 500,
+  });
+}
+
 /**
  * Polls a pending Veo render. Veo generation takes minutes — well beyond
  * any single request's budget — so /api/arte only ever kicks the job off;
@@ -43,6 +51,7 @@ export const Route = createFileRoute("/api/video-status")({
         if (item.video_path) return Response.json({ status: "ready" });
         if (!item.video_operation) return Response.json({ status: "none" });
 
+        let saving = false;
         try {
           const result = await checkVideoRender(supabase, {
             operationName: item.video_operation,
@@ -53,21 +62,32 @@ export const Route = createFileRoute("/api/video-status")({
           if (result.status === "rendering") return Response.json({ status: "rendering" });
 
           if (result.status === "ready") {
-            await supabase
+            saving = true;
+            const { data: saved, error } = await supabase
               .from("content_items")
               .update({ video_path: result.videoPath, video_operation: null, video_error: null })
-              .eq("id", item.id);
+              .eq("id", item.id)
+              .select("id")
+              .maybeSingle();
+            if (error || !saved) return saveFailure();
             return Response.json({ status: "ready" });
           }
 
-          await supabase
+          saving = true;
+          const { data: saved, error } = await supabase
             .from("content_items")
-            .update({ video_operation: null, video_error: result.error.slice(0, 500) })
-            .eq("id", item.id);
-          return Response.json({ status: "failed", error: result.error });
+            .update({ video_operation: null, video_error: failedVideoMessage })
+            .eq("id", item.id)
+            .select("id")
+            .maybeSingle();
+          if (error || !saved) return saveFailure();
+          return Response.json({ status: "failed", error: failedVideoMessage });
         } catch (err) {
-          const message = err instanceof AiError ? err.userMessage : "Erro ao verificar o vídeo.";
-          if (!(err instanceof AiError)) console.error("[api/video-status] unexpected error:", err);
+          if (saving) return saveFailure();
+          const message =
+            "Não foi possível verificar o vídeo." +
+            (err instanceof AiError ? ` ${err.userMessage}` : "");
+          console.error("[api/video-status] video-poll failed");
           return new Response(message, { status: 502 });
         }
       },

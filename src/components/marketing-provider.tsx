@@ -14,6 +14,7 @@ import { demoSchema, type DemoData } from "@/lib/quick-start";
 import {
   parseStoredWorkspace,
   retainWorkspaceAchievements,
+  recoveryOwnerPrefix,
   seedWorkspace,
   workspaceKey,
   type StoredWorkspace,
@@ -80,6 +81,10 @@ type State = {
   sync: SyncState;
   remote: Cloud | null;
   storageAvailable: boolean;
+  recoveryAvailable: boolean;
+  conflictSource: "browser" | "cloud" | null;
+  localAlternative: Recovery | null;
+  recoveryBase: Record<string, string>;
   syncIssue: string | null;
   cleared: boolean;
 };
@@ -104,6 +109,60 @@ function parseCloud(body: unknown): Cloud {
 
 function sameData(a: DemoData, b: DemoData) {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+type Recovery = { key: string; id: string; seen: Record<string, string>; stored: StoredWorkspace };
+const recoverySchema = z.object({
+  id: z.string().uuid(),
+  seen: z.record(z.string()),
+  stored: z.unknown(),
+});
+function browserEpoch(ownerId: string) {
+  try {
+    return window.localStorage.getItem(`${recoveryOwnerPrefix(ownerId)}logout`);
+  } catch {
+    return undefined;
+  }
+}
+function epochMatches(ownerId: string, expected: string | null) {
+  const current = browserEpoch(ownerId);
+  return current === undefined || current === expected;
+}
+function recoveryPresent(key: string | null) {
+  if (!key) return true;
+  try {
+    return window.localStorage.getItem(key) !== null;
+  } catch {
+    // Blocked reads are not evidence of logout; keep memory editing available.
+    return true;
+  }
+}
+function readRecoveries(prefix: string): Recovery[] {
+  try {
+    const entries: Recovery[] = [];
+    for (const key of Object.keys(window.localStorage)) {
+      if (!key.startsWith(prefix)) continue;
+      try {
+        const value = recoverySchema.parse(JSON.parse(window.localStorage.getItem(key)!));
+        const stored = parseStoredWorkspace(JSON.stringify(value.stored));
+        if (!stored) continue;
+        stored.data = preserveAnswers(stored.data, (value.stored as StoredWorkspace).data);
+        if (stored.revision !== null && !revisionSchema.safeParse(stored.revision).success)
+          continue;
+        entries.push({ key, id: value.id, seen: value.seen, stored });
+      } catch {
+        /* Preserve unreadable originals; never import other scopes. */
+      }
+    }
+    // Each tab owns its own record. A choice supersedes only the exact versions
+    // it observed, so a concurrent edit cannot be silently overwritten.
+    return entries.filter(
+      (entry) =>
+        !entries.some((other) => other.key !== entry.key && other.seen[entry.key] === entry.id),
+    );
+  } catch {
+    return [];
+  }
 }
 
 function restoreCloud(cloud: Cloud, fallback: DemoData): StoredWorkspace {
@@ -201,12 +260,20 @@ function WorkspaceState({
 }) {
   const key = workspaceKey(ownerId, company?.id);
   const companyId = company?.id;
+  const recoveryPrefix = `${recoveryOwnerPrefix(ownerId)}${encodeURIComponent(companyId || "new")}:`;
+  const writer = useRef<string>(`${recoveryPrefix}${crypto.randomUUID()}`);
+  const epoch = useRef(browserEpoch(ownerId) ?? null);
   const [state, setState] = useState<State>(() => {
     let stored: StoredWorkspace = { data: initial, revision: null, dirty: false };
     let storageAvailable = true;
     try {
       const raw = window.sessionStorage.getItem(key);
-      const parsed = parseStoredWorkspace(raw);
+      if (raw && browserEpoch(ownerId) === undefined)
+        epoch.current = JSON.parse(raw).logoutEpoch ?? null;
+      const parsed =
+        raw && (JSON.parse(raw).logoutEpoch ?? null) === epoch.current
+          ? parseStoredWorkspace(raw)
+          : null;
       if (parsed) {
         const original = JSON.parse(raw!).data as DemoData;
         stored = {
@@ -220,42 +287,102 @@ function WorkspaceState({
     } catch {
       storageAvailable = false;
     }
+    const recoveries = readRecoveries(recoveryPrefix);
+    // A legacy tab draft is an original too: never replace it just because
+    // another tab wrote more recently. Only import this authenticated scope.
+    if (
+      !stored.dirty &&
+      stored.revision === null &&
+      sameData(stored.data, initial) &&
+      recoveries[0]
+    )
+      stored = recoveries[0].stored;
+    const matches = recoveries.filter((entry) => sameData(entry.stored.data, stored.data));
+    const alternative =
+      recoveries.find((entry) => !sameData(entry.stored.data, stored.data)) ?? null;
     return {
       stored,
-      sync: company ? "loading" : "local",
+      sync: alternative ? "conflict" : company ? "loading" : "local",
       remote: null,
       storageAvailable,
+      recoveryAvailable: matches.length > 0,
+      conflictSource: alternative ? "browser" : null,
+      localAlternative: alternative,
+      recoveryBase: Object.fromEntries(matches.map((entry) => [entry.key, entry.id])),
       syncIssue: null,
       cleared: false,
     };
   });
   const latest = useRef(state);
+  const recoveryBase = useRef(state.recoveryBase);
+  // Recovery records are only removed on logout/explicit browser clearing.
+  // Their disappearance also revokes a tab when quota prevented a logout marker.
+  const recoveryWitness = useRef<string | null>(null);
   const lifetime = useRef({ active: true, revoked: false, generation: 0 });
   const saveTimer = useRef<number | undefined>(undefined);
   const [readAttempt, setReadAttempt] = useState(0);
 
   const persist = useCallback(
-    (stored: StoredWorkspace) => {
+    (next: State): State => {
+      const stored = next.stored;
+      let sessionAvailable = false;
       try {
-        window.sessionStorage.setItem(key, JSON.stringify(stored));
-        return true;
+        window.sessionStorage.setItem(
+          key,
+          JSON.stringify({ ...stored, logoutEpoch: epoch.current }),
+        );
+        sessionAvailable = true;
       } catch {
-        return false;
+        /* Browser recovery can still succeed independently. */
       }
+      let recoveryAvailable = false;
+      const recoveries = readRecoveries(recoveryPrefix);
+      let alternative = next.localAlternative;
+      for (const entry of recoveries) {
+        if (entry.key === writer.current || recoveryBase.current[entry.key] === entry.id) continue;
+        if (
+          sameData(entry.stored.data, stored.data) ||
+          sameData(entry.stored.data, latest.current.stored.data)
+        )
+          recoveryBase.current[entry.key] = entry.id;
+        else alternative ??= entry;
+      }
+      try {
+        const id = crypto.randomUUID();
+        window.localStorage.setItem(
+          writer.current,
+          JSON.stringify({ id, seen: recoveryBase.current, stored }),
+        );
+        recoveryBase.current[writer.current] = id;
+        recoveryWitness.current = writer.current;
+        recoveryAvailable = true;
+      } catch {
+        /* Keep the session/memory original and disclose its limits. */
+      }
+      return {
+        ...next,
+        storageAvailable: sessionAvailable || recoveryAvailable,
+        recoveryAvailable,
+        ...(alternative
+          ? { sync: "conflict", conflictSource: "browser", localAlternative: alternative }
+          : {}),
+      };
     },
-    [key],
+    [key, recoveryPrefix],
   );
   const publish = useCallback(
     (next: State) => {
       if (!lifetime.current.active || lifetime.current.revoked) return;
-      if (next.stored !== latest.current.stored)
-        next = { ...next, storageAvailable: persist(next.stored) };
+      if (!epochMatches(ownerId, epoch.current) || !recoveryPresent(recoveryWitness.current))
+        return;
+      if (next.stored !== latest.current.stored) next = persist(next);
+      if (next.conflictSource === "browser") next = { ...next, sync: "conflict" };
       // Update the authoritative snapshot synchronously: async completions and
       // consecutive setters must see edits even before React commits a render.
       latest.current = next;
       setState(next);
     },
-    [persist],
+    [persist, ownerId],
   );
 
   useEffect(() => {
@@ -271,29 +398,73 @@ function WorkspaceState({
         sync: "local",
         remote: null,
         storageAvailable: true,
+        recoveryAvailable: false,
+        conflictSource: null,
+        localAlternative: null,
+        recoveryBase: {},
         syncIssue: null,
         cleared: true,
       };
       latest.current = empty;
       setState(empty);
     }
-    activeWorkspaces.add(clear);
-    publish({ ...latest.current, storageAvailable: persist(latest.current.stored) });
+    const entry = { ownerId, clear };
+    activeWorkspaces.add(entry);
+    function storageChanged() {
+      if (!epochMatches(ownerId, epoch.current) || !recoveryPresent(recoveryWitness.current)) {
+        clear();
+        try {
+          window.sessionStorage.removeItem(key);
+        } catch {
+          /* Already revoked. */
+        }
+        return;
+      }
+      let alternative: Recovery | undefined;
+      for (const item of readRecoveries(recoveryPrefix)) {
+        if (item.key === writer.current || recoveryBase.current[item.key] === item.id) continue;
+        if (sameData(item.stored.data, latest.current.stored.data))
+          recoveryBase.current[item.key] = item.id;
+        else alternative ??= item;
+      }
+      if (alternative)
+        publish({
+          ...latest.current,
+          sync: "conflict",
+          conflictSource: "browser",
+          localAlternative: alternative,
+        });
+    }
+    window.addEventListener("storage", storageChanged);
+    if (epochMatches(ownerId, epoch.current) && recoveryPresent(recoveryWitness.current))
+      publish(persist(latest.current));
+    else clear();
     return () => {
       life.active = false;
       life.generation++;
       window.clearTimeout(saveTimer.current);
-      activeWorkspaces.delete(clear);
+      activeWorkspaces.delete(entry);
+      window.removeEventListener("storage", storageChanged);
     };
-  }, [persist, publish]);
+  }, [persist, publish, key, ownerId, recoveryPrefix]);
 
-  const isCurrent = useCallback((generation: number) => {
-    const life = lifetime.current;
-    return life.active && !life.revoked && life.generation === generation;
-  }, []);
+  const isCurrent = useCallback(
+    (generation: number) => {
+      const life = lifetime.current;
+      return (
+        life.active &&
+        !life.revoked &&
+        life.generation === generation &&
+        epochMatches(ownerId, epoch.current) &&
+        recoveryPresent(recoveryWitness.current)
+      );
+    },
+    [ownerId],
+  );
 
   const reconcile = useCallback(
     (cloud: Cloud, forceConflict = false) => {
+      if (latest.current.conflictSource === "browser") return;
       const current = { ...latest.current, syncIssue: null };
       const local = current.stored;
       if (cloud.data && sameData(local.data, cloud.data)) {
@@ -309,7 +480,7 @@ function WorkspaceState({
         (local.dirty && local.revision !== cloud.revision) ||
         (!cloud.data && local.revision !== null)
       ) {
-        publish({ ...current, remote: cloud, sync: "conflict" });
+        publish({ ...current, remote: cloud, sync: "conflict", conflictSource: "cloud" });
       } else if (local.dirty) {
         publish({ ...current, remote: null, sync: "ready" });
       } else if (cloud.data) {
@@ -419,7 +590,25 @@ function WorkspaceState({
 
   function resolveConflict(choice: "cloud" | "local") {
     const current = latest.current;
+    if (current.sync === "conflict" && current.localAlternative) {
+      const alternative = current.localAlternative;
+      recoveryBase.current[alternative.key] = alternative.id;
+      // Keep the replaced branch on disk. Only the new record supersedes it.
+      writer.current = `${recoveryPrefix}${crypto.randomUUID()}`;
+      publish({
+        ...current,
+        stored: { ...(choice === "cloud" ? alternative.stored : current.stored) },
+        localAlternative: null,
+        conflictSource: null,
+        remote: null,
+        sync: companyId ? "loading" : "local",
+        syncIssue: null,
+      });
+      if (companyId) setReadAttempt((attempt) => attempt + 1);
+      return;
+    }
     if (current.sync !== "conflict" || !current.remote) return;
+    writer.current = `${recoveryPrefix}${crypto.randomUUID()}`;
     const cloud = current.remote;
     const stored =
       choice === "cloud"
@@ -429,6 +618,7 @@ function WorkspaceState({
       ...current,
       stored,
       remote: null,
+      conflictSource: null,
       sync: choice === "cloud" && cloud.data && !stored.dirty ? "saved" : "ready",
     });
   }
@@ -453,6 +643,8 @@ function WorkspaceState({
         ownerId,
         sync: state.sync,
         storageAvailable: state.storageAvailable,
+        recoveryAvailable: state.recoveryAvailable,
+        conflictSource: state.conflictSource,
         pendingSave: state.stored.dirty,
         syncIssue: state.syncIssue,
         resolveConflict,
@@ -465,8 +657,17 @@ function WorkspaceState({
 }
 
 export function WorkspaceSaveStatus() {
-  const { sync, company, storageAvailable, pendingSave, syncIssue, resolveConflict, retrySync } =
-    useMarketingWorkspace();
+  const {
+    sync,
+    company,
+    storageAvailable,
+    recoveryAvailable,
+    conflictSource,
+    pendingSave,
+    syncIssue,
+    resolveConflict,
+    retrySync,
+  } = useMarketingWorkspace();
   const saving = sync === "saving" || sync === "loading" || (sync === "ready" && pendingSave);
   const memoryOnly = sync !== "saved" && !storageAvailable;
   const label =
@@ -476,12 +677,16 @@ export function WorkspaceSaveStatus() {
         ? "Revisar conflito"
         : saving
           ? "Salvando"
-          : "Somente nesta aba";
+          : recoveryAvailable
+            ? "Salvo neste navegador"
+            : "Somente nesta aba";
   const message =
     sync === "saved"
       ? "As alterações deste espaço estão salvas na conta."
       : sync === "conflict"
-        ? "Há outra versão na sua conta. Escolha qual continuar."
+        ? conflictSource === "browser"
+          ? "Há outra cópia neste navegador. Escolha qual continuar; nenhuma será apagada por esta escolha."
+          : "Há outra versão na sua conta. Escolha qual continuar."
         : sync === "loading"
           ? "Verificando a versão da conta antes de salvar."
           : saving
@@ -497,7 +702,13 @@ export function WorkspaceSaveStatus() {
         </summary>
         <div className="workspace-save-panel">
           <p>{message}</p>
-          {sync !== "saved" && storageAvailable && (
+          {sync !== "saved" && recoveryAvailable && (
+            <p>
+              Cópia de recuperação neste navegador, não na conta. Disponível entre abas deste
+              perfil; sair da conta ou limpar os dados do navegador remove esta cópia.
+            </p>
+          )}
+          {sync !== "saved" && storageAvailable && !recoveryAvailable && (
             <p>Rascunho guardado nesta aba. Fechar a aba pode apagar esta cópia.</p>
           )}
           {sync === "saved" && !storageAvailable && <p>Cópia nesta aba indisponível.</p>}
@@ -508,9 +719,15 @@ export function WorkspaceSaveStatus() {
           )}
           {sync === "conflict" && (
             <div className="workspace-save-actions">
-              <p>Usar a versão da conta substitui o rascunho desta aba.</p>
+              <p>
+                {conflictSource === "browser"
+                  ? "Usar a outra cópia muda o rascunho aberto. As cópias originais são preservadas até sair da conta."
+                  : "Usar a versão da conta substitui o rascunho desta aba."}
+              </p>
               <button type="button" onClick={() => resolveConflict("cloud")}>
-                Usar versão da conta
+                {conflictSource === "browser"
+                  ? "Usar outra cópia do navegador"
+                  : "Usar versão da conta"}
               </button>
               <button type="button" onClick={() => resolveConflict("local")}>
                 Manter minha versão desta aba

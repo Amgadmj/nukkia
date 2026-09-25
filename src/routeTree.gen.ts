@@ -36,6 +36,7 @@ import { Route as ApiOnboardingDraftRouteImport } from './routes/api/onboarding-
 import { Route as ApiPaletaRouteImport } from './routes/api/paleta'
 import { Route as ApiPesquisaEmpresaRouteImport } from './routes/api/pesquisa-empresa'
 import { Route as ApiPlanoRouteImport } from './routes/api/plano'
+import { Route as ApiPromoVideoRouteImport } from './routes/api/promo-video'
 import { Route as ApiVideoStatusRouteImport } from './routes/api/video-status'
 
 const IndexRoute = IndexRouteImport.update({
@@ -173,6 +174,11 @@ const ApiPlanoRoute = ApiPlanoRouteImport.update({
   path: '/api/plano',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPromoVideoRoute = ApiPromoVideoRouteImport.update({
+  id: '/api/promo-video',
+  path: '/api/promo-video',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVideoStatusRoute = ApiVideoStatusRouteImport.update({
   id: '/api/video-status',
   path: '/api/video-status',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/api/paleta': typeof ApiPaletaRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
+  '/api/promo-video': typeof ApiPromoVideoRoute
   '/api/video-status': typeof ApiVideoStatusRoute
 }
 export interface FileRoutesByTo {
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/api/paleta': typeof ApiPaletaRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
+  '/api/promo-video': typeof ApiPromoVideoRoute
   '/api/video-status': typeof ApiVideoStatusRoute
 }
 export interface FileRoutesById {
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/api/paleta': typeof ApiPaletaRoute
   '/api/pesquisa-empresa': typeof ApiPesquisaEmpresaRoute
   '/api/plano': typeof ApiPlanoRoute
+  '/api/promo-video': typeof ApiPromoVideoRoute
   '/api/video-status': typeof ApiVideoStatusRoute
 }
 export interface FileRouteTypes {
@@ -297,6 +306,7 @@ export interface FileRouteTypes {
     | '/api/paleta'
     | '/api/pesquisa-empresa'
     | '/api/plano'
+    | '/api/promo-video'
     | '/api/video-status'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/api/paleta'
     | '/api/pesquisa-empresa'
     | '/api/plano'
+    | '/api/promo-video'
     | '/api/video-status'
   id:
     | '__root__'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/api/paleta'
     | '/api/pesquisa-empresa'
     | '/api/plano'
+    | '/api/promo-video'
     | '/api/video-status'
   fileRoutesById: FileRoutesById
 }
@@ -377,6 +389,7 @@ export interface RootRouteChildren {
   ApiPaletaRoute: typeof ApiPaletaRoute
   ApiPesquisaEmpresaRoute: typeof ApiPesquisaEmpresaRoute
   ApiPlanoRoute: typeof ApiPlanoRoute
+  ApiPromoVideoRoute: typeof ApiPromoVideoRoute
   ApiVideoStatusRoute: typeof ApiVideoStatusRoute
 }
 
@@ -571,6 +584,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPlanoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/promo-video': {
+      id: '/api/promo-video'
+      path: '/api/promo-video'
+      fullPath: '/api/promo-video'
+      preLoaderRoute: typeof ApiPromoVideoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/video-status': {
       id: '/api/video-status'
       path: '/api/video-status'
@@ -628,6 +648,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPaletaRoute: ApiPaletaRoute,
   ApiPesquisaEmpresaRoute: ApiPesquisaEmpresaRoute,
   ApiPlanoRoute: ApiPlanoRoute,
+  ApiPromoVideoRoute: ApiPromoVideoRoute,
   ApiVideoStatusRoute: ApiVideoStatusRoute,
 }
 export const routeTree = rootRouteImport

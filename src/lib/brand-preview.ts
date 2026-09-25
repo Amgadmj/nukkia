@@ -58,9 +58,9 @@ export const CTA_OPTIONS = [
 export const briefSchema = z.object({
   name: z.string().trim().min(2).max(120),
   segment: z.string().trim().min(2).max(120),
-  offer: z.string().trim().min(3).max(300),
-  audience: z.string().trim().min(3).max(300),
-  goal: z.string().trim().min(3).max(120),
+  offer: z.string().trim().min(3).max(1000),
+  audience: z.string().trim().min(3).max(1000),
+  goal: z.string().trim().min(3).max(1000),
   detail: z.string().trim().min(12).max(600),
   action: z.enum(["direct", "booking", "website"]),
   destination: z.string().trim().max(200),
@@ -204,6 +204,14 @@ export function briefIssues(data: BrandData): string[] {
     issues.push("Informe o nome e a área de atuação da marca.");
   if (brief.offer.length < 3) issues.push("Escolha ou descreva a oferta que vamos apresentar.");
   if (brief.audience.length < 3) issues.push("Descreva quem você quer alcançar.");
+  if (brief.goal.length < 3) issues.push("Informe o objetivo da comunicação.");
+  for (const [field, label] of [
+    ["offer", "a oferta"],
+    ["audience", "a descrição do público"],
+    ["goal", "o objetivo"],
+  ] as const) {
+    if (brief[field].length > 1000) issues.push(`Reduza ${label} para até 1.000 caracteres.`);
+  }
   if (brief.detail.length < 12)
     issues.push("Adicione um detalhe concreto com pelo menos 12 caracteres.");
   if (!issues.length && !briefSchema.safeParse(brief).success)
@@ -332,11 +340,17 @@ export function completeBrandOnboarding<T extends BrandData & { onboarded: boole
 export function reviseCreative(creative: Creative, copy: PostCopy): Creative {
   return { ...creative, copy, review: "needs-review", approved: null, exported: null };
 }
+function concise(value: string, limit: number) {
+  if (value.length <= limit) return value;
+  const prefix = value.slice(0, limit - 1);
+  const boundary = prefix.lastIndexOf(" ");
+  return (boundary > 0 ? prefix.slice(0, boundary) : prefix).trimEnd() + "…";
+}
 export function fallbackCopy(brief: FirstPostBrief): PostCopy {
   const action = CTA_OPTIONS.find((option) => option.value === brief.action)!.copy;
   return {
-    title: brief.offer.slice(0, 78),
-    body: brief.detail.slice(0, 180),
+    title: concise(brief.offer, 78),
+    body: concise(brief.detail, 180),
     caption: [brief.name + " • " + brief.offer, brief.detail, action, brief.destination]
       .filter(Boolean)
       .join("\n\n")
@@ -430,19 +444,21 @@ export function composeContent(data: BrandData, approach: ContentApproach): Crea
       ? [
           {
             title: question ? "O que você precisa saber" : "Um detalhe que faz parte da oferta",
-            body: (question
-              ? answer || "Adicione sua resposta no briefing antes de aprovar esta peça."
-              : brief.detail
-            ).slice(0, 180),
+            body: concise(
+              question
+                ? answer || "Adicione sua resposta no briefing antes de aprovar esta peça."
+                : brief.detail,
+              180,
+            ),
           },
           { title: "Seu próximo passo", body: action },
         ]
       : [];
   if (approach === "educate") {
-    copy.title = (question || brief.offer).slice(0, 78);
+    copy.title = concise(question || brief.offer, 78);
     copy.body = question
-      ? brief.offer.slice(0, 180)
-      : `Conheça a proposta de ${brief.name}.`.slice(0, 180);
+      ? concise(brief.offer, 180)
+      : concise(`Conheça a proposta de ${brief.name}.`, 180);
     copy.caption = [
       brief.name + " • " + brief.offer,
       question,

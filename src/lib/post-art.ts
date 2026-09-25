@@ -5,7 +5,44 @@ import {
   type FirstPostBrief,
   type PostCopy,
   type ContentApproach,
+  creativeFingerprint,
+  creativeStatus,
 } from "./brand-preview.ts";
+import type { DemoData } from "./quick-start.ts";
+
+export async function preparePromoVideo(
+  data: DemoData,
+  svgs: string[],
+  dependencies: {
+    current: () => DemoData;
+    render: (svg: string) => Promise<Uint8Array>;
+    request: (frames: string[]) => Promise<Blob>;
+  },
+): Promise<Blob> {
+  if (!creativeStatus(data).approved) throw new Error("Aprove a peça antes de preparar o vídeo.");
+  if (!svgs.length || svgs.length > 3) throw new Error("Use entre uma e três páginas.");
+  const version = creativeFingerprint(data);
+  const unchanged = () => {
+    const current = dependencies.current();
+    if (!creativeStatus(current).approved || creativeFingerprint(current) !== version)
+      throw new Error("A peça mudou. Revise a versão atual antes de preparar o vídeo.");
+  };
+  const frames = await Promise.all(
+    svgs.map(async (svg) => {
+      const bytes = await dependencies.render(svg);
+      let binary = "";
+      for (let start = 0; start < bytes.length; start += 8192)
+        binary += String.fromCharCode(...bytes.subarray(start, start + 8192));
+      return "data:image/png;base64," + btoa(binary);
+    }),
+  );
+  unchanged();
+  const result = await dependencies.request(frames);
+  unchanged();
+  if (result.type !== "video/mp4" || !result.size)
+    throw new Error("O servidor não retornou um vídeo MP4. Tente novamente.");
+  return result;
+}
 
 export const escapeXml = (value: string) =>
   value.replace(
@@ -81,6 +118,10 @@ export function postSvg(
       .map((line, i) => `<tspan x="${x}" y="${y + i * lineHeight}">${escapeXml(line)}</tspan>`)
       .join("");
   const cta = CTA_OPTIONS.find((option) => option.value === brief.action)!.copy;
+  const pagination =
+    layout.total > 1
+      ? `<text x="1016" y="1130" text-anchor="end" font-family="Arial,sans-serif" font-size="24" fill="${ink}">${layout.page} / ${layout.total}</text>`
+      : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
   <defs><clipPath id="photo"><rect x="60" y="${photoLed ? 240 : 820}" width="960" height="${photoHeight}" rx="26"/></clipPath></defs>
   <rect width="1080" height="1350" fill="${background}"/>
@@ -94,11 +135,11 @@ export function postSvg(
     photoLed
       ? `<rect x="60" y="240" width="960" height="${photoHeight}" rx="26" fill="${accent}"/>${photo ? `<image href="${photo}" x="60" y="240" width="960" height="${photoHeight}" preserveAspectRatio="xMidYMid slice" clip-path="url(#photo)"/>` : `<text x="540" y="${250 + photoHeight / 2}" text-anchor="middle" font-family="Arial,sans-serif" font-size="30" fill="white">Adicione uma foto da marca</text>`}`
       : dynamic
-        ? `<path d="M60 900 1020 800V1060L60 1160Z" fill="${accent}"/><path d="M130 1030H420m-70-70 70 70-70 70" stroke="white" stroke-width="8" fill="none"/><text x="900" y="1000" text-anchor="end" font-family="Arial,sans-serif" font-size="96" font-weight="700" fill="white">0${layout.page}</text>`
+        ? `<path d="M60 900 1020 800V1060L60 1160Z" fill="${accent}"/><path d="M130 1030H420m-70-70 70 70-70 70" stroke="white" stroke-width="8" fill="none"/>${pagination}`
         : style === "essential"
-          ? `<path d="M64 880H1016" stroke="${accent}" stroke-width="2"/><text x="64" y="1070" font-family="Georgia,serif" font-size="130" fill="${accent}">0${layout.page}</text><text x="1016" y="1070" text-anchor="end" font-family="Arial,sans-serif" font-size="24" fill="${ink}">/ 0${layout.total}</text>`
+          ? `<path d="M64 880H1016" stroke="${accent}" stroke-width="2"/>${photo ? `<image href="${photo}" x="60" y="900" width="960" height="250" preserveAspectRatio="xMidYMid slice"/>` : ""}${pagination}`
           : layout.approach === "educate"
-            ? `<rect x="60" y="820" width="960" height="330" rx="26" fill="${accent}"/><text x="116" y="1018" font-family="Arial,sans-serif" font-size="112" fill="white">0${layout.page}</text><text x="850" y="1080" font-family="Arial,sans-serif" font-size="28" fill="white">/ 0${layout.total}</text>`
+            ? `<path d="M64 880H1016" stroke="${accent}" stroke-width="2"/>${pagination}`
             : photo
               ? `<image href="${photo}" x="60" y="820" width="960" height="330" preserveAspectRatio="xMidYMid slice" clip-path="url(#photo)"/>`
               : `<rect x="60" y="820" width="960" height="330" rx="26" fill="${accent}"/><circle cx="850" cy="983" r="128" fill="none" stroke="#ffffff" opacity=".23" stroke-width="2"/><circle cx="850" cy="983" r="81" fill="none" stroke="#ffffff" opacity=".3" stroke-width="2"/><path d="M116 986h110m-36-36 36 36-36 36" stroke="white" stroke-width="4" fill="none"/>`

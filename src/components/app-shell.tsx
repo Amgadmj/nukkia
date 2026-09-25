@@ -3,7 +3,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { LogOut, Settings, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { WorkspaceShell } from "./workspace-shell";
-import { useMarketingWorkspace, clearMarketingWorkspace } from "./marketing-provider";
+import {
+  useMarketingWorkspace,
+  clearMarketingWorkspace,
+  WorkspaceSaveStatus,
+} from "./marketing-provider";
 import {
   WORKSPACE_NAV,
   journeyProgress,
@@ -64,6 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </>
       }
     >
+      <WorkspaceSaveStatus />
       {children}
     </WorkspaceShell>
   );

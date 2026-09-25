@@ -3,6 +3,10 @@ import { z } from "zod";
 // generateJson's schema must be a zod/v4 schema — see the note in ai.server.ts.
 import { z as z4 } from "zod/v4";
 import { AiError, generateJson } from "@/lib/ai.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json } from "@/integrations/supabase/types";
+import { demoSchema } from "@/lib/quick-start";
+import { briefIssues, firstPostBrief } from "@/lib/brand-preview";
 import { checkAiQuota, quotaExceededResponse } from "@/lib/quota.server";
 import { userClientFromRequest } from "@/lib/supabase-request.server";
 
@@ -10,6 +14,20 @@ const bodySchema = z.object({
   companyId: z.string().uuid(),
   postsPorSemana: z.number().int().min(1).max(14).nullable().optional(),
 });
+
+// Additive read typing while generated database types lack this existing table.
+type WorkspaceDatabase = Database & {
+  public: {
+    Tables: {
+      marketing_workspaces: {
+        Row: { company_id: string; data: Json };
+        Insert: { company_id: string; data: Json };
+        Update: { company_id?: string; data?: Json };
+        Relationships: [];
+      };
+    };
+  };
+};
 
 const planSchema = z4.object({
   publicacoes: z4.array(
@@ -60,18 +78,76 @@ export const Route = createFileRoute("/api/plano")({
           });
         }
 
+        const workspaceClient = supabase as unknown as SupabaseClient<WorkspaceDatabase>;
+        const { data: workspace, error: workspaceError } = await workspaceClient
+          .from("marketing_workspaces")
+          .select("data")
+          .eq("company_id", company.id)
+          .maybeSingle();
+        if (workspaceError) {
+          console.error("[api/plano] workspace-read failed");
+          return new Response(
+            "Não foi possível carregar o contexto atual da marca. Tente novamente.",
+            {
+              status: 503,
+            },
+          );
+        }
+
+        let context: string[];
+        if (workspace) {
+          const current = demoSchema.safeParse(workspace.data);
+          if (!current.success || briefIssues(current.data).length) {
+            return new Response(
+              "Revise e confirme o contexto atual da marca antes de gerar o plano.",
+              {
+                status: 409,
+              },
+            );
+          }
+          const brief = firstPostBrief(current.data);
+          context = [
+            `Empresa: ${brief.name}`,
+            `Segmento: ${brief.segment}`,
+            `Oferta confirmada: ${brief.offer}`,
+            `Público confirmado: ${brief.audience}`,
+            `Objetivo confirmado: ${brief.goal}`,
+            `Detalhe confirmado: ${brief.detail}`,
+            `Ação desejada: ${brief.action}`,
+            `Destino da ação: ${brief.destination}`,
+            ...(current.data.brand.customerQuestion.trim()
+              ? [
+                  `Dúvida informada: ${current.data.brand.customerQuestion}`,
+                  `Resposta informada: ${current.data.brand.questionAnswer}`,
+                ]
+              : []),
+          ];
+        } else {
+          // Only a successful lookup with no row permits legacy context.
+          const { data: diagnostic, error: diagnosticError } = await supabase
+            .from("diagnostics")
+            .select("report")
+            .eq("company_id", company.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (diagnosticError) {
+            console.error("[api/plano] legacy-context-read failed");
+            return new Response("Não foi possível carregar o contexto anterior da marca.", {
+              status: 503,
+            });
+          }
+          const report = (diagnostic?.report ?? {}) as { pilares?: string[]; resumo?: string };
+          context = [
+            `Empresa: ${company.name}`,
+            `Segmento: ${company.segment ?? "não informado"}`,
+            `Pilares: ${(report.pilares ?? []).join(", ") || "educacional, bastidores, prova social, oferta"}`,
+            `Resumo do diagnóstico: ${report.resumo ?? "sem diagnóstico"}`,
+          ];
+        }
+
         const allowed = await checkAiQuota(supabase, company.id, "plano");
         if (!allowed) return quotaExceededResponse("plano");
-
-        const { data: diagnostic } = await supabase
-          .from("diagnostics")
-          .select("report")
-          .eq("company_id", company.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const report = (diagnostic?.report ?? {}) as { pilares?: string[]; resumo?: string };
         const frequencia = parsed.data.postsPorSemana ?? 3;
 
         let plan: z4.infer<typeof planSchema>;
@@ -79,19 +155,18 @@ export const Route = createFileRoute("/api/plano")({
           plan = await generateJson({
             schema: planSchema,
             instructions:
-              "Você é estrategista de conteúdo para pequenas empresas brasileiras. Responda em português do Brasil. Crie o plano do próximo mês com 12 publicações no máximo, distribuídas entre os dias 1 e 28. Legendas de até 700 caracteres, hashtags em uma linha só, CTA curto. Nada de promessas de resultado em saúde.",
+              "Você é estrategista de conteúdo para pequenas empresas brasileiras. Responda em português do Brasil. Crie o plano do próximo mês com 12 publicações no máximo, distribuídas entre os dias 1 e 28. Legendas de até 700 caracteres, hashtags em uma linha só, CTA curto. Use o contexto fornecido sem inventar ofertas, condições ou respostas ausentes. Nada de promessas de resultado em saúde.",
             input: [
-              `Empresa: ${company.name}`,
-              `Segmento: ${company.segment ?? "não informado"}`,
+              ...context,
               `Tom de voz: ${brandKit.tone ?? "profissional e acolhedor"}`,
-              `Pilares: ${(report.pilares ?? []).join(", ") || "educacional, bastidores, prova social, oferta"}`,
-              `Resumo do diagnóstico: ${report.resumo ?? "sem diagnóstico"}`,
               `Frequência desejada: ${frequencia} publicações por semana`,
             ].join("\n"),
           });
         } catch (err) {
-          const message = err instanceof AiError ? err.userMessage : "Erro ao planejar.";
-          if (!(err instanceof AiError)) console.error("[api/plano] unexpected error:", err);
+          const message =
+            "Não foi possível gerar o plano." +
+            (err instanceof AiError ? ` ${err.userMessage}` : "");
+          console.error("[api/plano] plan-generation failed");
           return new Response(message, { status: 502 });
         }
 
@@ -122,7 +197,7 @@ export const Route = createFileRoute("/api/plano")({
           .select("id")
           .single();
         if (planError || !planRow) {
-          console.error("[api/plano] failed to upsert content_plans:", planError?.message);
+          console.error("[api/plano] plan-save failed");
           return new Response("Não foi possível salvar o plano.", { status: 500 });
         }
 
@@ -131,7 +206,7 @@ export const Route = createFileRoute("/api/plano")({
           .delete()
           .eq("plan_id", planRow.id);
         if (deleteError) {
-          console.error("[api/plano] failed to clear previous plan items:", deleteError.message);
+          console.error("[api/plano] plan-items-clear failed");
           return new Response("Não foi possível atualizar o plano.", { status: 500 });
         }
 
@@ -155,7 +230,7 @@ export const Route = createFileRoute("/api/plano")({
 
         const { error: insertError } = await supabase.from("content_items").insert(rows);
         if (insertError) {
-          console.error("[api/plano] failed to insert content_items:", insertError.message);
+          console.error("[api/plano] plan-items-save failed");
           return new Response("Falha ao salvar o plano.", { status: 500 });
         }
 

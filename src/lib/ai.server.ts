@@ -164,8 +164,11 @@ async function callGemini(model: string, body: unknown, timeoutMs: number): Prom
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    console.error(`[ai] Gemini ${model} error [${response.status}]:`, text.slice(0, 2000));
+    console.error("[ai] Gemini image request failed", { model, status: response.status });
+    if (response.status === 402)
+      throw new AiError(
+        "Os créditos de geração do Google acabaram. Avise o administrador ou use a composição local.",
+      );
     if (isRetryable(response.status)) throw new RetryableAiError(`gemini ${response.status}`);
     throw new AiError("O serviço de IA não conseguiu processar o pedido agora.");
   }
@@ -222,8 +225,11 @@ export async function startVideoGeneration(
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    console.error(`[ai] Veo start error [${response.status}]:`, text.slice(0, 2000));
+    console.error("[ai] Veo start request failed", { model: VIDEO_MODEL, status: response.status });
+    if (response.status === 402)
+      throw new AiError(
+        "Os créditos de geração do Google acabaram. Use o vídeo composto com sua peça aprovada.",
+      );
     throw new AiError("Não foi possível iniciar a geração do vídeo.");
   }
   const json = (await response.json()) as { name?: string };
@@ -244,8 +250,7 @@ export async function checkVideoOperation(operationName: string): Promise<VeoOpe
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    console.error(`[ai] Veo poll error [${response.status}]:`, text.slice(0, 2000));
+    console.error("[ai] Veo status request failed", { status: response.status });
     throw new AiError("Não foi possível verificar o status do vídeo.");
   }
 

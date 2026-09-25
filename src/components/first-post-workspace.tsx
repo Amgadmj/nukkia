@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { ArrowRight, Check, Download, LoaderCircle } from "lucide-react";
+import { ArrowRight, Check, Download, LoaderCircle, Video } from "lucide-react";
 import type { DemoData } from "@/lib/quick-start";
 import {
   briefIssues,
@@ -13,7 +13,14 @@ import {
   updateBrand,
   type PostCopy,
 } from "@/lib/brand-preview";
-import { postSvg, prepareAsset, publicationZip, renderPng, svgUrl } from "@/lib/post-art";
+import {
+  postSvg,
+  prepareAsset,
+  preparePromoVideo,
+  publicationZip,
+  renderPng,
+  svgUrl,
+} from "@/lib/post-art";
 import { CompactAnswer } from "./brand-onboarding";
 import { recordWorkspaceEvent } from "@/lib/marketing-workspace";
 import { BrandSources } from "./brand-sources";
@@ -24,17 +31,34 @@ export function FirstPostWorkspace({
   onEditBrief,
   onChooseApproach,
   onTrail,
+  onVideo,
 }: {
   data: DemoData;
   onData: Dispatch<SetStateAction<DemoData>>;
   onEditBrief: () => void;
   onChooseApproach: () => void;
   onTrail: () => void;
+  onVideo?: ((frames: string[]) => Promise<Blob>) | undefined;
 }) {
   const [notice, setNotice] = useState("");
   const [exporting, setExporting] = useState(false);
   const [reviewed, setReviewed] = useState(false);
   const [page, setPage] = useState(0);
+  const [renderingVideo, setRenderingVideo] = useState(false);
+  const [video, setVideo] = useState<{ url: string; version: string } | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  useEffect(
+    () => () => {
+      if (video) URL.revokeObjectURL(video.url);
+    },
+    [video],
+  );
   const latest = useRef(data);
   latest.current = data;
   const creative = data.brand.creative;
@@ -45,6 +69,30 @@ export function FirstPostWorkspace({
     setReviewed(false);
     setNotice("");
   }, [fingerprint]);
+  useEffect(() => {
+    setVideo(null);
+  }, [fingerprint]);
+  async function composeVideo() {
+    if (!onVideo || renderingVideo || !status.approved) return;
+    const version = fingerprint;
+    setRenderingVideo(true);
+    setNotice("");
+    try {
+      const blob = await preparePromoVideo(data, svgs, {
+        current: () => latest.current,
+        render: renderPng,
+        request: onVideo,
+      });
+      if (!mounted.current) return;
+      setVideo({ url: URL.createObjectURL(blob), version });
+      setNotice("Vídeo pronto. Assista antes de baixar. Nada foi publicado.");
+    } catch (error) {
+      if (mounted.current)
+        setNotice(error instanceof Error ? error.message : "Não foi possível preparar o vídeo.");
+    } finally {
+      if (mounted.current) setRenderingVideo(false);
+    }
+  }
   function compose() {
     onData((current) => {
       if (briefIssues(current).length) return current;
@@ -183,11 +231,8 @@ export function FirstPostWorkspace({
               ? "SEU CONTEXTO VIROU UM PONTO DE PARTIDA · +20 XP"
               : "VAMOS PREPARAR SEU PONTO DE PARTIDA"}
           </p>
-          <h1>Sua marca. Sua primeira peça.</h1>
-          <p className="quick-dashboard-intro">
-            Uma composição inicial com o que você confirmou. Dê seu toque antes de levar para o
-            mundo.
-          </p>
+          <h1>Sua primeira peça</h1>
+          <p className="quick-dashboard-intro">Revise o texto e a identidade antes de exportar.</p>
         </div>
         <button className="quick-text-button" onClick={onTrail}>
           Minha trilha <ArrowRight size={16} />
@@ -200,7 +245,7 @@ export function FirstPostWorkspace({
           <p>{CONTENT_APPROACHES.find((option) => option.id === creative.approach)?.format}</p>
         )}
         <button className="quick-text-button" onClick={onChooseApproach}>
-          Por que esta peça? / Escolher outra abordagem
+          Escolher outra abordagem
         </button>
       </div>
       {(issues.length > 0 || status.stale) && (
@@ -448,7 +493,44 @@ export function FirstPostWorkspace({
                 )}
                 Baixar arte + legenda
               </button>
+              {onVideo && (
+                <button
+                  className="quick-secondary"
+                  disabled={!status.approved || renderingVideo}
+                  onClick={() => void composeVideo()}
+                >
+                  {renderingVideo ? (
+                    <LoaderCircle className="brand-spin" size={16} />
+                  ) : (
+                    <Video size={16} />
+                  )}
+                  {renderingVideo ? "Preparando vídeo…" : "Preparar vídeo MP4"}
+                </button>
+              )}
             </div>
+            {onVideo && (
+              <p className="brand-microcopy">
+                Vídeo composto com as páginas aprovadas, sem áudio e sem custo de geração por IA.
+              </p>
+            )}
+            {video && video.version === fingerprint && status.approved && (
+              <div className="brand-video-preview">
+                <video
+                  controls
+                  playsInline
+                  preload="metadata"
+                  src={video.url}
+                  aria-label="Prévia do vídeo promocional"
+                />
+                <a
+                  className="quick-secondary"
+                  href={video.url}
+                  download="nukkia-video-promocional.mp4"
+                >
+                  <Download size={16} /> Baixar vídeo MP4
+                </a>
+              </div>
+            )}
             <p className="brand-microcopy">
               Revise também as regras do seu setor. Esta prévia não certifica conformidade nem
               garante resultados.

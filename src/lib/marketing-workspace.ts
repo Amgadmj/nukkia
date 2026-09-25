@@ -404,6 +404,9 @@ export const WORKSPACE_PREFIX = "nukkia:workspace:v1:";
 export const workspaceKey = (ownerId: string, companyId?: string) =>
   `${WORKSPACE_PREFIX}${ownerId}:${companyId || "new"}`;
 
+export const recoveryOwnerPrefix = (ownerId: string) =>
+  `nukkia:workspace-recovery:v1:${encodeURIComponent(ownerId)}:`;
+
 export function seedWorkspace(
   company?: {
     name: string;

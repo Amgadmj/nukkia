@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { unzipSync, strFromU8 } from "fflate";
 import { postSvg, publicationZip, wrapCopy } from "../src/lib/post-art.ts";
+import { fallbackCopy } from "../src/lib/brand-preview.ts";
 import { handleBrandPreview, localPreviewAllowed } from "../src/lib/brand-preview.server.ts";
 const brief = {
   name: 'Marca <script>&"',
@@ -18,6 +19,22 @@ const copy = {
   body: "Conheça nossas turmas de até quatro pessoas.",
   caption: "Uma aula em pequenos grupos. Envie uma mensagem para saber mais.",
 };
+test("a long offer keeps complete words in the art and the full offer in its caption", () => {
+  const offer =
+    "Este simulador de alta tecnologia oferece uma experiência imersiva e desafiadora para quem deseja conhecer a proposta.";
+  const result = fallbackCopy({ ...brief, offer });
+  assert.equal(
+    result.title,
+    "Este simulador de alta tecnologia oferece uma experiência imersiva e…",
+  );
+  assert.ok(result.caption.includes(offer));
+});
+test("a single-page piece has no decorative page number", () => {
+  for (const visualStyle of ["essential", "dynamic"] as const) {
+    const svg = postSvg(brief, copy, { accent: "#395D51", logo: "", photo: "", visualStyle });
+    assert.doesNotMatch(svg, />01<|\/ 01<|>1 \/ 1</);
+  }
+});
 test("visual escapes user markup and does not embed remote images", () => {
   const svg = postSvg(brief, copy, {
     accent: "#395D51",

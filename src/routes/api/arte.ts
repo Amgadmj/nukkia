@@ -16,6 +16,30 @@ const bodySchema = z.object({
   contentItemId: z.string().uuid(),
 });
 
+const failures = {
+  "image-generation": [502, "Não foi possível gerar a imagem."],
+  "image-save": [500, "Não foi possível salvar a imagem gerada."],
+  "carousel-generation": [502, "Não foi possível gerar o carrossel."],
+  "carousel-save": [500, "Não foi possível salvar o carrossel gerado."],
+  "storyboard-generation": [502, "Não foi possível gerar o roteiro."],
+  "storyboard-save": [500, "Não foi possível salvar o roteiro. O vídeo não foi iniciado."],
+  "video-quota": [503, "O roteiro foi salvo, mas não foi possível verificar o limite de vídeo."],
+  "video-start": [502, "O roteiro foi salvo, mas não foi possível iniciar o vídeo."],
+  "video-operation-save": [
+    500,
+    "O vídeo foi iniciado, mas não foi possível registrar sua operação.",
+  ],
+} as const;
+
+function failure(stage: keyof typeof failures, error?: unknown) {
+  const [status, message] = failures[stage];
+  // Log only the fixed stage; exceptions can contain prompts, keys or DB details.
+  console.error(`[api/arte] ${stage} failed`);
+  return new Response(message + (error instanceof AiError ? ` ${error.userMessage}` : ""), {
+    status,
+  });
+}
+
 export const Route = createFileRoute("/api/arte")({
   server: {
     handlers: {
@@ -79,8 +103,10 @@ export const Route = createFileRoute("/api/arte")({
           cta: item.cta,
         };
 
+        let stage: keyof typeof failures = "image-generation";
         try {
           if (item.format === "carrossel") {
+            stage = "carousel-generation";
             const { slides, coverPath } = await generateCarousel(supabase, {
               company,
               brandKit,
@@ -88,38 +114,51 @@ export const Route = createFileRoute("/api/arte")({
               contentItemId: item.id,
               companyId: item.company_id,
             });
-            await supabase
+            stage = "carousel-save";
+            const { data: saved, error } = await supabase
               .from("content_items")
               .update({ slides, image_path: coverPath })
-              .eq("id", item.id);
+              .eq("id", item.id)
+              .select("id")
+              .maybeSingle();
+            if (error || !saved) return failure(stage);
             return Response.json({ ok: true, format: "carrossel", slides: slides.length });
           }
 
           if (item.format === "reels") {
+            stage = "storyboard-generation";
             const storyboard = await generateVideoStoryboard({ company, brandKit, item: brief });
+
+            stage = "storyboard-save";
+            const { data: savedStoryboard, error: storyboardError } = await supabase
+              .from("content_items")
+              .update({ storyboard })
+              .eq("id", item.id)
+              .select("id")
+              .maybeSingle();
+            if (storyboardError || !savedStoryboard) return failure(stage);
 
             // Kicking off the actual Veo render spends a second, separate
             // quota unit from the storyboard generation above — video
             // rendering is materially more expensive than a text call.
+            stage = "video-quota";
             const renderAllowed = await checkAiQuota(supabase, item.company_id, "video_render");
-            if (!renderAllowed) {
-              await supabase
-                .from("content_items")
-                .update({ storyboard, video_operation: null, video_error: null })
-                .eq("id", item.id);
-              return quotaExceededResponse("video_render");
-            }
+            if (!renderAllowed) return quotaExceededResponse("video_render");
 
+            stage = "video-start";
             const { operationName } = await startVideoRender({ company, brandKit, storyboard });
-            await supabase
+            stage = "video-operation-save";
+            const { data: savedOperation, error: operationError } = await supabase
               .from("content_items")
               .update({
-                storyboard,
                 video_operation: operationName,
                 video_error: null,
                 video_path: null,
               })
-              .eq("id", item.id);
+              .eq("id", item.id)
+              .select("id")
+              .maybeSingle();
+            if (operationError || !savedOperation) return failure(stage);
             return Response.json({ ok: true, format: "reels", status: "rendering" });
           }
 
@@ -130,12 +169,17 @@ export const Route = createFileRoute("/api/arte")({
             contentItemId: item.id,
             companyId: item.company_id,
           });
-          await supabase.from("content_items").update({ image_path: imagePath }).eq("id", item.id);
+          stage = "image-save";
+          const { data: saved, error } = await supabase
+            .from("content_items")
+            .update({ image_path: imagePath })
+            .eq("id", item.id)
+            .select("id")
+            .maybeSingle();
+          if (error || !saved) return failure(stage);
           return Response.json({ ok: true, format: item.format });
         } catch (err) {
-          const message = err instanceof AiError ? err.userMessage : "Erro ao gerar a peça.";
-          if (!(err instanceof AiError)) console.error("[api/arte] unexpected error:", err);
-          return new Response(message, { status: 502 });
+          return failure(stage, err);
         }
       },
     },

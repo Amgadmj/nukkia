@@ -111,6 +111,20 @@ function Conteudo() {
           onIdentity={() => void navigate({ to: "/marca", search: { retorno: "conteudo" } })}
           view={aba}
           onView={setView}
+          onVideo={async (frames) => {
+            const response = await apiFetch("/api/promo-video", { frames });
+            if (!response.ok) {
+              const error = (await response.json().catch(() => null)) as {
+                message?: unknown;
+              } | null;
+              throw new Error(
+                typeof error?.message === "string"
+                  ? error.message.slice(0, 240)
+                  : "Não foi possível preparar o vídeo. Tente novamente.",
+              );
+            }
+            return response.blob();
+          }}
         />
       )}
     </div>

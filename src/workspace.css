@@ -24,14 +24,14 @@
 .dark .workspace-shell,
 .dark .workspace-loading {
   color-scheme: dark;
-  --ws-bg: #08071a;
-  --ws-surface: #100d2b;
-  --ws-subtle: #17133a;
-  --ws-hover: #211b4d;
+  --ws-bg: #090b0c;
+  --ws-surface: #111519;
+  --ws-subtle: #192027;
+  --ws-hover: #232c34;
   --ws-text: #f8faff;
   --ws-muted: #a8b2c7;
   --ws-accent: #52cfe8;
-  --ws-border: #30345b;
+  --ws-border: #303942;
   --ws-focus: #3b82f6;
   --ws-action: #2f7df4;
   --ws-on-action: #ffffff;
@@ -44,6 +44,17 @@
   --ws-backdrop: #03020cbb;
 }
 /* Bridge the existing shared component variables at the shell boundary. */
+.brand-video-preview {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  margin-block: 1.25rem;
+}
+.brand-video-preview video {
+  width: min(100%, 360px);
+  border-radius: 12px;
+  background: #000;
+}
 .nukkia-workspace.workspace-shell {
   color-scheme: light;
   --background: var(--ws-bg);

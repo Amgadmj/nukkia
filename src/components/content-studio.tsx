@@ -21,6 +21,7 @@ export function ContentStudio({
   onIdentity,
   view,
   onView,
+  onVideo,
 }: {
   data: DemoData;
   onData: Dispatch<SetStateAction<DemoData>>;
@@ -29,6 +30,7 @@ export function ContentStudio({
   onIdentity: () => void;
   view: "peca" | "abordagens";
   onView: (view: "peca" | "abordagens") => void;
+  onVideo?: (frames: string[]) => Promise<Blob>;
 }) {
   const selected =
     data.brand.preferredApproach ??
@@ -150,6 +152,7 @@ export function ContentStudio({
           onEditBrief={onEditBrief}
           onChooseApproach={() => onView("abordagens")}
           onTrail={onTrail}
+          onVideo={onVideo}
         />
       )}
     </div>

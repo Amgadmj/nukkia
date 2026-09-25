@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createContext as createVmContext, runInContext, runInNewContext } from "node:vm";
 import ts from "typescript";
+import { webcrypto } from "node:crypto";
 import * as zod from "zod";
 import * as quickStart from "../src/lib/quick-start.ts";
 import * as workspace from "../src/lib/marketing-workspace.ts";
@@ -29,6 +30,8 @@ type Value = {
   company: typeof company | null;
   sync: string;
   storageAvailable: boolean;
+  recoveryAvailable: boolean;
+  conflictSource: "browser" | "cloud" | null;
   setData: (value: DemoData | ((current: DemoData) => DemoData)) => void;
   resolveConflict: (choice: "cloud" | "local") => void;
   retrySync: () => void;
@@ -198,7 +201,14 @@ function text(node: unknown): string {
 
 function harness(
   t: TestContext,
-  options: { cached?: workspace.StoredWorkspace; noCompany?: boolean; storageFails?: boolean } = {},
+  options: {
+    cached?: workspace.StoredWorkspace;
+    noCompany?: boolean;
+    storageFails?: boolean;
+    browser?: Record<string, string>;
+    localFails?: boolean;
+    localWriteFails?: boolean;
+  } = {},
 ) {
   let hooks = driver();
   const drivers = [hooks];
@@ -227,6 +237,34 @@ function harness(
     },
   });
   let storageFails = options.storageFails ?? false;
+  const listeners = new Map<string, Set<(event: { key: string | null }) => void>>();
+  const localStorage =
+    options.browser &&
+    new Proxy(
+      {},
+      {
+        ownKeys: () => Object.keys(options.browser!),
+        getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
+        get: (_, name) => {
+          if (name === "getItem")
+            return (key: string) => {
+              if (options.localFails || storageFails) throw new Error("blocked");
+              return options.browser![key] ?? null;
+            };
+          if (name === "setItem")
+            return (key: string, value: string) => {
+              if (options.localFails || options.localWriteFails || storageFails)
+                throw new Error("quota");
+              options.browser![key] = value;
+            };
+          if (name === "removeItem")
+            return (key: string) => {
+              delete options.browser![key];
+            };
+          return undefined;
+        },
+      },
+    );
   if (options.cached)
     values[workspace.workspaceKey(ownerId, currentCompany?.id)] = JSON.stringify(options.cached);
   let now = 0;
@@ -297,8 +335,16 @@ function harness(
     Response,
     URL,
     Event,
+    crypto: webcrypto,
     window: {
       sessionStorage,
+      localStorage,
+      addEventListener: (type: string, fn: (event: { key: string | null }) => void) => {
+        if (!listeners.has(type)) listeners.set(type, new Set());
+        listeners.get(type)!.add(fn);
+      },
+      removeEventListener: (type: string, fn: (event: { key: string | null }) => void) =>
+        listeners.get(type)?.delete(fn),
       setTimeout: (run: () => void, delay: number) => {
         const id = ++timerId;
         timers.set(id, { at: now + delay, run });
@@ -377,6 +423,10 @@ function harness(
   return {
     requests,
     values,
+    storageEvent(key: string | null = null) {
+      for (const fn of listeners.get("storage") ?? []) fn({ key });
+      render();
+    },
     settle,
     render,
     value: () => {
@@ -433,6 +483,12 @@ function harness(
     storageFails(value: boolean) {
       storageFails = value;
     },
+    localFails(value: boolean) {
+      options.localFails = value;
+    },
+    localWriteFails(value: boolean) {
+      options.localWriteFails = value;
+    },
     companyFails() {
       companyError = new Error("company refresh failed");
       render();
@@ -457,6 +513,258 @@ function harness(
     lateUpdates: () => drivers.reduce((count, item) => count + item.lateUpdates, 0),
   };
 }
+
+test("a new authenticated tab restores this company's browser recovery without claiming a cloud save", async (t) => {
+  const browser = {};
+  const first = harness(t, { browser });
+  await first.fail(0);
+  first.edit("Cross-tab original");
+  const original = structuredClone(first.value().data);
+  first.unmount();
+  const next = harness(t, { browser });
+  await next.fail(0);
+  assert.deepEqual(structuredClone(next.value().data), original);
+  assert.equal(next.value().recoveryAvailable, true);
+  assert.match(next.status(), /neste navegador/);
+  assert.doesNotMatch(next.status(), /Salvo na conta/);
+});
+
+test("matching recovery acknowledgements do not turn the first edit into a conflict", async (t) => {
+  for (const deliverStorageEvent of [true, false]) {
+    const browser: Record<string, string> = {};
+    const first = harness(t, { browser });
+    await first.reply(0, cloud(draft("Shared saved document"), r1));
+    const second = harness(t, { browser });
+    await second.reply(0, cloud(draft("Shared saved document"), r1));
+    if (deliverStorageEvent) first.storageEvent();
+    assert.equal(first.value().sync, "saved");
+    assert.equal(second.value().sync, "saved");
+    first.edit("Only the first tab edited");
+    assert.equal(first.value().sync, "ready");
+    await first.advance();
+    assert.equal(
+      first.requests.length,
+      2,
+      "one ordinary edit must POST rather than request conflict resolution",
+    );
+    assert.equal(first.requests[1]!.body!.data.name, "Only the first tab edited");
+    assert.equal(first.requests[1]!.body!.expectedRevision, r1);
+  }
+});
+
+test("quota failure writing a logout marker cannot skip cleanup or let a delayed tab recreate recovery", async (t) => {
+  const browser: Record<string, string> = {};
+  const first = harness(t, { browser });
+  await first.fail(0);
+  first.edit("Private recovery to delete");
+  const second = harness(t, { browser });
+  await second.reply(0, cloud(null));
+  second.edit("Pending private save");
+  await second.advance();
+  const pendingSave = second.requests.findIndex((request) => !!request.body);
+  assert.ok(pendingSave >= 0);
+  const staleSetter = second.value().setData;
+  const unrelated = `${workspace.recoveryOwnerPrefix("owner-b")}other:record`;
+  browser[unrelated] = "Unrelated owner original";
+  first.localWriteFails(true);
+  first.clear();
+  assert.equal(first.hasWorkspace(), false);
+  assert.deepEqual(Object.keys(first.values), []);
+  assert.ok(
+    !Object.keys(browser).some((key) => key.startsWith(workspace.recoveryOwnerPrefix(ownerId))),
+    "cleanup must run even if both marker attempts throw",
+  );
+  assert.equal(browser[unrelated], "Unrelated owner original");
+  // Other tabs can process a network completion before their storage event.
+  await second.reply(pendingSave, cloud(draft("Pending private save"), r2));
+  staleSetter(draft("Must never recreate"));
+  second.render();
+  second.replay();
+  assert.ok(
+    !Object.keys(browser).some((key) => key.startsWith(workspace.recoveryOwnerPrefix(ownerId))),
+    "late callbacks/effect replay must not recreate deleted recovery",
+  );
+  second.storageEvent();
+  assert.equal(second.hasWorkspace(), false);
+  assert.deepEqual(Object.keys(second.values), []);
+});
+
+test("a recovered dirty draft cannot overwrite a newer remote revision without a choice", async (t) => {
+  const browser = {};
+  const first = harness(t, {
+    browser,
+    cached: { data: draft("Local original"), revision: r1, dirty: true },
+  });
+  await first.fail(0);
+  first.unmount();
+  const next = harness(t, { browser });
+  await next.reply(0, cloud(draft("Newer remote"), r2));
+  assert.equal(next.value().data.name, "Local original");
+  assert.equal(next.value().sync, "conflict");
+  await next.advance();
+  assert.equal(next.requests.length, 1);
+  next.value().resolveConflict("local");
+  next.render();
+  await next.advance();
+  assert.equal(next.requests[1]!.body!.expectedRevision, r2);
+});
+
+test("divergent tabs preserve both originals and require explicit local recovery resolution", async (t) => {
+  const browser: Record<string, string> = {};
+  const first = harness(t, { browser });
+  await first.fail(0);
+  first.edit("First draft");
+  const second = harness(t, { browser });
+  await second.fail(0);
+  second.edit("Second draft");
+  first.edit("Concurrent first draft");
+  first.storageEvent();
+  second.storageEvent();
+  assert.equal(first.value().sync, "conflict");
+  assert.equal(second.value().sync, "conflict");
+  assert.equal(first.value().conflictSource, "browser");
+  assert.ok(Object.values(browser).some((raw) => raw.includes("Second draft")));
+  assert.ok(Object.values(browser).some((raw) => raw.includes("Concurrent first draft")));
+  const third = harness(t, { browser });
+  await third.fail(0);
+  assert.equal(third.value().sync, "conflict");
+  first.value().resolveConflict("local");
+  first.render();
+  await first.fail(1);
+  const resolved = harness(t, { browser });
+  await resolved.fail(0);
+  assert.equal(resolved.value().data.name, "Concurrent first draft");
+  assert.equal(resolved.value().sync, "local");
+  assert.ok(
+    Object.values(browser).some((raw) => raw.includes("Second draft")),
+    "choosing does not delete the other original",
+  );
+});
+
+test("choosing the other browser or cloud version preserves the current recovery original", async (t) => {
+  for (const source of ["browser", "cloud"] as const) {
+    const browser: Record<string, string> = {};
+    const current = harness(t, {
+      browser,
+      cached: { data: draft("Original not discarded"), revision: r1, dirty: true },
+    });
+    if (source === "cloud") await current.reply(0, cloud(draft("Chosen alternative"), r2));
+    else {
+      await current.fail(0);
+      const other = harness(t, { browser });
+      await other.fail(0);
+      other.edit("Chosen alternative");
+      current.storageEvent();
+    }
+    assert.equal(current.value().sync, "conflict");
+    current.value().resolveConflict("cloud");
+    current.render();
+    assert.equal(current.value().data.name, "Chosen alternative");
+    assert.ok(
+      Object.values(browser).some((raw) => raw.includes("Original not discarded")),
+      "explicit version choice keeps the replaced original recoverable",
+    );
+  }
+});
+
+test("logout removes only the active owner's recovery and prevents other tabs resurrecting it", async (t) => {
+  const browser: Record<string, string> = {};
+  const first = harness(t, { browser });
+  await first.fail(0);
+  first.edit("Owner A private");
+  const otherTab = harness(t, { browser });
+  await otherTab.fail(0);
+  const otherOwner = harness(t, { browser, noCompany: true });
+  otherOwner.switchTo("owner-b", { ...company, owner_id: "owner-b", name: "B" });
+  await otherOwner.fail(0);
+  otherOwner.edit("Owner B private");
+  const staleSetter = otherTab.value().setData;
+  first.clear();
+  otherTab.storageEvent();
+  staleSetter(draft("Must not resurrect"));
+  otherTab.render();
+  assert.equal(otherTab.hasWorkspace(), false);
+  assert.ok(!Object.values(browser).some((raw) => /Owner A private|Must not resurrect/.test(raw)));
+  assert.ok(Object.values(browser).some((raw) => raw.includes("Owner B private")));
+  const freshA = harness(t, { browser });
+  await freshA.fail(0);
+  assert.equal(freshA.value().data.name, "Seed");
+});
+
+test("legacy session recovery imports only the current scope and survives blocked durable storage honestly", async (t) => {
+  const browser: Record<string, string> = {};
+  const h = harness(t, {
+    browser,
+    localFails: true,
+    cached: { data: draft("Legacy original"), revision: null, dirty: true },
+  });
+  h.values[workspace.workspaceKey("other-owner", companyId)] = JSON.stringify({
+    data: draft("Unrelated"),
+    revision: null,
+    dirty: true,
+  });
+  await h.fail(0);
+  assert.equal(h.value().data.name, "Legacy original");
+  assert.equal(h.value().recoveryAvailable, false);
+  assert.match(h.status(), /Somente nesta aba/);
+  assert.equal(Object.keys(browser).length, 0);
+  assert.ok(h.values[workspace.workspaceKey("other-owner", companyId)]);
+});
+
+test("an approved legacy tab remains authoritative when a new tab already saved an empty recovery", async (t) => {
+  const browser: Record<string, string> = {};
+  const emptyTab = harness(t, { browser });
+  await emptyTab.fail(0);
+  const original = quickStart.demoSchema.parse({
+    name: "Original approved brand",
+    segment: "Fisioterapia",
+    onboarded: true,
+    answers: {
+      offers: "Consulta individual",
+      audience: "Pessoas da região",
+      goals: "Receber mais agendamentos",
+    },
+    brand: {
+      confirmed: true,
+      detail: "Acompanhamento individual com a equipe.",
+      visualStyle: "essential",
+      identityConfirmed: true,
+    },
+  });
+  original.brand.creative = composeContent(original, "educate");
+  original.brand.creative.approved = creativeFingerprint(original);
+  original.brand.creative.exported = creativeFingerprint(original);
+  assert.equal(workspace.journeyProgress(original).xp, 120);
+  const originalTab = harness(t, {
+    browser,
+    cached: { data: original, revision: null, dirty: true },
+  });
+  assert.equal(
+    workspace.journeyProgress(originalTab.value().data).xp,
+    120,
+    "restore precedes async account read",
+  );
+  assert.equal(originalTab.value().data.onboarded, true);
+  assert.equal(originalTab.value().sync, "conflict");
+  await originalTab.fail(0);
+  originalTab.refreshModule(true);
+  await originalTab.fail(1);
+  assert.deepEqual(structuredClone(originalTab.value().data), structuredClone(original));
+  assert.equal(workspace.journeyProgress(originalTab.value().data).completed, 5);
+});
+
+test("losing access to localStorage after an earlier logout still permits memory/session edits", async (t) => {
+  const browser: Record<string, string> = {};
+  const old = harness(t, { browser });
+  old.clear();
+  const current = harness(t, { browser });
+  await current.fail(0);
+  current.localFails(true);
+  current.edit("Keep typing despite storage access failure");
+  assert.equal(current.value().data.name, "Keep typing despite storage access failure");
+  assert.equal(current.value().recoveryAvailable, false);
+  assert.match(current.status(), /Somente nesta aba/);
+});
 
 test("a refreshed consumer still reads the mounted provider's memory-only draft", async (t) => {
   const h = harness(t, { storageFails: true });

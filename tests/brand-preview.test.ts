@@ -20,6 +20,33 @@ const fixture = () =>
     },
     brand: { confirmed: true, detail: "Turmas de até quatro pessoas com acompanhamento próximo." },
   });
+test("first piece accepts the same complete answers as the diagnosis without truncation", () => {
+  const data = fixture();
+  for (const key of ["offers", "audience", "goals"] as const) data.answers[key] = "a".repeat(1000);
+  assert.equal(demoSchema.safeParse(data).success, true);
+  assert.deepEqual(preview.briefIssues(data), []);
+  assert.equal(preview.firstPostBrief(data).goal.length, 1000);
+});
+test("invalid brief fields name the missing or oversized answer", () => {
+  const data = fixture();
+  data.answers.goals = "";
+  assert.ok(preview.briefIssues(data).some((issue) => /objetivo/i.test(issue)));
+  data.answers.goals = "a".repeat(1001);
+  assert.ok(preview.briefIssues(data).some((issue) => /objetivo.*1\.000/i.test(issue)));
+});
+test("the explanatory carousel also preserves whole words in its cover and detail", () => {
+  const data = fixture();
+  data.answers.offers =
+    "Equipamentos de resistência pneumática e plataforma vibratória para conhecer na Movitta.";
+  data.brand.detail =
+    "Equipamentos de resistência pneumática, plataforma vibratória e aparelhos de força e pilates. "
+      .repeat(3)
+      .trim();
+  const creative = preview.composeContent(data, "educate");
+  assert.equal(creative.copy.title, preview.fallbackCopy(preview.firstPostBrief(data)).title);
+  assert.match(creative.slides[0]!.body, /…$/);
+  assert.ok(data.brand.detail.startsWith(creative.slides[0]!.body.slice(0, -1)));
+});
 test("unfinished copy survives refresh without losing the brand or allowing approval", () => {
   const data = fixture();
   data.brand.creative = {

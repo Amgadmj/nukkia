@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:onboarding": "node --test --experimental-strip-types tests/*.test.ts",
+    "check:demo": "node scripts/check-demo-readiness.mjs",
     "format": "prettier --write ."
   },
   "overrides": {

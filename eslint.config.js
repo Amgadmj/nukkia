@@ -32,7 +32,26 @@ export default tseslint.config(
           ],
         },
       ],
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "react-refresh/only-export-components": [
+        "warn",
+        {
+          allowConstantExport: true,
+          // Deliberate co-located non-component exports: shadcn/ui's cva
+          // variant helpers and context hooks (src/components/ui/*), and
+          // useTheme next to ThemeProvider. Editing these files triggers a
+          // full reload instead of fast refresh — an accepted trade-off vs.
+          // splitting vendor-style primitives. Any NEW mixed export still warns.
+          allowExportNames: [
+            "badgeVariants",
+            "buttonVariants",
+            "toggleVariants",
+            "navigationMenuTriggerStyle",
+            "useFormField",
+            "useSidebar",
+            "useTheme",
+          ],
+        },
+      ],
       "@typescript-eslint/no-unused-vars": "off",
     },
   },

@@ -60,12 +60,23 @@ const request = (body: unknown, origin = "http://localhost:8081") =>
     headers: { Origin: origin, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-test("research endpoint is disabled outside local same-origin development", async () => {
+test("research endpoint needs local same-origin development or a signed-in same-origin user", async () => {
   assert.equal(localPreviewAllowed(request({}), false), false);
   assert.equal(localPreviewAllowed(request({}, "https://attacker.com"), true), false);
+  // Production without a session: authentication required, not a hard 403.
   assert.equal(
     (await handleBrandPreview(request({ action: "research", url: "", material: "Olá" }), false))
       .status,
+    401,
+  );
+  // Cross-origin requests are refused before any session lookup.
+  assert.equal(
+    (
+      await handleBrandPreview(
+        request({ action: "research", url: "", material: "Olá" }, "https://attacker.com"),
+        true,
+      )
+    ).status,
     403,
   );
 });

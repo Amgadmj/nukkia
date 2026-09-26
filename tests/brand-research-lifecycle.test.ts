@@ -75,62 +75,123 @@ const compiled = ts.transpileModule(
   readFileSync(new URL("../src/lib/use-brand-research.ts", import.meta.url), "utf8"),
   { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
 ).outputText;
-test("revoking consent or changing reference aborts the active request", () => {
-  for (const field of ["aiAuthorized", "siteAuthorized", "referenceUrl", "material"] as const) {
-    let data = seed();
-    let cursor = 0;
-    const cells: { value?: unknown; deps?: unknown[]; cleanup?: () => void }[] = [];
-    const effects: (() => void)[] = [];
-    let signal: AbortSignal | undefined;
-    const modules: Record<string, unknown> = {
-      react: {
-        useRef: (value: unknown) => (cells[cursor++] ??= { value: { current: value } }).value,
-        useEffect: (fn: () => void | (() => void), deps: unknown[]) => {
-          const cell = (cells[cursor++] ??= {});
-          if (!cell.deps || deps.some((x, i) => x !== cell.deps?.[i])) {
-            cell.deps = deps;
-            effects.push(() => {
-              cell.cleanup?.();
-              cell.cleanup = fn() || undefined;
-            });
-          }
+type FetchCall = { url: string; headers: Record<string, string>; signal: AbortSignal };
+// Runs the real hook against minimal React/Supabase stubs. `session` is the
+// Supabase session the hook sees; `respond` decides each fetch's outcome.
+function mountHook(
+  initial: DemoData,
+  options: {
+    session?: { access_token: string } | null;
+    respond?: (call: FetchCall) => Promise<Response>;
+  } = {},
+) {
+  let data = initial;
+  let cursor = 0;
+  const cells: { value?: unknown; deps?: unknown[]; cleanup?: () => void }[] = [];
+  const effects: (() => void)[] = [];
+  const calls: FetchCall[] = [];
+  const modules: Record<string, unknown> = {
+    react: {
+      useRef: (value: unknown) => (cells[cursor++] ??= { value: { current: value } }).value,
+      useEffect: (fn: () => void | (() => void), deps: unknown[]) => {
+        const cell = (cells[cursor++] ??= {});
+        if (!cell.deps || deps.some((x, i) => x !== cell.deps?.[i])) {
+          cell.deps = deps;
+          effects.push(() => {
+            cell.cleanup?.();
+            cell.cleanup = fn() || undefined;
+          });
+        }
+      },
+    },
+    "./brand-preview": preview,
+    "./brand-research": research,
+    "@/integrations/supabase/client": {
+      supabase: {
+        auth: {
+          getSession: async () => ({ data: { session: options.session ?? null }, error: null }),
         },
       },
-      "./brand-preview": preview,
-      "./brand-research": research,
-    };
-    const exports = {} as {
-      useBrandResearch: (
-        data: DemoData,
-        setData: (fn: (d: DemoData) => DemoData) => void,
-      ) => { research: () => void };
-    };
-    runInNewContext(compiled, {
-      exports,
-      require: (id: string) => modules[id],
-      AbortController,
-      TextDecoder,
-      fetch: (_url: string, options: { signal: AbortSignal }) => {
-        signal = options.signal;
-        return new Promise(() => {});
-      },
-    });
-    const setData = (fn: (d: DemoData) => DemoData) => {
-      data = fn(data);
-    };
-    const render = () => {
-      cursor = 0;
-      const hook = exports.useBrandResearch(data, setData);
-      while (effects.length) effects.shift()!();
-      return hook;
-    };
-    render().research();
+    },
+  };
+  const exports = {} as {
+    useBrandResearch: (
+      data: DemoData,
+      setData: (fn: (d: DemoData) => DemoData) => void,
+    ) => { research: () => void };
+  };
+  runInNewContext(compiled, {
+    exports,
+    require: (id: string) => modules[id],
+    AbortController,
+    TextDecoder,
+    fetch: (url: string, init: { headers: Record<string, string>; signal: AbortSignal }) => {
+      const call = { url, headers: init.headers, signal: init.signal };
+      calls.push(call);
+      return options.respond ? options.respond(call) : new Promise(() => {});
+    },
+  });
+  const setData = (fn: (d: DemoData) => DemoData) => {
+    data = fn(data);
+  };
+  const render = () => {
+    cursor = 0;
+    const hook = exports.useBrandResearch(data, setData);
+    while (effects.length) effects.shift()!();
+    return hook;
+  };
+  return {
+    render,
+    calls,
+    data: () => data,
+    setDataDirect: (next: DemoData) => {
+      data = next;
+    },
+  };
+}
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+test("revoking consent or changing reference aborts the active request", async () => {
+  for (const field of ["aiAuthorized", "siteAuthorized", "referenceUrl", "material"] as const) {
+    const hook = mountHook(seed());
+    hook.render().research();
+    await settle();
+    const signal = hook.calls[0]?.signal;
     assert.equal(signal?.aborted, false);
-    data = {
+    const data = hook.data();
+    hook.setDataDirect({
       ...data,
       brand: { ...data.brand, [field]: typeof data.brand[field] === "boolean" ? false : "changed" },
-    };
-    render();
+    });
+    hook.render();
     assert.equal(signal?.aborted, true, field);
   }
+});
+
+test("a signed-in reading sends the Supabase access token like other authenticated calls", async () => {
+  const hook = mountHook(seed(), { session: { access_token: "header.payload.signature" } });
+  hook.render().research();
+  await settle();
+  assert.equal(hook.calls[0]?.url, "/api/brand-preview");
+  assert.equal(hook.calls[0]?.headers.Authorization, "Bearer header.payload.signature");
+});
+
+test("the public demo without a session degrades to a clear manual-entry message", async () => {
+  const hook = mountHook(seed(), {
+    session: null,
+    respond: async () =>
+      new Response(JSON.stringify({ code: "auth-required", message: "x" }), { status: 401 }),
+  });
+  hook.render().research();
+  await settle();
+  await settle();
+  assert.equal(hook.calls[0]?.headers.Authorization, undefined);
+  const state = hook.data().brand.research;
+  assert.equal(state.phase, "complete");
+  assert.match(state.message, /Entre na sua conta/);
+  assert.match(state.message, /manualmente/);
+  // No perpetual spinner, and the user's own answers stay untouched.
+  assert.equal(state.status, "unavailable");
+  assert.equal(hook.data().answers.offers, "Pilates");
+  assert.equal(hook.data().brand.detail, "Aulas em pequenos grupos");
 });

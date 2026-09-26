@@ -109,3 +109,19 @@ test("table exposure is distinguished from signed-in access and ffmpeg availabil
     3,
   );
 });
+
+test("ffmpeg check reports the bundled ffmpeg-static source by label, never by path", async () => {
+  const { checkDemoReadiness } = await import(moduleUrl.href);
+  const result = await checkDemoReadiness({
+    env,
+    ffmpegAvailable: true,
+    ffmpegSource: "ffmpeg_static",
+  });
+  const check = result.checks.find((item: { name: string }) => item.name === "ffmpeg");
+  assert.deepEqual(check, {
+    name: "ffmpeg",
+    status: "pass",
+    code: "executable_available",
+    source: "ffmpeg_static",
+  });
+});

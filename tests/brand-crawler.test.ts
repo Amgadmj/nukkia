@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import https from "node:https";
-import { Resolver } from "node:dns/promises";
+import dnsPromises, { Resolver } from "node:dns/promises";
 import { syncBuiltinESMExports } from "node:module";
 import { PassThrough } from "node:stream";
 import test, { type TestContext } from "node:test";
@@ -241,14 +241,19 @@ test("the shared sitemap URL budget prevents reading past 100 candidates across 
 });
 
 test("deadline cancels pending pages and returns evidence collected so far", async (t) => {
+  // The slow pages never answer on their own (1h delay), so only the global
+  // deadline can end the crawl. The budget leaves ample room for robots.txt and
+  // the homepage even when the suite runs files in parallel on a loaded machine;
+  // the former 60ms budget raced those two requests and sometimes lost.
   const net = network(t, {
     "/": { body: html("Marca", links(["/services", "/products"])) },
-    "/services": { body: html("Lento"), delay: 500 },
-    "/products": { body: html("Lento"), delay: 500 },
+    "/services": { body: html("Lento"), delay: 3_600_000 },
+    "/products": { body: html("Lento"), delay: 3_600_000 },
   });
   const started = Date.now();
-  const result = await crawler.collectBrandSite(origin, { budgetMs: 60 });
-  assert.ok(Date.now() - started < 350);
+  const result = await crawler.collectBrandSite(origin, { budgetMs: 1500 });
+  assert.ok(Date.now() - started < 5000, "pending pages must be canceled by the deadline");
+  assert.ok(net.requested.includes("/services") && net.requested.includes("/products"));
   assert.equal(result.sources.length, 1);
   assert.equal(net.active(), 0);
   assert.ok(result.message, "partial research should explain the interrupted collection");
@@ -399,4 +404,97 @@ test("robots denial, mixed DNS answers, content caps and unsafe redirects still 
     /público permitido/,
   );
   assert.ok(!net.requested.includes("/private-dns"));
+});
+
+const dnsError = (code: string) => Object.assign(new Error(`queryA ${code} brand.com`), { code });
+
+test("resolver infrastructure failures fall back to the OS lookup and stay DNS-pinned", async (t) => {
+  for (const code of ["ECONNREFUSED", "ETIMEOUT", "ESERVFAIL", "ECONNRESET", "EREFUSED"]) {
+    const net = network(t, { "/": { body: html("Marca") } });
+    const lookups: unknown[] = [];
+    t.mock.method(Resolver.prototype, "resolve4", async () => {
+      throw dnsError(code);
+    });
+    t.mock.method(dnsPromises, "lookup", async (host: string, options: unknown) => {
+      lookups.push([host, options]);
+      return [{ address: "93.184.216.34", family: 4 }];
+    });
+    syncBuiltinESMExports();
+    // The network helper asserts every connection targets the resolved address.
+    const result = await crawler.collectBrandSite(origin);
+    assert.equal(result.sources.length, 1, code);
+    assert.ok(net.requested.includes("/"), code);
+    assert.deepEqual(lookups[0], ["brand.com", { all: true, family: 4 }], code);
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
+});
+
+test("authoritative negative DNS answers never fall back to another resolver", async (t) => {
+  for (const code of ["ENOTFOUND", "ENODATA"]) {
+    const net = network(t, {});
+    let lookups = 0;
+    t.mock.method(Resolver.prototype, "resolve4", async () => {
+      throw dnsError(code);
+    });
+    t.mock.method(dnsPromises, "lookup", async () => {
+      lookups++;
+      return [{ address: "93.184.216.34", family: 4 }];
+    });
+    syncBuiltinESMExports();
+    await assert.rejects(
+      crawler.fetchPublicResource(origin + "/", { signal: AbortSignal.timeout(1000) }),
+      (error: { code?: string }) => error.code === code,
+    );
+    assert.equal(lookups, 0, code);
+    assert.deepEqual(net.requested, [], code);
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
+});
+
+test("the lookup fallback still rejects private or mixed answers before connecting", async (t) => {
+  const net = network(t, {});
+  t.mock.method(Resolver.prototype, "resolve4", async () => {
+    throw dnsError("ECONNREFUSED");
+  });
+  t.mock.method(dnsPromises, "lookup", async () => [
+    { address: "93.184.216.34", family: 4 },
+    { address: "10.0.0.8", family: 4 },
+  ]);
+  syncBuiltinESMExports();
+  await assert.rejects(
+    crawler.fetchPublicResource(origin + "/", { signal: AbortSignal.timeout(1000) }),
+    /público permitido/,
+  );
+  t.mock.method(dnsPromises, "lookup", async () => []);
+  syncBuiltinESMExports();
+  await assert.rejects(
+    crawler.fetchPublicResource(origin + "/", { signal: AbortSignal.timeout(1000) }),
+    /público permitido/,
+  );
+  assert.deepEqual(net.requested, []);
+});
+
+test("a hanging lookup fallback is bounded by the global deadline", async (t) => {
+  const net = network(t, {});
+  t.mock.method(Resolver.prototype, "resolve4", async () => {
+    throw dnsError("ETIMEOUT");
+  });
+  t.mock.method(dnsPromises, "lookup", () => new Promise(() => {}));
+  syncBuiltinESMExports();
+  const started = Date.now();
+  const result = await crawler.collectBrandSite(origin, { budgetMs: 50 });
+  assert.ok(Date.now() - started < 3000);
+  assert.equal(result.status, "unavailable");
+  assert.deepEqual(net.requested, []);
+});
+
+test("resolver error classification separates infrastructure failures from answers", () => {
+  assert.equal(crawler.isResolverInfrastructureError(dnsError("ECONNREFUSED")), true);
+  assert.equal(crawler.isResolverInfrastructureError(dnsError("ETIMEOUT")), true);
+  assert.equal(crawler.isResolverInfrastructureError(dnsError("ENOTFOUND")), false);
+  assert.equal(crawler.isResolverInfrastructureError(dnsError("ENODATA")), false);
+  assert.equal(crawler.isResolverInfrastructureError(new Error("aborted")), false);
+  assert.equal(crawler.isResolverInfrastructureError(null), false);
 });

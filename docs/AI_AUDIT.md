@@ -13,7 +13,7 @@ every capability described is live code on `main` as of this audit.
 | Provider | Used for | Why |
 |---|---|---|
 | **Anthropic Claude** (`claude-sonnet-4-6`, `ANTHROPIC_TEXT_MODEL` to override) | All text and structured-JSON generation: onboarding research draft, diagnostic report, content plan, carousel outline, video storyboard | Explicit, scoped request from the user ("all the text and all diagnostic work" → Claude), made 2026-09-17. Uses Claude's native structured outputs (`messages.parse` + a Zod schema) — one schema per call site, no hand-maintained JSON Schema + parallel TS type to drift out of sync. |
-| **Google Gemini** (`gemini-2.5-flash-image` / "Nano Banana") | All image generation | Not in scope for the Claude move; stayed on Gemini. |
+| **Google Gemini** (`gemini-3.1-flash-image` / "Nano Banana 2"; was `gemini-2.5-flash-image` until its 2026-10-02 shutdown) | All image generation | Not in scope for the Claude move; stayed on Gemini. |
 | **Google Veo** (`veo-3.1-generate-preview`) | Short vertical video rendering for Reels/Stories | Async `predictLongRunning` job, polled client-side every 8s. |
 
 Both providers are wrapped in one file, `src/lib/ai.server.ts`, so every

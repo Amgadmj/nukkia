@@ -56,6 +56,29 @@ export default defineConfig({
       // set explicitly (e.g. to force a specific target locally).
       preset:
         process.env["NITRO_PRESET"] || (process.env["VERCEL"] ? "vercel" : "cloudflare-module"),
+      // Promo MP4 export (src/lib/promo-video.server.ts) falls back to the
+      // ffmpeg-static binary, since Vercel functions have no system ffmpeg.
+      // Nitro bundles dependencies by default, which would break the
+      // package's __dirname-relative binary path and drop the binary itself.
+      // "pkg*" externalizes it and copies the WHOLE package (the ~80 MB
+      // binary included) into the server output's node_modules. Only Node
+      // presets trace; Workers can't spawn processes anyway. The binary is
+      // whatever `npm install` downloaded for the BUILD machine's platform,
+      // so on Vercel (Linux build image) it is the linux-x64 build.
+      traceDeps: ["ffmpeg-static*"],
+      traceOpts: {
+        hooks: {
+          // nf3 lists a full-trace package's files AND the ones nft traced
+          // (index.js, package.json, the binary), so the same destination
+          // gets two concurrent copyFile calls — EBUSY on Windows, a silent
+          // race elsewhere. De-duplicate before anything is written.
+          tracedPackages(packages) {
+            for (const pkg of Object.values(packages))
+              for (const version of Object.values(pkg.versions))
+                version.files = [...new Set(version.files)];
+          },
+        },
+      },
     }),
   ],
 });

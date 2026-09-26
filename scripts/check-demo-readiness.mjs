@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 import { parseEnv } from "node:util";
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
 function publicHeaders(key) {
@@ -21,6 +22,7 @@ export async function checkDemoReadiness({
   env = {},
   remote = false,
   ffmpegAvailable = false,
+  ffmpegSource,
   fetchImpl = fetch,
 } = {}) {
   const checks = [];
@@ -70,6 +72,9 @@ export async function checkDemoReadiness({
     ffmpegAvailable ? "pass" : "fail",
     ffmpegAvailable ? "executable_available" : "executable_unavailable",
   );
+  // Where the renderer will find it (FFMPEG_PATH, PATH, or the bundled
+  // ffmpeg-static package) — a label only, never the resolved path.
+  if (ffmpegAvailable && ffmpegSource) checks.at(-1).source = ffmpegSource;
   for (const name of ["ANTHROPIC_API_KEY", "GEMINI_API_KEY"])
     add(
       name,
@@ -138,14 +143,27 @@ async function main() {
     if (error.code !== "ENOENT") throw new Error();
   }
   const env = { ...local, ...process.env };
-  const ffmpeg = spawnSync(env.FFMPEG_PATH || "ffmpeg", ["-version"], {
-    timeout: 5000,
-    stdio: "ignore",
-  });
+  // Mirrors resolveFfmpegCommand() in src/lib/promo-video.server.ts:
+  // FFMPEG_PATH, then ffmpeg on PATH, then the ffmpeg-static package.
+  const runs = (command) =>
+    spawnSync(command, ["-version"], { timeout: 5000, stdio: "ignore" }).status === 0;
+  let ffmpegSource;
+  if (env.FFMPEG_PATH) ffmpegSource = runs(env.FFMPEG_PATH) ? "ffmpeg_path" : undefined;
+  else if (runs("ffmpeg")) ffmpegSource = "system_path";
+  else {
+    let bundled;
+    try {
+      bundled = createRequire(import.meta.url)("ffmpeg-static");
+    } catch {
+      /* Package not installed. */
+    }
+    if (typeof bundled === "string" && runs(bundled)) ffmpegSource = "ffmpeg_static";
+  }
   const result = await checkDemoReadiness({
     env,
     remote: args.includes("--remote"),
-    ffmpegAvailable: ffmpeg.status === 0,
+    ffmpegAvailable: Boolean(ffmpegSource),
+    ffmpegSource,
   });
   console.log(JSON.stringify(result, null, 2));
   process.exitCode = result.ok ? 0 : 1;

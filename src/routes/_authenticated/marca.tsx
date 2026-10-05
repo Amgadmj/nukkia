@@ -1,3 +1,5 @@
+import { useLogoUrl } from "@/lib/use-logo-url";
+import { InspirationBoard } from "@/components/inspiration-board";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BrandIdentitySettings } from "@/components/brand-identity-settings";
 import { useEffect, useRef, useState } from "react";
@@ -24,7 +26,14 @@ import type { Tables } from "@/integrations/supabase/types";
 import { useBrandKit, useCompany, useDiagnostic, type Company } from "@/lib/company";
 import { cn } from "@/lib/utils";
 import { updateBrand, type BrandPreview } from "@/lib/brand-preview";
-import { WORKSPACE_NAV, type WorkspaceSection } from "@/lib/marketing-workspace";
+import {
+  WORKSPACE_NAV,
+  contentReturn,
+  type ContentReturn,
+  type WorkspaceSection,
+} from "@/lib/marketing-workspace";
+import { postSvg, svgUrl } from "@/lib/post-art";
+import { firstPostBrief } from "@/lib/brand-preview";
 import { prepareAsset } from "@/lib/post-art";
 import {
   BRAND_STORY_UNAVAILABLE,
@@ -37,9 +46,18 @@ import {
 } from "@/lib/brand-story";
 
 export const Route = createFileRoute("/_authenticated/marca")({
-  validateSearch: (search: Record<string, unknown>): { retorno?: WorkspaceSection } => {
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { retorno?: WorkspaceSection; origemConteudo?: ContentReturn | undefined } => {
     const origin = WORKSPACE_NAV.find((section) => section.id === search["retorno"]);
-    return origin ? { retorno: origin.id } : {};
+    return origin
+      ? {
+          retorno: origin.id,
+          ...(contentReturn(search["origemConteudo"])
+            ? { origemConteudo: contentReturn(search["origemConteudo"]) }
+            : {}),
+        }
+      : {};
   },
   head: () => ({
     meta: [
@@ -84,9 +102,9 @@ type BrandKit = Tables<"brand_kits">;
 
 function Marca() {
   const navigate = useNavigate();
-  const { retorno } = Route.useSearch();
+  const { retorno, origemConteudo } = Route.useSearch();
   const origin = WORKSPACE_NAV.find((section) => section.id === (retorno ?? "conteudo"))!;
-  const returnSearch = origin.id === "conteudo" ? { aba: "peca" as const } : {};
+  const returnSearch = origin.id === "conteudo" ? { aba: origemConteudo ?? ("peca" as const) } : {};
   const workspace = useMarketingWorkspace();
   const { data: company } = useCompany();
   const {
@@ -125,7 +143,8 @@ function Marca() {
   latest.current = { workspace, brandKit, company };
   useEffect(() => () => applyRequest.current?.abort(), []);
 
-  const logoUrl = brandKit?.logo_url ?? null;
+  const logo = useLogoUrl(brandKit?.logo_url ?? null, company?.id);
+  const logoUrl = logo.url;
   const savedFontsLabel = brandFonts(brandKit?.fonts).label;
   const savedAccent = brandPalette(brandKit?.palette).colors[0];
   const workspaceReady =
@@ -283,6 +302,40 @@ function Marca() {
         </Button>
       </div>
 
+      {workspaceReady && (
+        <section
+          className="workspace-card identity-applied-preview"
+          aria-label="Identidade aplicada à peça"
+        >
+          <div>
+            <h2>Aplicada à peça atual</h2>
+            <p>
+              A prévia usa os ajustes atuais do espaço de trabalho. O kit salvo na conta aparece
+              abaixo; aplicar esse kit exige nova aprovação criativa e preserva seu texto.
+            </p>
+            <p>
+              Cor aplicada: {workspace.data.brand.accent} ·{" "}
+              {workspace.data.brand.identityConfirmed
+                ? "Identidade confirmada"
+                : "Confirmação pendente"}
+            </p>
+          </div>
+          {workspace.data.brand.creative ? (
+            <img
+              alt="Prévia da peça com a identidade aplicada"
+              src={svgUrl(
+                postSvg(
+                  firstPostBrief(workspace.data),
+                  workspace.data.brand.creative.copy,
+                  workspace.data.brand,
+                ),
+              )}
+            />
+          ) : (
+            <p>Nenhuma peça preparada. Confirme a identidade e continue pelo briefing.</p>
+          )}
+        </section>
+      )}
       <nav
         aria-label="Seções da identidade"
         className="flex flex-wrap gap-1 border-b border-border pb-3"
@@ -461,6 +514,16 @@ function Marca() {
           logoUrl={logoUrl}
         />
       )}
+      {logo.error && (
+        <p role="alert">
+          Não foi possível recuperar o logo salvo.{" "}
+          <button className="underline" onClick={() => void logo.retry()}>
+            Tentar novamente
+          </button>{" "}
+          ou envie uma nova imagem.
+        </p>
+      )}
+      {workspaceReady && <InspirationBoard data={workspace.data} onData={workspace.setData} />}
       {workspaceReady && (
         <BrandIdentitySettings
           key={`piece:${workspace.ownerId}:${company.id}`}

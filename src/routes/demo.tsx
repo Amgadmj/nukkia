@@ -1,8 +1,7 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, type Dispatch, type SetStateAction } from "react";
 import { z } from "zod";
-import { ArrowRight, RotateCcw } from "lucide-react";
-import { OnboardingMark } from "@/components/quick-start-flow";
+import { RotateCcw } from "lucide-react";
 import { BrandOnboarding } from "@/components/brand-onboarding";
 import { recoverResearch } from "@/lib/brand-preview";
 import { useBrandResearch } from "@/lib/use-brand-research";
@@ -21,16 +20,22 @@ export const Route = createFileRoute("/demo")({
       .optional()
       .catch("painel"),
     capitulo: z.coerce.number().int().min(0).max(4).optional().catch(undefined),
-    passo: z.number().int().min(-1).max(6).catch(-1),
+    vista: z
+      .enum(["briefing", "peca", "abordagens", "saude", "biblioteca", "planejamento", "revisao"])
+      .catch("saude"),
+    passo: z
+      .number()
+      .int()
+      .min(-1)
+      .max(6)
+      .transform((step) => Math.max(0, step))
+      .catch(0),
     aba: z
       .enum(["painel", "trilha", "cerebro", "conteudo", "marca", "redes", "metricas"])
       .catch("painel"),
   }),
   head: () => ({
-    meta: [
-      { title: "Sua primeira experiência | Nukkia Demo" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
+    meta: [{ title: "Nukkia" }, { name: "robots", content: "noindex, nofollow" }],
   }),
   component: DemoPage,
 });
@@ -53,7 +58,7 @@ function restore() {
 }
 
 function DemoPage() {
-  const { passo, aba, editar, retorno, capitulo } = Route.useSearch();
+  const { passo, aba, editar, retorno, capitulo, vista } = Route.useSearch();
   const navigate = useNavigate();
   const [data, setRawData] = useState(restore);
   const setData = useCallback<Dispatch<SetStateAction<DemoData>>>(
@@ -75,23 +80,29 @@ function DemoPage() {
       setStorageAvailable(false);
     }
   }, [data]);
-  const setStep = (step: number) =>
+  const setStep = (step: number) => {
+    if (step < 0) {
+      void navigate({ to: "/" });
+      return;
+    }
+    if (step === 1) setData((current) => recordWorkspaceEvent(current, "started"));
     void navigate({ to: "/demo", search: { passo: step, aba: "painel" } });
+  };
   const setAnswer = (key: keyof Answers, value: string) =>
     setData((previous) =>
       changeDemoContext(previous, { answers: { ...previous.answers, [key]: value } }),
     );
   return (
-    <div className={passo < 6 ? "nukkia-workspace dark quick-demo" : "quick-demo-workspace"}>
+    <div className={passo < 6 ? "nukkia-workspace quick-demo" : "quick-demo-workspace"}>
       {passo < 6 && (
         <div className="quick-demo-label">
           <button
-            title="Recomeçar demonstração"
-            aria-label="Recomeçar demonstração"
+            title="Recomeçar configuração"
+            aria-label="Recomeçar configuração"
             onClick={() => {
               cancel();
               setRawData(empty());
-              void navigate({ to: "/demo", search: { passo: -1, aba: "painel" }, replace: true });
+              void navigate({ to: "/demo", search: { passo: 0, aba: "painel" }, replace: true });
             }}
           >
             <RotateCcw size={13} />
@@ -100,39 +111,10 @@ function DemoPage() {
       )}
       {!storageAvailable && (
         <p role="status" className="quick-storage-notice">
-          Suas respostas ficam nesta página. Atualizar a página reinicia a demonstração.
+          Não foi possível salvar neste navegador. Atualizar a página pode apagar suas respostas.
         </p>
       )}
-      {passo === -1 ? (
-        <main className="quick-signup">
-          <OnboardingMark />
-          <p className="quick-eyebrow">O CÉREBRO DA SUA MARCA</p>
-          <h1>Nukkia</h1>
-          <div className="quick-signup-fields">
-            <label>
-              Nome
-              <input className="quick-input" value="Marina Costa" readOnly />
-            </label>
-            <label>
-              E-mail
-              <input className="quick-input" type="email" value="marina@example.com" readOnly />
-            </label>
-          </div>
-          <button
-            className="quick-primary"
-            onClick={() => {
-              setData((current) => recordWorkspaceEvent(current, "started"));
-              setStep(0);
-            }}
-          >
-            Criar conta de demonstração
-            <ArrowRight size={16} />
-          </button>
-          <Link to="/auth" search={{ modo: "cadastro" }} className="quick-skip">
-            Quero criar uma conta real
-          </Link>
-        </main>
-      ) : passo < 6 ? (
+      {passo < 6 ? (
         <BrandOnboarding
           step={Math.min(passo, 3)}
           data={data}
@@ -146,17 +128,17 @@ function DemoPage() {
           onRestart={() => {
             cancel();
             setRawData(empty());
-            void navigate({ to: "/demo", search: { passo: -1, aba: "painel" }, replace: true });
+            void navigate({ to: "/demo", search: { passo: 0, aba: "painel" }, replace: true });
           }}
           onEditBrief={() =>
             void navigate({
               to: "/demo",
-              search: { passo: 6, aba: "cerebro", editar: "contexto", retorno: aba },
+              search: { passo: 6, aba: "cerebro", editar: "contexto", retorno: aba, vista },
             })
           }
           editor={{ editar, retorno, capitulo }}
           onEditorReturn={() =>
-            void navigate({ to: "/demo", search: { passo: 6, aba: retorno ?? "painel" } })
+            void navigate({ to: "/demo", search: { passo: 6, aba: retorno ?? "painel", vista } })
           }
           onEditorChapter={(chapter) =>
             void navigate({
@@ -167,6 +149,7 @@ function DemoPage() {
                 editar: chapter === undefined ? "contexto" : "diagnostico",
                 retorno: retorno ?? "painel",
                 capitulo: chapter,
+                vista,
               },
             })
           }
@@ -174,10 +157,19 @@ function DemoPage() {
           onData={setData}
           onAnswer={setAnswer}
           section={aba}
+          contentView={vista}
+          onContentView={(view) =>
+            void navigate({ to: "/demo", search: { passo: 6, aba: "conteudo", vista: view } })
+          }
           onSection={(section) =>
             void navigate({
               to: "/demo",
-              search: { passo: 6, aba: section, ...(section === "marca" ? { retorno: aba } : {}) },
+              search: {
+                passo: 6,
+                aba: section,
+                vista: section === "conteudo" ? "saude" : vista,
+                ...(section === "marca" ? { retorno: aba } : {}),
+              },
             })
           }
         />

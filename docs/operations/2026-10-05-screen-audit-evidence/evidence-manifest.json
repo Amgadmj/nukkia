@@ -1,0 +1,145 @@
+{
+  "sourceAggregate": "cc2a64d6e327af554216289aefae6c9ee2d52481774b131de4e5f7624d824aa1",
+  "referenceDirectory": "/Users/nicolacaprirolo/Downloads/Screenshots",
+  "referenceInventory": "references.json",
+  "earlierJourney": "2026-10-05-saved-content-journey.md",
+  "files": [
+    {
+      "file": "browser-checks.md",
+      "sha256": "f1c1748c87ea89defd56bbffeada4f8f063fc57af575d294d660c6a69231b223",
+      "bytes": 3543
+    },
+    {
+      "file": "build.log",
+      "sha256": "6924aa1479f1c0718e83454243fdfafb7c53e4e2ac5a94befa4ad20c03bdaa79",
+      "bytes": 24799
+    },
+    {
+      "file": "candidate-delta.json",
+      "sha256": "34ffadfb3cb999de2d28c6777b2265d82ec14aedb6b78828003c07b696a52d64",
+      "bytes": 793
+    },
+    {
+      "file": "full-lint.log",
+      "sha256": "23e477568739559e97af137429ef9105f5299abea27c36691ebd74113e25a9eb",
+      "bytes": 28739
+    },
+    {
+      "file": "home-1360-light.png",
+      "sha256": "863cfdcf0add1f771fd63f00f7bbeea33ddc87a92dc1050a683fc98ed47dc59e",
+      "bytes": 1674984,
+      "width": 2720,
+      "height": 4618,
+      "dpr": 2,
+      "visuallyInspected": true,
+      "qualification": "frozen candidate local browser sample"
+    },
+    {
+      "file": "home-red.log",
+      "sha256": "f4795173d6c0457eb965dd65ef601c252308a181cc301caa041bd328d6fcb5bb",
+      "bytes": 2726,
+      "qualification": "intentional pre-implementation regression failures; resolved"
+    },
+    {
+      "file": "identity-1360-dark.png",
+      "sha256": "3e9dd751e4cf6bed36bb2bb08527094ffb2ea8a064c20590ff4a34bc57784552",
+      "bytes": 1536835,
+      "width": 2720,
+      "height": 3808,
+      "dpr": 2,
+      "visuallyInspected": true,
+      "qualification": "frozen candidate local browser sample"
+    },
+    {
+      "file": "identity-320-dark.png",
+      "sha256": "cefc389d263c1dbf2d361eb4bcabc668928addfe9cb6d772257d87731ae495ce",
+      "bytes": 756259,
+      "width": 640,
+      "height": 5556,
+      "dpr": 2,
+      "visuallyInspected": true,
+      "qualification": "frozen candidate local browser sample"
+    },
+    {
+      "file": "identity-320-light.png",
+      "sha256": "42656b64e6aa59539aed2350640f6628f54e4617dac101aa82ade9edefc5f76b",
+      "bytes": 756506,
+      "width": 640,
+      "height": 5556,
+      "dpr": 2,
+      "visuallyInspected": true,
+      "qualification": "frozen candidate local browser sample"
+    },
+    {
+      "file": "library-red.log",
+      "sha256": "edf9f8288c669731865d8e7a5b2b1ab1ac269fc1a47c2ac81f8aa315113cc248",
+      "bytes": 3962,
+      "qualification": "intentional pre-implementation regression failures; resolved"
+    },
+    {
+      "file": "options-320-light.png",
+      "sha256": "871342c18991528d5fe9ce73790ca260e0894699346bd3a52902ac4184819dfc",
+      "bytes": 757762,
+      "width": 640,
+      "height": 6024,
+      "dpr": 2,
+      "visuallyInspected": true,
+      "qualification": "frozen candidate local browser sample"
+    },
+    {
+      "file": "planning-1360-light.png",
+      "sha256": "63a6d8fb4a17c09dd17d1a3568c8c5937df762fac58596f68da9687d86c198e9",
+      "bytes": 1152268,
+      "width": 2720,
+      "height": 2176,
+      "dpr": 2,
+      "visuallyInspected": true,
+      "qualification": "frozen candidate local browser sample"
+    },
+    {
+      "file": "references.json",
+      "sha256": "f8adcbd159d41a974d078dac09ca96b3c2d240f21ae9ee51cfe9de007e8c0a7c",
+      "bytes": 2991
+    },
+    {
+      "file": "reuse-editor-1360-dark.png",
+      "sha256": "77d90922a7aa893a4bfbf2967f4269ededbc1c5acfe0036865b4bd0eb1a8ca40",
+      "bytes": 1447049,
+      "width": 2720,
+      "height": 5458,
+      "dpr": 2,
+      "visuallyInspected": true,
+      "qualification": "contextual, before final whitespace-only title formatting"
+    },
+    {
+      "file": "reuse-editor-320-light.png",
+      "sha256": "bf8dc65bba8c0a889cc17397f8f8cc10a30678c4763f6de64f01cd997e85a102",
+      "bytes": 905947,
+      "width": 640,
+      "height": 8008,
+      "dpr": 2,
+      "visuallyInspected": true,
+      "qualification": "frozen candidate local browser sample"
+    },
+    {
+      "file": "scoped-lint.log",
+      "sha256": "b335d55a529c61d7269449fdc0bb5ffd58fb905f1b7b067271912de49ba3b380",
+      "bytes": 489
+    },
+    {
+      "file": "source-manifest.json",
+      "sha256": "455f5a2deafa9405a20c66ba00bb704aac78ec14920a073d72ff28259b3f3082",
+      "bytes": 11904
+    },
+    {
+      "file": "tests.log",
+      "sha256": "ce923ff8e7a150828da566c81e0b69d13a720124518cd1caa64bf50a508dc3d2",
+      "bytes": 51293
+    },
+    {
+      "file": "typecheck.log",
+      "sha256": "8fa1cf5506304e8abac55868e7f1a136c9b1dde57a3981a382da4c21ea129a6f",
+      "bytes": 29
+    }
+  ]
+}

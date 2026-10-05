@@ -1,0 +1,197 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
+import { NukkiaLogo } from "@/components/nukkia-logo";
+import { ThemeToggle } from "@/components/theme-toggle";
+import landingCss from "../landing.css?url";
+
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Nukkia — Conteúdo para sua clínica" },
+      {
+        name: "description",
+        content:
+          "Organize o contexto da sua clínica, compare exemplos e edite roteiros e cenas na Nukkia.",
+      },
+      { property: "og:title", content: "Nukkia — Conteúdo para sua clínica" },
+      {
+        property: "og:description",
+        content:
+          "Organize o contexto da sua clínica, compare exemplos e edite roteiros e cenas na Nukkia.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+    links: [{ rel: "stylesheet", href: landingCss }],
+  }),
+  component: Index,
+});
+
+function Index() {
+  return (
+    <div className="nukkia-landing">
+      <a href="#conteudo" className="landing-skip">
+        Ir para o conteúdo
+      </a>
+      <header className="landing-header landing-container">
+        <Link to="/" aria-label="Nukkia — início" className="landing-home">
+          <NukkiaLogo />
+        </Link>
+        <nav aria-label="Acesso à Nukkia" className="landing-nav">
+          <ThemeToggle />
+          <Link to="/auth" search={{ modo: "entrar" }} className="landing-nav-link">
+            Entrar
+          </Link>
+          <Link
+            to="/auth"
+            search={{ modo: "cadastro" }}
+            className="landing-button landing-button-outline"
+          >
+            Criar conta
+          </Link>
+        </nav>
+      </header>
+
+      <main id="conteudo" tabIndex={-1}>
+        <section className="landing-hero landing-container" aria-labelledby="landing-title">
+          <div className="landing-intro">
+            <p className="landing-eyebrow">Nukkia · Brasil · Medicina</p>
+            <h1 id="landing-title">
+              Conteúdo para sua clínica. <span>Do roteiro à revisão.</span>
+            </h1>
+            <p className="landing-lead">
+              Escolha um formato, compare três exemplos e edite cada cena no estúdio de saúde.
+            </p>
+            <div className="landing-actions">
+              <Link
+                to="/demo"
+                search={{ passo: 6, aba: "conteudo", vista: "saude" }}
+                className="landing-button landing-button-primary"
+              >
+                Abrir estúdio de saúde <ArrowRight aria-hidden="true" size={17} />
+              </Link>
+              <Link to="/auth" search={{ modo: "cadastro" }} className="landing-text-link">
+                Criar minha conta
+              </Link>
+            </div>
+            <p className="landing-note">
+              Demonstração com textos fictícios. Prévia local, sem conta.
+            </p>
+          </div>
+
+          <figure className="landing-preview" aria-labelledby="preview-caption">
+            <figcaption id="preview-caption">
+              <span className="landing-preview-dot" aria-hidden="true" />
+              Do roteiro às cenas · Exemplo conceitual
+            </figcaption>
+            <div className="landing-product">
+              <div className="landing-product-topline">
+                <span>Estúdio de saúde</span>
+                <span className="landing-status">Prévia textual</span>
+              </div>
+              <div className="landing-product-heading">
+                <p className="landing-eyebrow">Clínica Exemplo · Clínica fictícia</p>
+                <h2>
+                  Apresente
+                  <br />
+                  sua clínica.
+                </h2>
+                <p>Uma apresentação dividida em cenas editáveis.</p>
+              </div>
+              <dl className="landing-brand-notes">
+                <div>
+                  <dt>Formato</dt>
+                  <dd>Vídeo de apresentação · 30 segundos · Vertical.</dd>
+                </div>
+                <div>
+                  <dt>Abordagem</dt>
+                  <dd>Conheça a clínica · Roteiro fictício, editável.</dd>
+                </div>
+              </dl>
+              <div className="landing-draft">
+                <div className="landing-draft-heading">
+                  <span>Cena de abertura</span>
+                  <ArrowRight size={16} aria-hidden="true" />
+                </div>
+                <p className="landing-draft-title">Conheça a Clínica Exemplo.</p>
+                <p>
+                  Este é um texto fictício para testar o ritmo da apresentação. Substitua as
+                  informações antes de solicitar uma revisão profissional.
+                </p>
+                <div className="landing-draft-footer">
+                  <span>Texto e duração editáveis</span>
+                  <span>Rascunho · Para revisão</span>
+                </div>
+              </div>
+            </div>
+            <p className="landing-preview-note">
+              Exemplo ilustrativo. A prévia usa cartões de texto; não é um vídeo final.
+            </p>
+          </figure>
+        </section>
+
+        <section className="landing-method landing-container" aria-labelledby="method-title">
+          <div className="landing-section-heading">
+            <p className="landing-eyebrow">O que você pode usar agora</p>
+            <h2 id="method-title">
+              Prepare o conteúdo,
+              <br />
+              revise cada cena.
+            </h2>
+            <p>
+              O estúdio reúne formatos propostos, exemplos editáveis e uma prévia para testar o
+              texto. A produção real ainda depende de configuração e revisão profissional.
+            </p>
+          </div>
+          <div className="landing-principles">
+            <article>
+              <h3>Escolha o formato</h3>
+              <p>
+                Explore o catálogo proposto e escolha duração e proporção para o exemplo de vídeo.
+              </p>
+            </article>
+            <article>
+              <h3>Edite as cenas</h3>
+              <p>
+                Compare três exemplos, ajuste roteiro e duração, divida cenas e desfaça alterações.
+              </p>
+            </article>
+            <article>
+              <h3>Confira a prévia</h3>
+              <p>
+                Reproduza os cartões de texto. Corrija o que não cabe no quadro ou no tempo
+                escolhido.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section
+          className="landing-invitation landing-container"
+          aria-labelledby="invitation-title"
+        >
+          <div>
+            <p className="landing-eyebrow">O próximo passo</p>
+            <h2 id="invitation-title">Abra o estúdio de saúde.</h2>
+            <p>
+              Teste com exemplos fictícios. Seus rascunhos anteriores continuam disponíveis na
+              conta.
+            </p>
+          </div>
+          <Link
+            to="/demo"
+            search={{ passo: 6, aba: "conteudo", vista: "saude" }}
+            className="landing-button landing-button-primary"
+          >
+            Abrir estúdio de saúde <ArrowRight aria-hidden="true" size={17} />
+          </Link>
+        </section>
+      </main>
+
+      <footer className="landing-footer landing-container">
+        <NukkiaLogo />
+        <p>© {new Date().getFullYear()} Nukkia. Conteúdo para clínicas.</p>
+      </footer>
+    </div>
+  );
+}

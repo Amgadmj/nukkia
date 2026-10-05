@@ -130,6 +130,8 @@ function load(file: string, stubs: Record<string, unknown>) {
     URL,
     require: (id: string) => {
       if (id === "react/jsx-runtime") return jsx;
+      if (id === "@/components/workspace-skeleton")
+        return { WorkspaceSkeleton: "workspace-skeleton" };
       if (!(id in stubs)) throw new Error(`Unexpected import: ${id}`);
       return stubs[id];
     },

@@ -1,5 +1,12 @@
 import type { DemoData } from "@/lib/quick-start";
-import { CONTENT_APPROACHES, recommendContent, type ContentApproach } from "@/lib/brand-preview";
+import {
+  CONTENT_APPROACHES,
+  composeContent,
+  firstPostBrief,
+  recommendContent,
+  type ContentApproach,
+} from "@/lib/brand-preview";
+import { postSvg, svgUrl } from "@/lib/post-art";
 import { BrandSources } from "./brand-sources";
 
 export function ContentRecommendation({
@@ -16,7 +23,8 @@ export function ContentRecommendation({
   const recommendation = recommendContent(data);
   return (
     <>
-      <section className="brand-opportunity" aria-label="Por que começar por aqui">
+      <details className="brand-opportunity" aria-label="Por que começar por aqui">
+        <summary>Contexto e motivo da recomendação</summary>
         <div>
           <span>O QUE VOCÊ CONFIRMOU</span>
           <p>{recommendation.observation}</p>
@@ -44,14 +52,16 @@ export function ContentRecommendation({
             regras e seu objetivo; não é uma auditoria das redes nem uma promessa de desempenho.
           </p>
         </details>
-      </section>
+      </details>
       <fieldset className="brand-approaches">
-        <legend>Escolha o papel da primeira peça</legend>
+        <legend>Como você quer contar esta ideia?</legend>
         <p className="brand-approaches-intro">
-          A oferta permanece a mesma. O que muda é como a mensagem ajuda seu público.
+          A oferta permanece a mesma. Compare as prévias ilustrativas e escolha a intenção; o texto
+          continua editável.
         </p>
         <div className="brand-approach-grid">
           {CONTENT_APPROACHES.map((option) => {
+            const preview = composeContent(data, option.id);
             return (
               <label
                 className="brand-approach-card"
@@ -68,12 +78,29 @@ export function ContentRecommendation({
                   />
                   <strong>{option.name}</strong>
                 </div>
+                <img
+                  className="approach-thumbnail"
+                  alt={`Prévia ilustrativa: ${option.name}`}
+                  src={svgUrl(
+                    postSvg(firstPostBrief(data), preview.copy, data.brand, {
+                      approach: option.id,
+                      page: 1,
+                      total: preview.slides.length + 1,
+                    }),
+                  )}
+                />
                 <span className="brand-approach-badge">
                   {recommendation.approach === option.id
                     ? "RECOMENDADO PARA SEU FOCO"
                     : "OUTRO CAMINHO"}
                 </span>
-                <strong>{option.format}</strong>
+                <strong>
+                  {data.brand.pieceBrief
+                    ? data.brand.pieceBrief.format === "carousel"
+                      ? "Carrossel · 3 páginas"
+                      : "Imagem · 1 página"
+                    : option.format}
+                </strong>
                 <p>{option.purpose}</p>
                 <small>{option.need}</small>
               </label>

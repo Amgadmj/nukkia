@@ -1,0 +1,56 @@
+{
+  "sourceCandidate": "46f8df957a5621ca4b803195672f5bd1730f23105033ae4f850c6874e62c12e4",
+  "files": [
+    {
+      "file": "build.log",
+      "sha256": "c4182267ced6fb6fea527cd5d67c7f3a0520dd64c3780cbbb57e5a8e07334b89"
+    },
+    {
+      "file": "lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "red.log",
+      "sha256": "27583db85218eb127ddd00939f0fc430c99b3242da82ec8a11a79c1cf5604dd9"
+    },
+    {
+      "file": "source-manifest.json",
+      "sha256": "0a611ab5fed7375b1bda827e11a79ff51176d11049e3ad0277c1b02b1c2fc0b4"
+    },
+    {
+      "file": "tests.log",
+      "sha256": "d32733a261361adff2417f8932718bffcb098c5582b9fd44e05507eaba51c321"
+    },
+    {
+      "file": "trail-1360-before-connector-fix.png",
+      "sha256": "272ea027ee4c80c4d9865e0102cb99890b3179c2fc6eebf7fe2edcf3a27daab6",
+      "physicalSize": [
+        2720,
+        2938
+      ],
+      "qualification": "before repair, not passing evidence"
+    },
+    {
+      "file": "trail-1360-light.png",
+      "sha256": "c6453790b209cd5dddd5f5f07cc6ba4a417c17637c985a1f9ae10af09de01ad6",
+      "physicalSize": [
+        2720,
+        2938
+      ],
+      "qualification": "local visual sample, inspected"
+    },
+    {
+      "file": "trail-expanded-320-dark.png",
+      "sha256": "3287a25342e577f92f4972fd4e2c1e9d3875281d11bc9fef999c95e03b26d64c",
+      "physicalSize": [
+        640,
+        4180
+      ],
+      "qualification": "local visual sample, inspected"
+    },
+    {
+      "file": "types.log",
+      "sha256": "8fa1cf5506304e8abac55868e7f1a136c9b1dde57a3981a382da4c21ea129a6f"
+    }
+  ]
+}

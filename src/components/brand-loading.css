@@ -1,0 +1,21 @@
+.nukkia-brand-loading {
+  position: relative;
+  min-height: 100svh;
+  background: var(--nukkia-bg);
+  color: var(--nukkia-text);
+}
+.nukkia-brand-loading-mark {
+  position: absolute;
+  top: 50svh;
+  left: 50%;
+  width: 144px;
+  height: 169.2px;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.nukkia-brand-loading-mark p {
+  margin-top: 16px;
+  font-family: var(--font-heading);
+  font-size: 30px;
+  line-height: 1.3;
+}

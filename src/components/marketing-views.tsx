@@ -1,4 +1,8 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { applyServiceToBrief } from "@/lib/service-brief";
+import { InspirationBoard } from "./inspiration-board";
+import { WorkspaceServices } from "./workspace-services";
+import type { CatalogScope } from "@/lib/service-catalog-storage";
+import { useEffect, useId, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -7,6 +11,9 @@ import {
   ChevronLeft,
   Circle,
   FileText,
+  Film,
+  Image,
+  Layers,
   Globe2,
   Lightbulb,
   Palette,
@@ -15,6 +22,8 @@ import {
   Trophy,
 } from "lucide-react";
 import {
+  type ContentApproach,
+  composeContent,
   briefIssues,
   CONTENT_APPROACHES,
   creativeStatus,
@@ -74,12 +83,19 @@ export function WorkspaceOverview({
   data,
   onSection,
   onEditBrief,
+  onChooseApproach,
+  onEditPiece,
+  onResumeSaved,
+  onLibrary,
   identity,
   snapshots = [],
   metricsState = "ready",
 }: BaseProps & {
   onEditBrief: () => void;
-  onChooseApproach: () => void;
+  onChooseApproach: (approach?: ContentApproach) => void;
+  onEditPiece: () => void;
+  onResumeSaved?: (id: string, version: number) => void;
+  onLibrary?: () => void;
   identity?: { logo?: boolean; tone?: boolean };
   snapshots?: MetricSnapshot[];
   metricsState?: "ready" | "loading" | "error";
@@ -92,37 +108,261 @@ export function WorkspaceOverview({
   const channel = CHANNEL_OPTIONS.find((option) => option.value === data.strategy.channel);
   const creative = data.brand.creative;
   const status = creativeStatus(data);
+  const healthDraft = data.healthStudio.options.find(
+    (option) => option.id === data.healthStudio.selectedOption,
+  );
   return (
     <div className="workspace-page command-center">
-      <header className="command-heading">
-        <div>
-          <p>{data.name || "Seu workspace"}</p>
-          <h1>Meu painel</h1>
-        </div>
-        <button className="quick-secondary" onClick={() => onSection("trilha")}>
-          Minha trilha <ArrowRight size={16} />
-        </button>
-      </header>
-      <section className="command-objective" aria-label="Seu objetivo">
-        <div>
-          <span className="workspace-eyebrow">SEU OBJETIVO</span>
-          <h2>{data.answers.goals || "O que sua marca precisa agora?"}</h2>
-          <p>
-            {data.answers.goals
-              ? data.answers.challenge ||
-                "Defina o principal obstáculo para orientar suas prioridades."
-              : "Defina uma prioridade para orientar seu diagnóstico e seu conteúdo."}
-          </p>
-        </div>
-        <div className="command-objective-meta">
-          <span>{measurement?.label || "Indicador a definir"}</span>
-          <span>
-            {channel?.label || (diagnostic.complete ? "Canais a recomendar" : "Após o diagnóstico")}
-          </span>
-          <button className="quick-text-button" onClick={onEditBrief}>
-            <Pencil size={14} /> Editar objetivo
+      <section aria-labelledby="home-create-title" className="home-create-section">
+        <div className="command-section-title">
+          <h2 id="home-create-title">O que você quer criar?</h2>
+          <button className="quick-text-button" onClick={() => onChooseApproach()}>
+            Comparar abordagens <ArrowRight size={15} />
           </button>
         </div>
+        <div className="home-format-grid">
+          <button
+            className="home-format-card format-video"
+            aria-label="Criar roteiro de vídeo"
+            onClick={() => onSection("conteudo")}
+          >
+            <strong>Vídeo</strong>
+            <p>Monte seu roteiro e ajuste cada cena.</p>
+            <span className="home-format-arrow">
+              <ArrowRight size={18} />
+            </span>
+            <Film className="home-format-art" size={68} strokeWidth={1} />
+          </button>
+          <button
+            className="home-format-card format-image"
+            aria-label="Criar imagem"
+            onClick={() => onChooseApproach("invite")}
+          >
+            <strong>Imagem</strong>
+            <p>Defina uma nova peça no briefing.</p>
+            <span className="home-format-arrow">
+              <ArrowRight size={18} />
+            </span>
+            <Image className="home-format-art" size={68} strokeWidth={1} />
+          </button>
+          <button
+            className="home-format-card format-carousel"
+            aria-label="Criar carrossel"
+            onClick={() => onChooseApproach("educate")}
+          >
+            <strong>Carrossel</strong>
+            <p>Explique uma ideia em três páginas editáveis.</p>
+            <span className="home-format-arrow">
+              <ArrowRight size={18} />
+            </span>
+            <Layers className="home-format-art" size={68} strokeWidth={1} />
+          </button>
+        </div>
+      </section>
+      <div className="home-start-grid">
+        <section className="home-setup-card" aria-labelledby="home-setup-title">
+          <h2 id="home-setup-title">Comece pela sua marca</h2>
+          <button onClick={() => onSection("cerebro")}>
+            <span className="home-setup-icon">
+              <FileText size={18} />
+            </span>
+            <span>
+              <strong>Serviços e ofertas</strong>
+              <small>{data.answers.offers || "Defina o que sua clínica oferece"}</small>
+            </span>
+            <ArrowRight size={16} />
+          </button>
+          <button onClick={onEditBrief} data-complete={diagnostic.complete}>
+            <span className="home-setup-icon">
+              <Brain size={18} />
+            </span>
+            <span>
+              <strong>Contexto</strong>
+              <small>{diagnostic.complete ? "Essencial concluído" : "Continuar diagnóstico"}</small>
+            </span>
+            {diagnostic.complete ? <Check size={16} /> : <ArrowRight size={16} />}
+          </button>
+          <button onClick={() => onSection("marca")} data-complete={identityReady(data.brand)}>
+            <span className="home-setup-icon">
+              <Palette size={18} />
+            </span>
+            <span>
+              <strong>Identidade visual</strong>
+              <small>Revise cores, logo e direção</small>
+            </span>
+            {identityReady(data.brand) ? <Check size={16} /> : <ArrowRight size={16} />}
+          </button>
+        </section>
+        <section className="home-studio-card" aria-labelledby="home-studio-title">
+          <div>
+            <span className="studio-kicker">ESTÚDIO DE SAÚDE</span>
+            <h2 id="home-studio-title">Do roteiro à sequência.</h2>
+            <p>Escolha uma estrutura, compare três exemplos e edite cena por cena.</p>
+          </div>
+          <div className="home-scene-art" aria-hidden="true">
+            <span />
+            <span>
+              <Film size={32} strokeWidth={1.3} />
+            </span>
+            <span />
+          </div>
+          <button className="quick-primary" onClick={() => onSection("conteudo")}>
+            {healthDraft ? "Continuar roteiro" : "Criar roteiro"}
+            <ArrowRight size={17} />
+          </button>
+          <small>Prévia em cartões de texto · exemplo fictício</small>
+        </section>
+      </div>
+      <section className="home-library" aria-labelledby="home-library-title">
+        <div className="command-section-title">
+          <h2 id="home-library-title">Seus rascunhos</h2>
+          {onLibrary && (
+            <button className="quick-text-button" onClick={onLibrary}>
+              Abrir biblioteca
+            </button>
+          )}
+        </div>
+        {healthDraft || creative ? (
+          <div className="home-draft-grid">
+            {healthDraft && (
+              <button className="home-draft-card" onClick={() => onSection("conteudo")}>
+                <div className="home-draft-cover">
+                  <span>EXEMPLO FICTÍCIO</span>
+                  <strong>{healthDraft.scenes[0]?.heading}</strong>
+                  <Film size={23} />
+                </div>
+                <strong>{healthDraft.title}</strong>
+                <small>{healthDraft.scenes.length} cenas · sem aprovação</small>
+              </button>
+            )}
+            {creative && (
+              <button className="home-draft-card" onClick={onEditPiece}>
+                <img
+                  className="home-saved-thumbnail"
+                  alt={`Rascunho atual: ${creative.copy.title}`}
+                  src={svgUrl(
+                    postSvg(firstPostBrief(data), creative.copy, data.brand, {
+                      approach: creative.approach,
+                      page: 1,
+                      total: creative.slides.length + 1,
+                    }),
+                  )}
+                />
+                <strong>{creative.copy.title || "Sua peça de conteúdo"}</strong>
+                <span>
+                  {creative.slides.length ? "Carrossel" : "Imagem"} ·{" "}
+                  {status.approved ? "Aprovação criativa registrada" : "Rascunho"}
+                </span>
+                <small>
+                  {status.stale
+                    ? "Contexto atualizado · revisar peça"
+                    : "Abrir no editor de imagem"}
+                </small>
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="home-library-empty">
+            <FileText size={24} />
+            <p>Os roteiros e peças que você preparar ficam aqui.</p>
+            <button className="quick-text-button" onClick={() => onChooseApproach("invite")}>
+              Preparar minha primeira peça <ArrowRight size={15} />
+            </button>
+          </div>
+        )}
+      </section>
+      {onResumeSaved && data.library.items.some((item) => !item.archived) && (
+        <section className="home-library" aria-label="Versões guardadas">
+          <h2>Versões guardadas</h2>
+          <div className="home-draft-grid">
+            {data.library.items
+              .filter((item) => !item.archived)
+              .slice()
+              .sort((a, b) => b.versions.at(-1)!.savedAt.localeCompare(a.versions.at(-1)!.savedAt))
+              .slice(0, 4)
+              .map((item) => {
+                const saved = item.versions.at(-1)!;
+                const snapshot = saved.snapshot;
+                const savedCreative = snapshot.kind === "generic" ? snapshot.brand.creative : null;
+                const savedScene =
+                  snapshot.kind === "health"
+                    ? snapshot.draft.options.find(
+                        (option) => option.id === snapshot.draft.selectedOption,
+                      )?.scenes[0]
+                    : null;
+                return (
+                  <button
+                    className="home-draft-card"
+                    key={item.id}
+                    onClick={() => onResumeSaved(item.id, saved.version)}
+                  >
+                    {snapshot.kind === "generic" && savedCreative ? (
+                      <img
+                        className="home-saved-thumbnail"
+                        alt={`Prévia guardada: ${savedCreative.copy.title}`}
+                        src={svgUrl(
+                          postSvg(
+                            firstPostBrief({
+                              name: snapshot.name,
+                              segment: snapshot.segment,
+                              answers: {
+                                offers: snapshot.offer,
+                                audience: snapshot.audience,
+                                goals: snapshot.goal,
+                              },
+                              brand: snapshot.brand,
+                            }),
+                            savedCreative.copy,
+                            snapshot.brand,
+                            {
+                              approach: savedCreative.approach,
+                              page: 1,
+                              total: savedCreative.slides.length + 1,
+                            },
+                          ),
+                        )}
+                      />
+                    ) : (
+                      <div className="home-draft-cover">
+                        <span>ROTEIRO FICTÍCIO</span>
+                        <strong>{savedScene?.heading || "Roteiro guardado"}</strong>
+                        <p>{savedScene?.script}</p>
+                      </div>
+                    )}
+                    <strong>{item.title}</strong>
+                    <span>
+                      {item.kind === "health"
+                        ? "Roteiro fictício"
+                        : savedCreative?.slides.length
+                          ? "Carrossel"
+                          : "Imagem"}
+                    </span>
+                    <small>
+                      {snapshot.kind === "health"
+                        ? "Sem revisão profissional"
+                        : snapshot.approved
+                          ? "Aprovação criativa registrada"
+                          : "Rascunho"}
+                    </small>
+                    <small>{new Date(saved.savedAt).toLocaleString("pt-BR")}</small>
+                    <span>{`Retomar versão ${saved.version}`}</span>
+                  </button>
+                );
+              })}
+          </div>
+        </section>
+      )}
+      <section className="home-objective" aria-label="Seu objetivo">
+        <div>
+          <small>OBJETIVO DA MARCA</small>
+          <strong>{data.answers.goals || "Defina sua prioridade"}</strong>
+          <span>
+            {measurement?.label || "Indicador a definir"} · {channel?.label || "Canal a definir"}
+          </span>
+        </div>
+        <button className="quick-text-button" onClick={onEditBrief}>
+          <Pencil size={14} /> Editar
+        </button>
       </section>
       <section aria-labelledby="command-priorities">
         <div className="command-section-title">
@@ -266,13 +506,21 @@ export function BrandBrain({
   onEditBrief,
   onReport,
   reportLabel = "Meu relatório salvo",
+  catalogScope,
+  onServiceBrief,
+  serviceBriefDisabled = false,
 }: BaseProps & {
   onData: Dispatch<SetStateAction<DemoData>>;
   onEditBrief: () => void;
   onReport?: (() => void) | undefined;
   reportLabel?: string;
+  catalogScope?: CatalogScope | undefined;
+  onServiceBrief?: () => void;
+  serviceBriefDisabled?: boolean;
 }) {
-  const [tab, setTab] = useState<"confirmed" | "found" | "hypotheses" | "gaps">("confirmed");
+  const [tab, setTab] = useState<"confirmed" | "found" | "hypotheses" | "gaps" | "services">(
+    "confirmed",
+  );
   const [chapter, setChapter] = useState<number | null>(null);
   const [hypothesisDraft, setHypothesisDraft] = useState<string | null>(null);
   const [hypothesisId, setHypothesisId] = useState<string | null>(null);
@@ -304,7 +552,7 @@ export function BrandBrain({
       <WorkspaceHeading
         eyebrow="CONHECIMENTO QUE VIRA DIREÇÃO"
         title={`O Cérebro de ${data.name || "sua marca"}.`}
-        description="O que sabemos, de onde veio e o que ainda pode tornar sua comunicação mais precisa."
+        description="A cópia digital da sua marca: o que ela oferece, para quem fala e como se comunica. Revise as informações e suas fontes."
       />
       <div className="workspace-actions">
         <button className="quick-primary" onClick={onEditBrief}>
@@ -316,10 +564,11 @@ export function BrandBrain({
           </button>
         )}
       </div>
-      <div className="workspace-tabs" role="tablist" aria-label="Conhecimento da marca">
+      <div className="workspace-tabs brain-tabs" role="tablist" aria-label="Conhecimento da marca">
         {(
           [
             ["confirmed", "Confirmado"],
+            ["services", "Serviços e ofertas"],
             ["found", "Encontrado"],
             ["hypotheses", "Hipóteses"],
             ["gaps", "Lacunas"],
@@ -344,6 +593,22 @@ export function BrandBrain({
         aria-labelledby={`brain-tab-${tab}`}
         className="workspace-card"
       >
+        <div hidden={tab !== "services"}>
+          <WorkspaceServices
+            scope={catalogScope}
+            onApplyBrief={
+              serviceBriefDisabled
+                ? undefined
+                : (service, revision) => {
+                    const now = new Date();
+                    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+                    onData((current) => applyServiceToBrief(current, service, revision, today));
+                    if (onServiceBrief) onServiceBrief();
+                    else onSection("conteudo");
+                  }
+            }
+          />
+        </div>
         {tab === "confirmed" && (
           <>
             <div className="workspace-card-top">
@@ -560,7 +825,7 @@ export function BrandBrain({
           </>
         )}
       </section>
-      <section className="workspace-deeper">
+      <section className="workspace-deeper" hidden={tab === "services"}>
         <div className="workspace-card-top">
           <div>
             <p className="workspace-eyebrow">DIAGNÓSTICO PROGRESSIVO</p>
@@ -615,7 +880,7 @@ export function BrandBrain({
           </div>
         )}
       </section>
-      <section className="workspace-card">
+      <section className="workspace-card" hidden={tab === "services"}>
         <p className="workspace-eyebrow">APRENDER COM SEU PÚBLICO</p>
         <h2>Uma dúvida real pode virar seu próximo conteúdo.</h2>
         <p>Registre o que seus clientes perguntam e uma resposta que você pode confirmar.</p>
@@ -664,6 +929,8 @@ export function DeliveryJourney({
   onDiagnose?: () => void;
 }) {
   const status = journeyProgress(data);
+  const [selected, setSelected] = useState(-1);
+  const trailId = useId();
   const essential = essentialDiagnostic(data);
   const phases = [
     {
@@ -788,74 +1055,120 @@ export function DeliveryJourney({
       ],
     },
   ];
+  const phaseIcons = [Brain, Globe2, Palette, FileText, Lightbulb];
+  const reasons = [
+    "Uma oferta e um público bem definidos ajudam a criar conteúdo relevante, sem inventar informações sobre sua marca.",
+    "Priorizar um canal concentra seu esforço onde seu público pode encontrar você. Um link informado ainda não conecta a conta.",
+    "Cores, estilo e materiais consistentes ajudam as pessoas a reconhecer sua marca em cada peça.",
+    "Revisar a mensagem e o visual evita levar informações incorretas para o público. Baixar uma peça não a publica.",
+    "Comparar entregas com dados observados ajuda a decidir o que manter e o que ajustar, sem confundir hipóteses com resultados.",
+  ];
   return (
-    <div className="workspace-page">
-      <WorkspaceHeading title="Minha trilha" />
+    <div className="workspace-page journey-page">
       <div className="workspace-trail-summary">
-        <Trophy size={26} />
+        <Trophy size={26} aria-hidden="true" />
         <div>
-          <strong>{status.xp} XP</strong>
+          <strong>Primeira entrega</strong>
           <p>
-            {status.completed} de {status.total} marcos da primeira entrega
+            {status.completed} de {status.total} marcos concluídos · {status.xp} XP
           </p>
         </div>
         <progress aria-label="Progresso da trilha" value={status.completed} max={status.total} />
       </div>
-      <ol className="workspace-phases">
-        {phases.map((phase) => (
-          <li key={phase.title}>
-            <div className="workspace-phase-marker" aria-hidden="true">
-              {phase.tasks.every((task) => task.done) ? (
-                <Check size={18} className="workspace-complete" />
-              ) : (
-                <Circle size={14} />
-              )}
-            </div>
-            <section
-              data-complete={phase.tasks.every((task) => task.done)}
-              className={`workspace-card${phase.tasks.every((task) => task.done) ? " workspace-phase-complete" : ""}`}
-            >
-              <div className="workspace-card-top">
-                <div>
-                  <h2>{phase.title}</h2>
-                  <p>{phase.detail}</p>
-                </div>
-                <span
-                  className={`workspace-tag${phase.tasks.every((task) => task.done) ? " workspace-tag-complete" : ""}`}
+      <p className="journey-intro">
+        Selecione uma etapa para entender o que fazer e por que ela importa.
+      </p>
+      <ol className="journey-path" aria-label="Etapas da sua trilha">
+        {phases.map((phase, index) => {
+          const done = phase.tasks.every((task) => task.done);
+          const Icon = phaseIcons[index]!;
+          const open = selected === index;
+          const buttonId = `${trailId}-step-${index}`;
+          const panelId = `${trailId}-detail-${index}`;
+          return (
+            <li key={phase.title} className={index % 2 ? "journey-stop is-right" : "journey-stop"}>
+              <section data-complete={done} className="journey-stage">
+                <button
+                  id={buttonId}
+                  className={`journey-dot${done ? " is-complete" : ""}${open ? " is-selected" : ""}`}
+                  aria-expanded={open}
+                  aria-controls={panelId}
+                  onClick={() => setSelected(open ? -1 : index)}
                 >
-                  {phase.tasks.every((task) => task.done) ? "Concluída" : "A completar"}
-                </span>
-              </div>
-              <div className="workspace-task-list">
-                {phase.tasks.map((task) => (
-                  <button
-                    key={task.title}
-                    className={task.done ? "workspace-task-complete" : undefined}
-                    onClick={() =>
-                      task.section === "cerebro" && onDiagnose
-                        ? onDiagnose()
-                        : task.section === "calendar"
-                          ? onCalendar?.()
-                          : onSection(task.section as WorkspaceSection)
+                  <span className="journey-orbit" aria-hidden="true">
+                    <Icon size={30} strokeWidth={1.6} />
+                    {done && <Check className="journey-check" size={20} />}
+                  </span>
+                  <strong>{phase.title}</strong>
+                  <small>
+                    {done
+                      ? "Concluída"
+                      : `${phase.tasks.filter((task) => task.done).length} de ${phase.tasks.length} ações concluídas`}
+                  </small>
+                </button>
+                <div
+                  id={panelId}
+                  hidden={!open}
+                  role="region"
+                  aria-labelledby={buttonId}
+                  className="journey-detail"
+                >
+                  {
+                    <>
+                      <h2>O que fazer e por quê</h2>
+                      <ul>
+                        <li>{phase.detail}</li>
+                        <li>{reasons[index]}</li>
+                      </ul>
+                      <div className="journey-actions">
+                        {phase.tasks.map((task) => (
+                          <button
+                            key={task.title}
+                            className="journey-action"
+                            onClick={() =>
+                              task.section === "cerebro" && onDiagnose
+                                ? onDiagnose()
+                                : task.section === "calendar"
+                                  ? onCalendar?.()
+                                  : onSection(task.section as WorkspaceSection)
+                            }
+                          >
+                            {task.done ? (
+                              <Check size={17} className="workspace-complete" aria-hidden="true" />
+                            ) : (
+                              <Circle size={15} aria-hidden="true" />
+                            )}
+                            <span>
+                              <strong>{task.title}</strong>
+                              <small>{task.why}</small>
+                            </span>
+                            <ArrowRight size={16} aria-hidden="true" />
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  }
+                </div>
+              </section>
+              {index < phases.length - 1 && (
+                <svg
+                  className="journey-connector"
+                  viewBox="0 0 600 100"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d={
+                      index % 2
+                        ? "M 480 0 C 480 65, 120 35, 120 100"
+                        : "M 120 0 C 120 65, 480 35, 480 100"
                     }
-                  >
-                    {task.done ? (
-                      <Check size={17} className="workspace-complete" />
-                    ) : (
-                      <Circle size={15} />
-                    )}
-                    <span>
-                      <strong>{task.title}</strong>
-                      <small>{task.why}</small>
-                    </span>
-                    {"reward" in task && <em>{task.reward}</em>}
-                    <ArrowRight size={15} />
-                  </button>
-                ))}
-              </div>
-            </section>
-          </li>
-        ))}
+                  />
+                </svg>
+              )}
+            </li>
+          );
+        })}
       </ol>
       <p className="workspace-note">
         O progresso considera as etapas concluídas e a versão atual da peça. Aprovação e download
@@ -908,133 +1221,166 @@ export function LocalIdentity({
   return (
     <div className="workspace-page">
       <WorkspaceHeading
-        eyebrow="RECONHECÍVEL EM CADA DETALHE"
-        title="Vamos dar forma à sua marca."
+        title="Identidade da marca"
         description="Confirme o estilo, a cor e os materiais do seu primeiro post."
       />
-      <VisualStylePicker
-        selected={selected}
-        recommended={recommendedVisualStyle(data)}
-        onSelect={(visualStyle) =>
-          onData((current) => ({ ...current, brand: updateBrand(current.brand, { visualStyle }) }))
-        }
-      />
-      <div className="workspace-secondary-grid">
-        {(["logo", "photo"] as const).map((kind) => (
-          <section className="workspace-card" key={kind}>
-            <h2>
-              {kind === "logo"
-                ? "Seu logo · opcional"
-                : `Sua fotografia · ${photoRequired ? "necessária" : "opcional"}`}
-            </h2>
-            {data.brand[kind] ? (
-              <img
-                className="workspace-asset-preview"
-                src={data.brand[kind]}
-                alt={kind === "logo" ? "Logo da marca" : "Foto fornecida pela marca"}
-              />
-            ) : kind === "logo" && data.brand.research.logo ? (
-              <div>
-                <img
-                  className="workspace-asset-preview"
-                  src={data.brand.research.logo}
-                  alt="Logo encontrado no site da marca"
-                />
-                <button
-                  className="quick-text-button"
-                  onClick={() =>
-                    onData((current) => ({
-                      ...current,
-                      brand: updateBrand(current.brand, {
-                        logo: current.brand.research.logo,
-                        assetSource: current.brand.research.logoSource,
-                      }),
-                    }))
-                  }
-                >
-                  Usar logo encontrado no site <Check size={15} />
-                </button>
-              </div>
-            ) : (
-              <div className="workspace-preview-empty">
-                <Palette size={32} />
-                <p>
-                  {kind === "logo"
-                    ? "Seu símbolo dá identidade a cada entrega."
-                    : "Uma foto própria permite mostrar seu jeito de fazer."}
-                </p>
-              </div>
+      <div className="identity-workbench">
+        <section className="workspace-card identity-live-preview" aria-label="Prévia da identidade">
+          <h2>Identidade na sua peça</h2>
+          <p>
+            {data.brand.identityConfirmed
+              ? "Identidade confirmada"
+              : "Ajustes em andamento · confirme para continuar"}
+          </p>
+          <img
+            alt={`Prévia de identidade de ${data.name || "sua marca"}`}
+            src={svgUrl(
+              postSvg(
+                firstPostBrief(data),
+                (data.brand.creative || composeContent(data, "invite")).copy,
+                { ...data.brand, visualStyle: selected },
+                {
+                  approach: data.brand.creative?.approach || "invite",
+                  page: 1,
+                  total: (data.brand.creative?.slides.length || 0) + 1,
+                },
+              ),
             )}
-            <label className="workspace-file-label">
-              Escolher imagem
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                disabled={uploading}
-                onChange={(event) => {
-                  void upload(event.target.files?.[0], kind);
-                  event.target.value = "";
-                }}
-              />
-            </label>
-          </section>
-        ))}
-      </div>
-      <section className="workspace-card">
-        <h2>Sua cor de destaque</h2>
-        <label className="workspace-color">
-          <input
-            aria-label="Cor da marca"
-            type="color"
-            value={data.brand.accent}
-            onChange={(event) =>
+          />
+          <p>
+            Prévia com as cores e materiais atuais. Alterações exigem uma nova aprovação da peça.
+          </p>
+        </section>
+        <div className="identity-controls">
+          <VisualStylePicker
+            selected={selected}
+            recommended={recommendedVisualStyle(data)}
+            onSelect={(visualStyle) =>
               onData((current) => ({
                 ...current,
-                brand: updateBrand(current.brand, { accent: event.target.value }),
+                brand: updateBrand(current.brand, { visualStyle }),
               }))
             }
           />
-          <span>{data.brand.accent}</span>
-        </label>
-        <p>Essa cor será aplicada ao estilo escolhido. Você pode ajustá-la depois.</p>
-      </section>
-      {missing.length > 0 && (
-        <p className="brand-review-note" role="status">
-          {missing[0]}
-        </p>
-      )}
-      {data.brand.preferredApproach === "trust" && !data.brand.photo && selected !== "warm" && (
-        <button
-          className="quick-text-button"
-          onClick={() =>
-            onData((current) => ({
-              ...current,
-              brand: { ...current.brand, preferredApproach: "educate" },
-            }))
-          }
-        >
-          Escolher um formato sem foto <ArrowRight size={15} />
-        </button>
-      )}
-      <div className="workspace-actions">
-        <button
-          className="quick-primary"
-          disabled={uploading || missing.length > 0}
-          onClick={() => {
-            if (uploading || missing.length) return;
-            onData((current) => {
-              const brand = updateBrand(current.brand, { visualStyle: selected });
-              if (identityIssues(brand).length) return current;
-              return { ...current, brand: { ...brand, identityConfirmed: true } };
-            });
-            onContinue();
-          }}
-        >
-          {uploading ? "Preparando imagem…" : "Salvar identidade e continuar"}
-          <ArrowRight size={17} />
-        </button>
+          <div className="workspace-secondary-grid">
+            {(["logo", "photo"] as const).map((kind) => (
+              <section className="workspace-card" key={kind}>
+                <h2>
+                  {kind === "logo"
+                    ? "Seu logo · opcional"
+                    : `Sua fotografia · ${photoRequired ? "necessária" : "opcional"}`}
+                </h2>
+                {data.brand[kind] ? (
+                  <img
+                    className="workspace-asset-preview"
+                    src={data.brand[kind]}
+                    alt={kind === "logo" ? "Logo da marca" : "Foto fornecida pela marca"}
+                  />
+                ) : kind === "logo" && data.brand.research.logo ? (
+                  <div>
+                    <img
+                      className="workspace-asset-preview"
+                      src={data.brand.research.logo}
+                      alt="Logo encontrado no site da marca"
+                    />
+                    <button
+                      className="quick-text-button"
+                      onClick={() =>
+                        onData((current) => ({
+                          ...current,
+                          brand: updateBrand(current.brand, {
+                            logo: current.brand.research.logo,
+                            assetSource: current.brand.research.logoSource,
+                          }),
+                        }))
+                      }
+                    >
+                      Usar logo encontrado no site <Check size={15} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="workspace-preview-empty">
+                    <Palette size={32} />
+                    <p>
+                      {kind === "logo"
+                        ? "Seu símbolo dá identidade a cada entrega."
+                        : "Uma foto própria permite mostrar seu jeito de fazer."}
+                    </p>
+                  </div>
+                )}
+                <label className="workspace-file-label">
+                  Escolher imagem
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={uploading}
+                    onChange={(event) => {
+                      void upload(event.target.files?.[0], kind);
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
+              </section>
+            ))}
+          </div>
+          <section className="workspace-card">
+            <h2>Sua cor de destaque</h2>
+            <label className="workspace-color">
+              <input
+                aria-label="Cor da marca"
+                type="color"
+                value={data.brand.accent}
+                onChange={(event) =>
+                  onData((current) => ({
+                    ...current,
+                    brand: updateBrand(current.brand, { accent: event.target.value }),
+                  }))
+                }
+              />
+              <span>{data.brand.accent}</span>
+            </label>
+            <p>Essa cor será aplicada ao estilo escolhido. Você pode ajustá-la depois.</p>
+          </section>
+          {missing.length > 0 && (
+            <p className="brand-review-note" role="status">
+              {missing[0]}
+            </p>
+          )}
+          {data.brand.preferredApproach === "trust" && !data.brand.photo && selected !== "warm" && (
+            <button
+              className="quick-text-button"
+              onClick={() =>
+                onData((current) => ({
+                  ...current,
+                  brand: { ...current.brand, preferredApproach: "educate" },
+                }))
+              }
+            >
+              Escolher um formato sem foto <ArrowRight size={15} />
+            </button>
+          )}
+          <div className="workspace-actions">
+            <button
+              className="quick-primary"
+              disabled={uploading || missing.length > 0}
+              onClick={() => {
+                if (uploading || missing.length) return;
+                onData((current) => {
+                  const brand = updateBrand(current.brand, { visualStyle: selected });
+                  if (identityIssues(brand).length) return current;
+                  return { ...current, brand: { ...brand, identityConfirmed: true } };
+                });
+                onContinue();
+              }}
+            >
+              {uploading ? "Preparando imagem…" : "Salvar identidade e continuar"}
+              <ArrowRight size={17} />
+            </button>
+          </div>
+          {notice && <p role="status">{notice}</p>}
+        </div>
       </div>
-      {notice && <p role="status">{notice}</p>}
+      <InspirationBoard data={data} onData={onData} />
     </div>
   );
 }
@@ -1115,9 +1461,8 @@ export function LocalResults({ data, onSection }: BaseProps) {
   return (
     <div className="workspace-page">
       <WorkspaceHeading
-        eyebrow="APRENDER COM O QUE ACONTECEU"
-        title="Cada entrega deixa um aprendizado."
-        description="Acompanhe sua primeira peça e o tempo até levá-la para usar."
+        title="Resultados"
+        description="Estados observados neste espaço de trabalho. Publicações e resultados dos canais dependem de dados externos."
       />
       <div className="workspace-stats">
         {[

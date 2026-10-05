@@ -11,6 +11,9 @@ test("account save status stays in main content when the account/sidebar menu is
   const shell = () => null;
   const jsx = (type: unknown, props: Record<string, unknown>) => ({ type, props });
   const modules: Record<string, unknown> = {
+    react: { useState: (initial: unknown) => [initial, () => {}], useEffect() {} },
+    "./workspace-skeleton": { WorkspaceSkeleton: "workspace-skeleton" },
+    "@/lib/workspace-loading": { workspaceLoadingLayout: () => "dashboard" },
     "react/jsx-runtime": { jsx, jsxs: jsx },
     "@tanstack/react-router": {
       Link: "a",

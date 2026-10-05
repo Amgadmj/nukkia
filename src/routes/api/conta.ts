@@ -1,3 +1,4 @@
+import { deleteOwnedAccount, purgeStorageTree } from "@/lib/account-data.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { userClientFromRequest } from "@/lib/supabase-request.server";
 
@@ -24,35 +25,45 @@ export const Route = createFileRoute("/api/conta")({
         if (userError || !userData.user) return new Response("Não autenticado", { status: 401 });
         const userId = userData.user.id;
 
-        const { data: companies } = await supabase
-          .from("companies")
-          .select("id")
-          .eq("owner_id", userId);
-
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-        for (const company of companies ?? []) {
-          for (const bucket of ["brand-assets", "content-media"] as const) {
-            const { data: files } = await supabaseAdmin.storage.from(bucket).list(company.id);
-            if (files?.length) {
-              const paths = files.map((f) => `${company.id}/${f.name}`);
-              const { error: removeError } = await supabaseAdmin.storage.from(bucket).remove(paths);
-              if (removeError) {
-                console.error(
-                  `[api/conta] failed to purge ${bucket}/${company.id}:`,
-                  removeError.message,
-                );
-              }
-            }
-          }
-        }
-
-        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-        if (deleteError) {
-          console.error("[api/conta] failed to delete user:", deleteError.message);
-          return new Response("Não foi possível excluir a conta. Tente novamente.", {
-            status: 500,
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          await deleteOwnedAccount({
+            companies: async () => {
+              const { data, error } = await supabase
+                .from("companies")
+                .select("id")
+                .eq("owner_id", userId);
+              if (error || !data) throw new Error("Owned company query unavailable");
+              return data.map((company) => company.id);
+            },
+            purge: async (companyId, bucket) => {
+              const storage = supabaseAdmin.storage.from(bucket);
+              return purgeStorageTree(
+                {
+                  list: async (prefix, offset) =>
+                    storage.list(prefix, {
+                      limit: 100,
+                      offset,
+                      sortBy: { column: "name", order: "asc" },
+                    }),
+                  remove: async (paths) => storage.remove(paths),
+                },
+                companyId,
+              );
+            },
+            deleteUser: async () => {
+              const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+              if (error) throw new Error("Account removal unavailable");
+            },
           });
+        } catch {
+          return Response.json(
+            {
+              message:
+                "A exclusão não foi concluída. A conta foi preservada; alguns arquivos podem já ter sido removidos. Tente novamente para concluir.",
+            },
+            { status: 503 },
+          );
         }
 
         return Response.json({ ok: true });

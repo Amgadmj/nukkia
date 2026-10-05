@@ -1,0 +1,72 @@
+[
+  {
+    "id": "atlantic",
+    "name": "Atlantic",
+    "position": "Clareza clínica · tecnologia tranquila",
+    "copy": "Azul profundo e teal para uma plataforma precisa e contemporânea. Superfícies claras dão espaço ao conteúdo; o contraste concentra a atenção nas decisões.",
+    "message": "Comunicação clara.\nCuidado presente.",
+    "textures": [
+      "Vidro fosco · luz natural",
+      "Água · espaço · precisão"
+    ],
+    "colors": [
+      [
+        "Tinta",
+        "#122B3A"
+      ],
+      [
+        "Ação",
+        "#006C72"
+      ],
+      [
+        "Acento",
+        "#56C8C8"
+      ],
+      [
+        "Apoio",
+        "#DFF1ED"
+      ],
+      [
+        "Fundo",
+        "#F5F9FA"
+      ]
+    ],
+    "note": "Minha recomendação para a Nukkia: mantém um vínculo visual com tecnologia e saúde, sem depender do roxo. O teal deve ocupar as ações; o ciano fica em pequenos detalhes.",
+    "tradeoff": "Mais próximo da linguagem visual já familiar em produtos de saúde. A diferenciação depende também da tipografia, do símbolo e da composição."
+  },
+  {
+    "id": "eucalyptus",
+    "name": "Eucalyptus",
+    "position": "Proximidade · cuidado · presença editorial",
+    "copy": "Verde profundo, marfim e argila para uma marca mais acolhedora. Uma direção editorial para clínicas e profissionais que querem comunicar com seriedade e presença humana.",
+    "message": "Sua prática.\nSua presença.",
+    "textures": [
+      "Papel mineral · calor suave",
+      "Folhagem · luz · matéria"
+    ],
+    "colors": [
+      [
+        "Tinta",
+        "#193C34"
+      ],
+      [
+        "Ação",
+        "#336859"
+      ],
+      [
+        "Acento",
+        "#B76646"
+      ],
+      [
+        "Apoio",
+        "#E3EADB"
+      ],
+      [
+        "Fundo",
+        "#FAF8F2"
+      ]
+    ],
+    "note": "Uma alternativa mais distinta: verde estrutural e neutros quentes. A argila aparece em detalhes editoriais; ações principais continuam verdes.",
+    "tradeoff": "Pode se aproximar de bem-estar ou hotelaria se houver excesso de tons naturais. Manter dados, hierarquia e controles precisos para sustentar o contexto de saúde."
+  }
+]

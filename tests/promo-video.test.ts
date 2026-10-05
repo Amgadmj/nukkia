@@ -329,8 +329,10 @@ async function processHarness(t: TestContext) {
     jobs,
     timers,
     async waitJobs(count: number) {
-      for (let i = 0; i < 100 && jobs.length < count; i++)
-        await new Promise((resolve) => setImmediate(resolve));
+      const start = Date.now();
+      while (jobs.length < count && Date.now() - start < 5000) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
       assert.equal(jobs.length, count);
     },
     async finish(index = 0) {

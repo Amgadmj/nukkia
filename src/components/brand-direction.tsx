@@ -34,20 +34,17 @@ export function VisualStylePicker({
               onChange={() => onSelect(style.id)}
             />
             <div className={`direction-art direction-art-${style.id}`} aria-hidden="true">
-              <span className="direction-art-kicker">
-                ESTUDO VISUAL /{" "}
-                {style.id === "essential" ? "01" : style.id === "warm" ? "02" : "03"}
-              </span>
+              <span className="direction-art-kicker">EXEMPLO VISUAL</span>
               {style.id === "essential" ? (
                 <>
                   <strong>
-                    Menos ruído.
+                    Conheça
                     <br />
-                    <i>Mais presença.</i>
+                    <i>nossa equipe.</i>
                   </strong>
                   <span className="direction-art-line" />
                   <span className="direction-art-footer">
-                    O essencial fica. <ArrowUpRight size={20} />
+                    Veja quem atende. <ArrowUpRight size={20} />
                   </span>
                 </>
               ) : style.id === "warm" ? (
@@ -57,25 +54,25 @@ export function VisualStylePicker({
                     <small>SUA FOTOGRAFIA</small>
                   </span>
                   <strong>
-                    Feito de
+                    Um espaço
                     <br />
-                    <i>conexões.</i>
+                    <i>para cuidar.</i>
                   </strong>
-                  <span className="direction-art-footer">Gente, antes de tudo.</span>
+                  <span className="direction-art-footer">Conheça a clínica.</span>
                 </>
               ) : (
                 <>
                   <strong>
-                    EM
+                    SUA
                     <br />
                     <i>
-                      MOVI
+                      PRIMEIRA
                       <br />
-                      MENTO.
+                      CONSULTA.
                     </i>
                   </strong>
                   <span className="direction-art-footer">
-                    A próxima ideia começa aqui. <ArrowUpRight size={24} />
+                    Saiba como agendar. <ArrowUpRight size={24} />
                   </span>
                 </>
               )}

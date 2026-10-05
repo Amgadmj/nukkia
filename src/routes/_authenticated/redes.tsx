@@ -1,3 +1,4 @@
+import { WorkspaceSkeleton } from "@/components/workspace-skeleton";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ChannelOverview } from "@/components/channel-overview";
@@ -60,12 +61,7 @@ function Redes() {
     },
   });
 
-  if (companyQuery.isPending || sync === "loading")
-    return (
-      <p role="status" className="text-muted-foreground">
-        Carregando seus canais…
-      </p>
-    );
+  if (companyQuery.isPending || sync === "loading") return <WorkspaceSkeleton layout="list" />;
   if (companyQuery.isError)
     return (
       <div role="alert" className="space-y-4">

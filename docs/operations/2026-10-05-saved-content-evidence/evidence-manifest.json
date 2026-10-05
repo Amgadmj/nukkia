@@ -1,0 +1,181 @@
+{
+  "candidateSha256": "553b9c03d40de70870830ea78149dfb34875e299c50faefd519e469609653f8e",
+  "base": "5f1a1dab06e003b47614d0597bd8279db2b391c3",
+  "files": [
+    {
+      "path": "approaches-320-light.png",
+      "sha256": "01bf48057122df8a60bd7dc2b3131e18644d618897ce20db395d223b7b5dfe88",
+      "bytes": 648047,
+      "physicalPixels": [
+        640,
+        4360
+      ],
+      "devicePixelRatio": 2,
+      "status": "supporting observation before final editor-only CSS repair"
+    },
+    {
+      "path": "build.log",
+      "sha256": "e814dfaab04b64d0c3d5597558b08e1030c65ca3211997027b1a4e7e44b9344b",
+      "bytes": 24799,
+      "status": "verification output; see qualification record for scope and exit result"
+    },
+    {
+      "path": "duplicate-red.log",
+      "sha256": "2f69aabaca162e430fe39273182c0f62b6711486610e554517c242c11b2d84fd",
+      "bytes": 1560,
+      "status": "intentional failing regression before repair"
+    },
+    {
+      "path": "editor-320-dark-before.png",
+      "sha256": "7091dfbdf7228eeba096e6643b3dc6cd4e0f9efd506e447dc08199915f0fd725",
+      "bytes": 730515,
+      "physicalPixels": [
+        746,
+        5418
+      ],
+      "devicePixelRatio": 2,
+      "status": "before repair; not passing evidence"
+    },
+    {
+      "path": "editor-320-dark.png",
+      "sha256": "8e2e60fbdbd7b6f60de38515cb9af12e639419161fb9f0d7e1fa8f84bac70c0b",
+      "bytes": 712735,
+      "physicalPixels": [
+        640,
+        5554
+      ],
+      "devicePixelRatio": 2,
+      "status": "final candidate screenshot"
+    },
+    {
+      "path": "editor-390-dark.png",
+      "sha256": "e68befa440e9295ce2da54e2aaa69a7421015b8157168a0384f8453f75c0f224",
+      "bytes": 755301,
+      "physicalPixels": [
+        780,
+        5344
+      ],
+      "devicePixelRatio": 2,
+      "status": "final candidate screenshot"
+    },
+    {
+      "path": "editor-390-light-before.png",
+      "sha256": "711c2a3cde54e86d991b109cabb261278292f6f9050e70f3f1555aec31026b0e",
+      "bytes": 703911,
+      "physicalPixels": [
+        816,
+        5208
+      ],
+      "devicePixelRatio": 2,
+      "status": "before repair; not passing evidence"
+    },
+    {
+      "path": "editor-390-light.png",
+      "sha256": "b86fd162fd95de0b9b1384a86d6bc02bc4a854075a48037886d9b7633b78947d",
+      "bytes": 706082,
+      "physicalPixels": [
+        780,
+        5344
+      ],
+      "devicePixelRatio": 2,
+      "status": "final candidate screenshot"
+    },
+    {
+      "path": "full-lint.log",
+      "sha256": "23e477568739559e97af137429ef9105f5299abea27c36691ebd74113e25a9eb",
+      "bytes": 28739,
+      "status": "verification output; see qualification record for scope and exit result"
+    },
+    {
+      "path": "identity-red.log",
+      "sha256": "654a831ec0185e8d31c62a9d119bef9d836190f2ed05972c4483e3092a6c5987",
+      "bytes": 1728,
+      "status": "intentional failing regression before repair"
+    },
+    {
+      "path": "library-1024-dark.png",
+      "sha256": "9adcc3d509c45874f8ecb605bd8f5a3a4fe0fc2c690fb43626f5e92431e7a405",
+      "bytes": 1237635,
+      "physicalPixels": [
+        2048,
+        2340
+      ],
+      "devicePixelRatio": 2,
+      "status": "final candidate screenshot"
+    },
+    {
+      "path": "library-1360-light.png",
+      "sha256": "5dbba99ba8fad595d2a33ab218f95b44d0e5cfd9dfa43c39d235bcff0950cb82",
+      "bytes": 1254407,
+      "physicalPixels": [
+        2720,
+        2176
+      ],
+      "devicePixelRatio": 2,
+      "status": "final candidate screenshot"
+    },
+    {
+      "path": "planning-320-dark.png",
+      "sha256": "b0eedae7728c86ce730c1f664f04bed30bc1a3abd42c94b2c34fc3d412e24470",
+      "bytes": 598812,
+      "physicalPixels": [
+        640,
+        2648
+      ],
+      "devicePixelRatio": 2,
+      "status": "supporting observation before final editor-only CSS repair"
+    },
+    {
+      "path": "planning-390-light-before.png",
+      "sha256": "2a684efd2c9e82dd9ff4ad0f870ca5f2278835296bbd59eea0a7efb105eaf6f5",
+      "bytes": 621488,
+      "physicalPixels": [
+        1412,
+        3054
+      ],
+      "devicePixelRatio": 2,
+      "status": "before repair; not passing evidence"
+    },
+    {
+      "path": "planning-390-light.png",
+      "sha256": "7f2237a4c9a72ba391bc4dedf446cdbbd03725f01a62440f4ade2597246ca44c",
+      "bytes": 548194,
+      "physicalPixels": [
+        780,
+        2308
+      ],
+      "devicePixelRatio": 2,
+      "status": "final candidate screenshot"
+    },
+    {
+      "path": "regressions-red.log",
+      "sha256": "8a20eb55d408d8e676d8c101e8e2104a101d54ad18033efc010d51898d6d4fba",
+      "bytes": 3330,
+      "status": "intentional failing regression before repair"
+    },
+    {
+      "path": "scoped-lint.log",
+      "sha256": "a246baa3fcf421a34907ebf8ffb62474dfaf3b5a662449337a2f1bfbc767f07c",
+      "bytes": 498,
+      "status": "verification output; see qualification record for scope and exit result"
+    },
+    {
+      "path": "source-manifest.json",
+      "sha256": "e84ee0085d2e387b8dee47f81bffd6e626740822394bc4e5ac80d8ccd21a23e9",
+      "bytes": 11722,
+      "status": "verification output; see qualification record for scope and exit result"
+    },
+    {
+      "path": "tests.log",
+      "sha256": "2b72531cb237558cd13e9db9fa2b40ce4564db1bfc88bbc556005b64c16e1ec1",
+      "bytes": 50744,
+      "status": "verification output; see qualification record for scope and exit result"
+    },
+    {
+      "path": "typecheck.log",
+      "sha256": "8fa1cf5506304e8abac55868e7f1a136c9b1dde57a3981a382da4c21ea129a6f",
+      "bytes": 29,
+      "status": "verification output; see qualification record for scope and exit result"
+    }
+  ]
+}

@@ -1,9 +1,12 @@
+import { PieceBrief } from "./piece-brief";
+import { SavedContentPicker } from "./content-library";
 import { type Dispatch, type SetStateAction } from "react";
 import { ArrowRight } from "lucide-react";
 import type { DemoData } from "@/lib/quick-start";
 import {
   briefIssues,
   composeContent,
+  composeWorkspaceContent,
   recommendContent,
   updateBrand,
   identityReady,
@@ -28,10 +31,20 @@ export function ContentStudio({
   onEditBrief: () => void;
   onTrail: () => void;
   onIdentity: () => void;
-  view: "peca" | "abordagens";
-  onView: (view: "peca" | "abordagens") => void;
+  view: "peca" | "abordagens" | "briefing";
+  onView: (view: "peca" | "abordagens" | "briefing") => void;
   onVideo?: (frames: string[]) => Promise<Blob>;
 }) {
+  if (view === "briefing")
+    return (
+      <PieceBrief
+        data={data}
+        onData={onData}
+        onPrepare={() => onView("abordagens")}
+        onContext={onEditBrief}
+        onIdentity={onIdentity}
+      />
+    );
   const selected =
     data.brand.preferredApproach ??
     data.brand.creative?.approach ??
@@ -43,13 +56,25 @@ export function ContentStudio({
     return (
       <div className="workspace-page">
         <WorkspaceHeading
-          eyebrow="SEU ESTÚDIO DE CONTEÚDO"
-          title="Uma peça que começa com você."
+          title="Complete o briefing"
           description="Confirme sua marca, sua oferta e um detalhe concreto para preparar uma composição útil."
         />
         <section className="workspace-card">
           <h2>Vamos completar o ponto de partida.</h2>
           <p>{missing[0]}</p>
+          {data.brand.serviceBrief && (
+            <button
+              className="quick-text-button"
+              onClick={() =>
+                onData((current) => ({
+                  ...current,
+                  brand: updateBrand(current.brand, { serviceBrief: null }),
+                }))
+              }
+            >
+              Remover serviço do briefing
+            </button>
+          )}
           <button className="quick-secondary" onClick={onEditBrief}>
             Completar meu contexto <ArrowRight size={16} />
           </button>
@@ -67,15 +92,12 @@ export function ContentStudio({
       current.questionKey === next.questionKey;
     if (
       current &&
-      !same &&
+      (!same || data.brand.pieceBrief?.asNew) &&
       !window.confirm("Esta abordagem substituirá o rascunho atual. Continuar?")
     )
       return;
-    if (!same)
-      onData((previous) => ({
-        ...previous,
-        brand: updateBrand(previous.brand, { creative: composeContent(previous, selected) }),
-      }));
+    if (!same || data.brand.pieceBrief?.asNew)
+      onData((previous) => composeWorkspaceContent(previous, selected));
     onView("peca");
   }
   const ready = identityReady(data.brand);
@@ -92,13 +114,71 @@ export function ContentStudio({
     );
   return (
     <div className="workspace-content">
+      <SavedContentPicker data={data} onData={onData} onOpen={() => onView("peca")} />
+      {(data.brand.serviceBrief ||
+        data.brand.inspirationBrief.length > 0 ||
+        data.brand.pieceBrief) && (
+        <details className="workspace-card piece-context">
+          <summary>Briefing, fontes e restrições</summary>
+          {data.brand.pieceBrief && (
+            <>
+              <p>{data.brand.pieceBrief.idea}</p>
+              <p>{data.brand.pieceBrief.constraints || "Sem restrições adicionais."}</p>
+              <button className="quick-text-button" onClick={() => onView("briefing")}>
+                Editar briefing da peça
+              </button>
+            </>
+          )}
+          {data.brand.serviceBrief && (
+            <section>
+              <h2>Serviço usado neste briefing</h2>
+              <p>
+                {data.brand.serviceBrief.offer} · {data.brand.serviceBrief.audience}
+              </p>
+              <p>{data.brand.serviceBrief.detail}</p>
+              <p>
+                Fonte: {data.brand.serviceBrief.source || "Informada pela equipe"} · versão do
+                catálogo: {data.brand.serviceBrief.catalogRevision}. Mudanças posteriores no
+                catálogo não alteram esta cópia.
+              </p>
+              <button
+                className="quick-text-button"
+                onClick={() =>
+                  onData((current) => ({
+                    ...current,
+                    brand: updateBrand(current.brand, { serviceBrief: null }),
+                  }))
+                }
+              >
+                Remover serviço e voltar ao contexto da marca
+              </button>
+            </section>
+          )}
+          {data.brand.inspirationBrief.length > 0 && (
+            <section className="workspace-card">
+              <h2>Direção visual anexada</h2>
+              {data.brand.inspirationBrief.map((reference) => (
+                <p key={reference.id}>
+                  {reference.title}: {reference.note} · fonte: {reference.url} · direitos não
+                  verificados
+                </p>
+              ))}
+              <button className="quick-text-button" onClick={onIdentity}>
+                Editar inspirações
+              </button>
+            </section>
+          )}
+        </details>
+      )}
       {view === "abordagens" || !data.brand.creative ? (
         <div className="workspace-page">
           <WorkspaceHeading
-            eyebrow="A IDEIA ANTES DA PEÇA"
-            title="O que vale comunicar agora?"
-            description="Escolha a intenção da mensagem. O rascunho será preparado no editor para você revisar."
+            title="Escolher abordagem"
+            description="Briefing → Abordagem → Editor. Compare caminhos para esta peça e escolha como contar sua ideia."
           />
+          <button className="quick-text-button" onClick={() => onView("briefing")}>
+            Voltar ao briefing
+          </button>
           <ContentRecommendation
             data={data}
             selected={selected}
@@ -149,7 +229,7 @@ export function ContentStudio({
         <FirstPostWorkspace
           data={data}
           onData={onData}
-          onEditBrief={onEditBrief}
+          onEditBrief={() => onView("briefing")}
           onChooseApproach={() => onView("abordagens")}
           onTrail={onTrail}
           onVideo={onVideo}

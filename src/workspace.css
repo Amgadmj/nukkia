@@ -1,47 +1,285 @@
-/* Workspace-only tokens keep the deliberately black onboarding untouched. */
+/* Atlantic workspace aliases share the global theme with onboarding and auth. */
+.health-studio label {
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.health-studio input,
+.health-studio select,
+.health-studio textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--ws-border);
+  border-radius: 8px;
+  color: var(--ws-text);
+  background: var(--ws-surface);
+  font: inherit;
+}
+.health-studio textarea {
+  resize: vertical;
+  font-weight: 400;
+}
+.health-studio button:focus-visible,
+.health-studio input:focus-visible,
+.health-studio select:focus-visible,
+.health-studio textarea:focus-visible,
+.health-studio summary:focus-visible {
+  outline: 3px solid var(--ws-focus);
+  outline-offset: 3px;
+}
+.health-studio button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.health-studio h2 {
+  font-family: "Sora", sans-serif;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+.health-studio h3 {
+  font-size: 1rem;
+}
+.health-notice {
+  padding: 1rem 1.2rem;
+  border-radius: 10px;
+  color: var(--ws-warning);
+  background: var(--ws-warning-bg);
+  line-height: 1.6;
+}
+.health-error {
+  color: var(--ws-error);
+}
+.health-small {
+  color: var(--ws-muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+.health-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(110px, 1fr) minmax(90px, 1fr);
+  gap: 1rem;
+  margin: 1.3rem 0;
+}
+.health-options-section {
+  display: grid;
+  gap: 1rem;
+}
+.health-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.health-options > button {
+  display: grid;
+  gap: 0.75rem;
+  text-align: left;
+  font: inherit;
+  color: var(--ws-text);
+  cursor: pointer;
+}
+.health-options > button[aria-pressed="true"] {
+  border-color: var(--ws-accent);
+  box-shadow: inset 0 0 0 1px var(--ws-accent);
+}
+.health-options span,
+.health-options small {
+  color: var(--ws-muted);
+  line-height: 1.6;
+}
+.health-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.health-section-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.health-scenes {
+  display: grid;
+  gap: 1rem;
+}
+.health-scene {
+  display: grid;
+  gap: 1rem;
+}
+.health-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.health-tools > button {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--ws-border);
+  border-radius: 7px;
+  background: var(--ws-surface);
+  color: var(--ws-text);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.health-tools > button:hover:not(:disabled) {
+  background: var(--ws-hover);
+}
+.health-preview {
+  display: grid;
+  gap: 1rem;
+  position: sticky;
+  top: 1rem;
+}
+.health-animatic {
+  display: grid;
+  gap: 1rem;
+}
+.health-text-frame {
+  width: 100%;
+  max-width: 340px;
+  margin-inline: auto;
+  background: #f1f1ed;
+  color: #202325;
+  border: 1px solid #c4c7c4;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+.health-frame-content {
+  position: absolute;
+  inset: 0;
+  padding: clamp(0.7rem, 2vw, 1.3rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.6rem;
+  overflow-wrap: anywhere;
+}
+.health-frame-content > * {
+  flex-shrink: 0;
+}
+.health-animatic {
+  position: relative;
+}
+.health-fit-probes {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+.health-studio .health-text-frame p {
+  color: #202325;
+  font-size: clamp(0.8rem, 1.3vw, 1rem);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.health-text-frame h3 {
+  font-size: clamp(0.9rem, 1.5vw, 1.25rem);
+}
+.health-text-frame small,
+.health-example-label {
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: #4e5454;
+}
+.health-studio details {
+  margin-block: 1rem;
+  line-height: 1.7;
+}
+.health-studio summary {
+  cursor: pointer;
+}
+.health-studio ul {
+  padding-left: 1.2rem;
+}
+.health-catalog-list {
+  list-style: none;
+  padding: 0 !important;
+  margin-top: 1rem;
+}
+.health-catalog-list li {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--ws-border);
+}
+.health-catalog-list li > span:first-child {
+  display: grid;
+  gap: 0.35rem;
+}
+.health-catalog-list small {
+  color: var(--ws-muted);
+}
+@media (max-width: 850px) {
+  .health-editor-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .health-preview {
+    position: static;
+  }
+}
+@media (max-width: 600px) {
+  .health-fields,
+  .health-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .health-catalog-list li {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+}
 .workspace-shell,
-.workspace-loading {
+.workspace-loading,
+.nukkia-workspace.quick-demo {
   color-scheme: light;
-  --ws-bg: #f7f9ff;
-  --ws-surface: #ffffff;
-  --ws-subtle: #eef3ff;
-  --ws-hover: #e3ebff;
-  --ws-text: #18005f;
-  --ws-muted: #58647b;
-  --ws-accent: #236ff2;
-  --ws-border: #d8e2f3;
-  --ws-focus: #1f7af5;
-  --ws-action: #18005f;
-  --ws-on-action: #ffffff;
+  --ws-bg: var(--nukkia-bg);
+  --ws-surface: var(--nukkia-surface);
+  --ws-subtle: var(--nukkia-subtle);
+  --ws-hover: var(--nukkia-hover);
+  --ws-text: var(--nukkia-text);
+  --ws-muted: var(--nukkia-muted);
+  --ws-accent: var(--nukkia-accent);
+  --ws-border: var(--nukkia-border);
+  --ws-focus: var(--nukkia-focus);
+  --ws-action: var(--nukkia-action);
+  --ws-on-action: var(--nukkia-on-action);
   --ws-success: #26734d;
   --ws-success-bg: #edf8f2;
   --ws-success-border: #c5e3d1;
   --ws-warning: #7a592b;
   --ws-warning-bg: #faf4e8;
   --ws-error: #a63d32;
-  --ws-backdrop: #0c062266;
+  --ws-backdrop: #0b202b66;
 }
 .dark .workspace-shell,
-.dark .workspace-loading {
+.dark .workspace-loading,
+.dark .nukkia-workspace.quick-demo {
   color-scheme: dark;
-  --ws-bg: #090b0c;
-  --ws-surface: #111519;
-  --ws-subtle: #192027;
-  --ws-hover: #232c34;
-  --ws-text: #f8faff;
-  --ws-muted: #a8b2c7;
-  --ws-accent: #52cfe8;
-  --ws-border: #303942;
-  --ws-focus: #3b82f6;
-  --ws-action: #2f7df4;
-  --ws-on-action: #ffffff;
+  --ws-bg: var(--nukkia-bg);
+  --ws-surface: var(--nukkia-surface);
+  --ws-subtle: var(--nukkia-subtle);
+  --ws-hover: var(--nukkia-hover);
+  --ws-text: var(--nukkia-text);
+  --ws-muted: var(--nukkia-muted);
+  --ws-accent: var(--nukkia-accent);
+  --ws-border: var(--nukkia-border);
+  --ws-focus: var(--nukkia-focus);
+  --ws-action: var(--nukkia-action);
+  --ws-on-action: var(--nukkia-on-action);
   --ws-success: #86d7aa;
   --ws-success-bg: #112b25;
   --ws-success-border: #285947;
   --ws-warning: #dcc395;
   --ws-warning-bg: #2a2419;
   --ws-error: #f0b2a6;
-  --ws-backdrop: #03020cbb;
+  --ws-backdrop: #061720bb;
 }
 /* Bridge the existing shared component variables at the shell boundary. */
 .brand-video-preview {
@@ -95,6 +333,22 @@
   max-width: 780px;
   padding: 10px 0 6px;
 }
+.context-health-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 44px;
+  margin-top: 1rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--ws-border);
+  border-radius: 8px;
+  background: var(--ws-action);
+  color: var(--ws-on-action);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
 .workspace-eyebrow {
   color: var(--ws-muted);
   font-size: 10px;
@@ -111,7 +365,7 @@
   margin: 15px 0;
   color: var(--ws-text);
 }
-.workspace-page-heading > p:last-child {
+.workspace-page-heading > p:not(.workspace-eyebrow) {
   color: var(--ws-muted);
   line-height: 1.8;
   font-size: 14px;
@@ -1329,7 +1583,7 @@
 
 /* Shared demo components are also used inside the workspace. Scope their
    semantic colors here; art previews retain their intentional palettes. */
-.workspace-shell
+:is(.workspace-shell, .quick-demo)
   :is(
     .brand-fields label,
     .brand-microcopy,
@@ -1373,7 +1627,7 @@
   ) {
   color: var(--ws-muted);
 }
-.workspace-shell
+:is(.workspace-shell, .quick-demo)
   :is(
     .brand-source-action,
     .brand-source-details a,
@@ -1394,7 +1648,7 @@
   ) {
   color: var(--ws-accent);
 }
-.workspace-shell
+:is(.workspace-shell, .quick-demo)
   :is(
     .brand-source-label a,
     .brand-approach-choice,
@@ -1405,7 +1659,7 @@
   ) {
   color: var(--ws-text);
 }
-.workspace-shell
+:is(.workspace-shell, .quick-demo)
   :is(
     .brand-sources-list,
     .brand-sources-heading > span,
@@ -1428,7 +1682,7 @@
   ) {
   border-color: var(--ws-border);
 }
-.workspace-shell
+:is(.workspace-shell, .quick-demo)
   :is(
     .brand-source-item,
     .brand-opportunity,
@@ -1440,7 +1694,7 @@
   ) {
   background: var(--ws-surface);
 }
-.workspace-shell
+:is(.workspace-shell, .quick-demo)
   :is(
     .brand-source-action:hover,
     .quick-secondary:hover,
@@ -1451,14 +1705,15 @@
   color: var(--ws-text);
   background: var(--ws-hover);
 }
-.workspace-shell :is(.quick-text-button:hover, .quick-skip:hover, .quick-back:hover) {
+:is(.workspace-shell, .quick-demo)
+  :is(.quick-text-button:hover, .quick-skip:hover, .quick-back:hover) {
   color: var(--ws-text);
 }
-.workspace-shell :is(.brand-focus, .quick-draft-card blockquote) {
+:is(.workspace-shell, .quick-demo) :is(.brand-focus, .quick-draft-card blockquote) {
   background: var(--ws-subtle);
   border-color: var(--ws-border);
 }
-.workspace-shell
+:is(.workspace-shell, .quick-demo)
   :is(
     .direction-card[data-selected="true"],
     .brand-approach-card[data-selected="true"],
@@ -1468,7 +1723,7 @@
   background: var(--ws-subtle);
   box-shadow: 0 0 0 1px var(--ws-focus);
 }
-.workspace-shell
+:is(.workspace-shell, .quick-demo)
   :is(
     .quick-primary,
     .brand-page-tabs [aria-current="page"],
@@ -1478,20 +1733,20 @@
   border-color: var(--ws-action);
   color: var(--ws-on-action);
 }
-.workspace-shell .quick-primary:hover {
+:is(.workspace-shell, .quick-demo) .quick-primary:hover {
   background: var(--ws-accent);
 }
-.nukkia-workspace.workspace-shell
+.nukkia-workspace:is(.workspace-shell, .quick-demo)
   :is(input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), textarea, select) {
   color: var(--ws-text);
   background-color: var(--ws-surface);
   border-color: var(--ws-border);
 }
-.workspace-shell :is(input, textarea)::placeholder {
+:is(.workspace-shell, .quick-demo) :is(input, textarea)::placeholder {
   color: var(--ws-muted);
   opacity: 1;
 }
-.workspace-shell input::file-selector-button {
+:is(.workspace-shell, .quick-demo) input::file-selector-button {
   background: var(--ws-subtle);
   color: var(--ws-text);
   border: 1px solid var(--ws-border);
@@ -1499,17 +1754,17 @@
   padding: 8px;
   margin-right: 8px;
 }
-.workspace-shell :is(input[type="checkbox"], input[type="radio"]) {
+:is(.workspace-shell, .quick-demo) :is(input[type="checkbox"], input[type="radio"]) {
   accent-color: var(--ws-success);
 }
-.nukkia-workspace.workspace-shell :focus-visible {
+.nukkia-workspace:is(.workspace-shell, .quick-demo) :focus-visible {
   outline: 2px solid var(--ws-focus);
   outline-offset: 3px;
 }
-.workspace-shell .direction-card:focus-within {
+:is(.workspace-shell, .quick-demo) .direction-card:focus-within {
   outline-color: var(--ws-focus);
 }
-.workspace-shell
+:is(.workspace-shell, .quick-demo)
   :is(
     .brand-suggestions button,
     .brand-suggestions > span,
@@ -1521,24 +1776,24 @@
   ) {
   color: var(--ws-success);
 }
-.workspace-shell :is(.brand-suggestions button, .quick-saved) {
+:is(.workspace-shell, .quick-demo) :is(.brand-suggestions button, .quick-saved) {
   border-color: var(--ws-success-border);
 }
-.workspace-shell :is(.brand-suggestions button:hover, .quick-saved) {
+:is(.workspace-shell, .quick-demo) :is(.brand-suggestions button:hover, .quick-saved) {
   background: var(--ws-success-bg);
 }
-.workspace-shell :is(.brand-review-note, .quick-context-notice) {
+:is(.workspace-shell, .quick-demo) :is(.brand-review-note, .quick-context-notice) {
   color: var(--ws-warning);
   background: var(--ws-warning-bg);
   border-color: var(--ws-warning);
 }
-.workspace-shell :is(.research-caution, .quick-storage-notice) {
+:is(.workspace-shell, .quick-demo) :is(.research-caution, .quick-storage-notice) {
   color: var(--ws-warning);
 }
-.workspace-shell .brand-error {
+:is(.workspace-shell, .quick-demo) .brand-error {
   color: var(--ws-error);
 }
-.workspace-shell button:disabled {
+:is(.workspace-shell, .quick-demo) button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -2015,4 +2270,54 @@
   .context-editor .workspace-card {
     padding: 20px;
   }
+}
+
+/* Saved versions and source boards share the workspace's responsive canvas. */
+.nukkia-workspace .library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 20px;
+}
+.nukkia-workspace .library-item {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-wrap: anywhere;
+}
+.nukkia-workspace .library-item label,
+.nukkia-workspace .library-filters label {
+  display: grid;
+  gap: 6px;
+}
+.nukkia-workspace .library-thumbnail {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 16px;
+  background: var(--muted);
+}
+.nukkia-workspace .library-script {
+  padding: 24px;
+  min-height: 180px;
+}
+.nukkia-workspace .library-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+.nukkia-workspace .library-copy {
+  white-space: pre-wrap;
+}
+.nukkia-workspace .library-save {
+  margin-block: 16px;
+}
+.nukkia-workspace .library-item summary {
+  cursor: pointer;
+}
+.nukkia-workspace .library-item input,
+.nukkia-workspace .library-item select {
+  max-width: 100%;
+  min-width: 0;
 }

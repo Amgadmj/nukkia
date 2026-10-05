@@ -1,8 +1,10 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { LogOut, Settings, ShieldCheck } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { WorkspaceShell } from "./workspace-shell";
+import { WorkspaceSkeleton } from "./workspace-skeleton";
+import { workspaceLoadingLayout } from "@/lib/workspace-loading";
 import {
   useMarketingWorkspace,
   clearMarketingWorkspace,
@@ -20,10 +22,15 @@ import { clearOnboardingDrafts } from "@/lib/onboarding-draft";
 import { toast } from "sonner";
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { data, company } = useMarketingWorkspace();
+  const { data, company, sync } = useMarketingWorkspace();
+  const [hasShownContent, setHasShownContent] = useState(sync !== "loading");
+  useEffect(() => {
+    if (sync !== "loading") setHasShownContent(true);
+  }, [sync]);
   const { data: isAdmin } = useIsAdmin();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const tab = useRouterState({ select: (state) => state.location.search.aba });
   const queryClient = useQueryClient();
   const progress = journeyProgress(data);
   const section = WORKSPACE_NAV.find((item) => item.to === pathname)?.id;
@@ -45,6 +52,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       name={data.name || company?.name || ""}
       section={section}
       onSection={go}
+      onCalendar={() => void navigate({ to: "/conteudo", search: { aba: "planejamento" } })}
+      calendarActive={pathname === "/conteudo" && (tab === "planejamento" || tab === "calendario")}
       xp={progress.xp}
       completed={progress.completed}
       total={progress.total}
@@ -69,7 +78,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
     >
       <WorkspaceSaveStatus />
-      {children}
+      {!hasShownContent && sync === "loading" ? (
+        <WorkspaceSkeleton layout={workspaceLoadingLayout(pathname, tab)} />
+      ) : (
+        children
+      )}
     </WorkspaceShell>
   );
 }

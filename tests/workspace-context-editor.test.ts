@@ -44,6 +44,7 @@ function harness(references = false) {
   const cells: RuntimeValue[] = [];
   let cursor = 0;
   let returned = 0;
+  let studioOpened = 0;
   const exports: Record<string, RuntimeValue> = {};
   const dependencies: Record<string, RuntimeValue> = {
     react: {
@@ -100,6 +101,7 @@ function harness(references = false) {
       data = next;
     },
     returned: () => returned,
+    studioOpened: () => studioOpened,
     render() {
       cursor = 0;
       return nodes(
@@ -110,12 +112,71 @@ function harness(references = false) {
           },
           onReturn: () => returned++,
           onChapter: () => {},
+          onHealthStudio: () => studioOpened++,
           mode: "contexto",
         }),
       );
     },
   };
 }
+test("the existing context-editor link exposes the Health studio without changing saved answers", () => {
+  const app = harness();
+  const before = JSON.stringify(app.data());
+  const button = app
+    .render()
+    .find((n) => n.type === "button" && n.props.className === "context-health-link");
+  assert.ok(button, "The context editor needs a direct visible Health studio destination");
+  button.props.onClick();
+  assert.equal(app.studioOpened(), 1);
+  assert.equal(JSON.stringify(app.data()), before);
+});
+test("opening Health preserves an unfinished edit to an existing reference link", () => {
+  const app = harness(true);
+  const before = JSON.stringify(app.data());
+  app
+    .render()
+    .find((n) => n.type === "BrandSources")!
+    .props.editor.onStart({
+      key: "movitta.com.br",
+      url: "https://movitta.com.br",
+    });
+  app
+    .render()
+    .find((n) => n.type === "BrandSources")!
+    .props.editor.onChange("https://edited.example");
+  app
+    .render()
+    .find((n) => n.props.className === "context-health-link")!
+    .props.onClick();
+  assert.equal(app.studioOpened(), 0);
+  assert.equal(
+    app.render().find((n) => n.type === "BrandSources")!.props.editor.current.value,
+    "https://edited.example",
+  );
+  assert.equal(JSON.stringify(app.data()), before);
+  assert.ok(app.render().some((n) => n.props.role === "alert"));
+});
+test("opening Health preserves an unfinished new reference link", () => {
+  const app = harness();
+  app
+    .render()
+    .find((n) => n.type === "button" && n.props.children?.includes?.(" Adicionar link"))!
+    .props.onClick();
+  app
+    .render()
+    .find((n) => n.type === "input" && n.props.inputMode === "url")!
+    .props.onChange({ target: { value: "https://new.example" } });
+  app
+    .render()
+    .find((n) => n.props.className === "context-health-link")!
+    .props.onClick();
+  assert.equal(app.studioOpened(), 0);
+  assert.equal(
+    app.render().find((n) => n.type === "input" && n.props.inputMode === "url")!.props.value,
+    "https://new.example",
+  );
+  assert.equal(app.data().brand.extraLinks.length, 0);
+});
 test("context editor populates existing answers and saves back without creating a new onboarding", () => {
   const app = harness();
   const offer = app.render().find((n) => n.props.label === "Oferta prioritária")!;
@@ -204,4 +265,43 @@ test("editing the full essential form keeps a persistable workspace", () => {
   assert.ok(quick.demoSchema.safeParse(app.data()).success);
   assert.ok(!app.data().brand.editedFields.includes("goals"));
   assert.ok(!app.data().brand.editedFields.includes("challenge"));
+});
+
+test("context steps preserve answers and prevent hiding an unfinished reference", () => {
+  const app = harness();
+  const panel = (title: string) =>
+    app.render().find((n) => n.type === "section" && n.props["aria-label"] === title);
+  assert.equal(panel("Marca e oferta")?.props.hidden, false);
+  app
+    .render()
+    .find((n) => n.type === "button" && n.props["aria-label"] === "Objetivo")!
+    .props.onClick();
+  assert.equal(panel("Seu objetivo")?.props.hidden, false);
+  app
+    .render()
+    .find((n) => n.props.label === "O que você quer melhorar?")!
+    .props.onChange("Reduzir dúvidas antes da consulta");
+  app
+    .render()
+    .find((n) => n.type === "button" && n.props["aria-label"] === "Referências")!
+    .props.onClick();
+  app
+    .render()
+    .find((n) => n.type === "button" && n.props.children?.includes?.(" Adicionar link"))!
+    .props.onClick();
+  app
+    .render()
+    .find((n) => n.type === "input" && n.props.inputMode === "url")!
+    .props.onChange({ target: { value: "https://draft.example" } });
+  app
+    .render()
+    .find((n) => n.type === "button" && n.props["aria-label"] === "Marca")!
+    .props.onClick();
+  assert.equal(panel("Referências da marca")?.props.hidden, false);
+  assert.equal(
+    app.render().find((n) => n.type === "input" && n.props.inputMode === "url")!.props.value,
+    "https://draft.example",
+  );
+  assert.equal(app.data().answers.goals, "Reduzir dúvidas antes da consulta");
+  assert.ok(app.render().some((n) => n.props.role === "alert"));
 });

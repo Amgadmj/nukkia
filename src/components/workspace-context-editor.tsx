@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { ArrowLeft, ArrowRight, Check, FileText, Plus } from "lucide-react";
 import { CompactAnswer } from "./brand-onboarding";
 import { BrandSources } from "./brand-sources";
@@ -19,6 +19,7 @@ export function WorkspaceContextEditor({
   onReturn,
   onChapter,
   onReport,
+  onHealthStudio,
   mode = "contexto",
   chapter,
 }: {
@@ -27,14 +28,20 @@ export function WorkspaceContextEditor({
   onReturn: () => void;
   onChapter: (chapter?: number) => void;
   onReport?: (() => void) | undefined;
+  onHealthStudio?: (() => void) | undefined;
   mode?: "contexto" | "diagnostico";
   chapter?: number | undefined;
 }) {
   const [error, setError] = useState("");
+  const [contextStep, setContextStep] = useState(0);
   const [editingLink, setEditingLink] = useState<{ key: string; value: string } | null>(null);
   const [newLink, setNewLink] = useState<string | null>(null);
   const progress = essentialDiagnostic(data);
   const activeChapter = mode === "diagnostico" && chapter !== undefined ? CHAPTERS[chapter] : null;
+  const contextHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    contextHeading.current?.focus({ preventScroll: true });
+  }, [contextStep, activeChapter?.title]);
   const references = referenceFingerprint(data);
   const referencesPending = Boolean(references && references !== data.brand.referencesConfirmed);
   const pendingLink = editingLink !== null || newLink !== null;
@@ -48,7 +55,7 @@ export function WorkspaceContextEditor({
   function field(key: AnswerKey, label: string, placeholder = "") {
     return (
       <CompactAnswer
-        key={key}
+        key={`${key}:${contextStep}`}
         label={label}
         value={data.answers[key]}
         placeholder={placeholder}
@@ -76,6 +83,21 @@ export function WorkspaceContextEditor({
     }));
     onReturn();
   }
+  function openHealthStudio() {
+    if (pendingLink) {
+      setError("Salve ou cancele a edição do link antes de abrir o estúdio de saúde.");
+      return;
+    }
+    onHealthStudio?.();
+  }
+  function changeStep(step: number) {
+    if (pendingLink) {
+      setError("Salve ou cancele a edição do link antes de mudar de etapa.");
+      return;
+    }
+    setError("");
+    setContextStep(step);
+  }
   return (
     <div className="workspace-page context-editor">
       <button type="button" className="quick-text-button context-back" onClick={onReturn}>
@@ -83,13 +105,37 @@ export function WorkspaceContextEditor({
       </button>
       <header className="workspace-page-heading">
         <p className="workspace-eyebrow">{data.name || "SUA MARCA"}</p>
-        <h1>{activeChapter?.title ?? "Diagnóstico da marca"}</h1>
+        <h1>
+          {activeChapter?.title ??
+            (mode === "contexto" ? "Contexto da clínica" : "Diagnóstico da marca")}
+        </h1>
         <p>
           {activeChapter
             ? activeChapter.description
-            : "Defina o que importa para o seu negócio. Suas respostas anteriores já estão aqui."}
+            : "Organize a comunicação da sua clínica. Suas respostas e referências anteriores continuam aqui."}
         </p>
+        {onHealthStudio && (
+          <button type="button" className="context-health-link" onClick={openHealthStudio}>
+            Abrir estúdio de saúde <ArrowRight size={16} aria-hidden="true" />
+          </button>
+        )}
       </header>
+      {!activeChapter && (
+        <nav className="studio-stepper context-stepper" aria-label="Etapas do contexto">
+          {["Marca", "Objetivo", "Referências"].map((label, i) => (
+            <button
+              key={label}
+              type="button"
+              aria-label={label}
+              aria-current={contextStep === i ? "step" : undefined}
+              onClick={() => changeStep(i)}
+            >
+              <span>{i + 1}</span>
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
       <div className="context-progress">
         <span>
           <Check size={16} /> {progress.completed} de 4 decisões essenciais
@@ -110,8 +156,14 @@ export function WorkspaceContextEditor({
           </section>
         ) : (
           <>
-            <section className="workspace-card context-section">
-              <h2>Seu objetivo</h2>
+            <section
+              className="workspace-card context-section"
+              aria-label="Seu objetivo"
+              hidden={contextStep !== 1}
+            >
+              <h2 ref={contextStep === 1 ? contextHeading : undefined} tabIndex={-1}>
+                Seu objetivo
+              </h2>
               <div className="brand-fields">
                 {field(
                   "goals",
@@ -152,11 +204,18 @@ export function WorkspaceContextEditor({
                 </p>
               </div>
             </section>
-            <section className="workspace-card context-section">
-              <h2>Marca e oferta</h2>
+            <section
+              className="workspace-card context-section"
+              aria-label="Marca e oferta"
+              hidden={contextStep !== 0}
+            >
+              <h2 ref={contextStep === 0 ? contextHeading : undefined} tabIndex={-1}>
+                Marca e oferta
+              </h2>
               <div className="brand-fields">
                 <div className="context-field-pair">
                   <CompactAnswer
+                    key={`name:${contextStep}`}
                     label="Nome da marca"
                     value={data.name}
                     maxLength={120}
@@ -171,6 +230,7 @@ export function WorkspaceContextEditor({
                     }
                   />
                   <CompactAnswer
+                    key={`segment:${contextStep}`}
                     label="Área de atuação"
                     value={data.segment}
                     maxLength={120}
@@ -188,6 +248,7 @@ export function WorkspaceContextEditor({
                 {field("offers", "Oferta prioritária")}
                 {field("audience", "Quem você quer alcançar?")}
                 <CompactAnswer
+                  key={`detail:${contextStep}`}
                   label="Um detalhe verdadeiro que vale destacar"
                   value={data.brand.detail}
                   maxLength={600}
@@ -214,8 +275,14 @@ export function WorkspaceContextEditor({
             </section>
           </>
         )}
-        <section className="workspace-card context-section">
-          <h2>Referências da marca</h2>
+        <section
+          className="workspace-card context-section"
+          aria-label="Referências da marca"
+          hidden={!activeChapter && contextStep !== 2}
+        >
+          <h2 ref={contextStep === 2 ? contextHeading : undefined} tabIndex={-1}>
+            Referências da marca
+          </h2>
           <BrandSources
             research={data.brand.research}
             showVerificationNote={false}
@@ -352,7 +419,18 @@ export function WorkspaceContextEditor({
             {error}
           </p>
         )}
-        <div className="context-save">
+        {!activeChapter && contextStep < 2 && (
+          <div className="studio-next">
+            <button
+              type="button"
+              className="quick-primary"
+              onClick={() => changeStep(contextStep + 1)}
+            >
+              Continuar <ArrowRight size={17} />
+            </button>
+          </div>
+        )}
+        <div className="context-save" hidden={!activeChapter && contextStep !== 2}>
           <button
             type="submit"
             className="quick-primary"
@@ -373,7 +451,8 @@ export function WorkspaceContextEditor({
           )}
         </div>
       </form>
-      <section className="context-chapters" aria-label="Aprofundar diagnóstico">
+      <details className="context-chapters">
+        <summary>Aprofundar diagnóstico</summary>
         <div className="workspace-card-top">
           <h2>Aprofundar diagnóstico</h2>
           {activeChapter && (
@@ -403,7 +482,7 @@ export function WorkspaceContextEditor({
             );
           })}
         </div>
-      </section>
+      </details>
     </div>
   );
 }

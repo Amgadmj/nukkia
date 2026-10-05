@@ -1,0 +1,9 @@
+{
+  "src/components/brand-loading.tsx": "13718b94dbb4df01173916985f3bb96257bdce4bfc9d46acd02c8c3d8593639d",
+  "src/components/brand-loading.css": "afedfd586258a4d55796fa8af9fc44ff2676c555952d999564eaab989e450d8d",
+  "src/components/brand-onboarding.tsx": "1519d1fe11caacb992fa6c8156ebe73d30d4fe21efdef573d1f39d5c184d9c5e",
+  "src/components/account-onboarding.tsx": "b6335e284e33f6a7b9dbe7b53c6ca7c03c133d009b35dc710ba5ad7c224cde9a",
+  "src/components/marketing-provider.tsx": "e486553ad8add6a910a14c8ac7075553a222eafdc4b0e9b65368ff7c4f357bff",
+  "src/routes/_authenticated/route.tsx": "007bec56c43af48e78f5af9d0ec1dbd699a2f7d9e5696be1f90a92cef1d930d5",
+  "tests/marketing-workspace-state.test.ts": "5171fc380fac389836260fc281191523ebbdd6eba932c7b0366410c52332f27c"
+}

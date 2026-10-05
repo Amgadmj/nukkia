@@ -151,7 +151,7 @@ function find(node: unknown, predicate: (node: Element) => boolean): Element | u
   return find(element.props.children, predicate);
 }
 
-function harness(t: TestContext) {
+function harness(t: TestContext, pathname = "/boas-vindas", tab?: string) {
   const hooks = hookDriver();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity } },
@@ -246,8 +246,8 @@ function harness(t: TestContext) {
       useRouterState: <T>({
         select,
       }: {
-        select: (state: { location: { pathname: string } }) => T;
-      }) => select({ location: { pathname: "/boas-vindas" } }),
+        select: (state: { location: { pathname: string; search: { aba?: string } } }) => T;
+      }) => select({ location: { pathname, search: { aba: tab } } }),
       useRouter: () => ({ navigate, invalidate: async () => {} }),
       Outlet: "outlet",
       Link: "a",
@@ -569,4 +569,28 @@ test("MarketingProvider ignores cached disabled-diagnostic errors when the accou
   );
   assert.equal(h.requests.filter((request) => request.table === "diagnostics").length, 0);
   assert.ok(find(h.hooks.tree, (node) => node.type === "welcome-child"));
+});
+
+test("only the sign-in welcome route uses branding; in-app pending destinations use layout skeletons", (t) => {
+  for (const [path, tab, branded] of [
+    ["/boas-vindas", undefined, true],
+    ["/painel", undefined, false],
+    ["/conteudo", "planejamento", false],
+  ] as const) {
+    const h = harness(t, path, tab);
+    const { Route } = h.load<{
+      Route: { options: { pendingComponent: Component; component: Component } };
+    }>("routes/_authenticated/route.tsx");
+    const Brand = h.load<{ BrandLoading: Component }>("components/brand-loading.tsx").BrandLoading;
+    const Skeleton = h.load<{ WorkspaceSkeleton: Component }>(
+      "components/workspace-skeleton.tsx",
+    ).WorkspaceSkeleton;
+    h.hooks.mount(() => Route.options.pendingComponent());
+    assert.equal(h.hooks.tree?.type, branded ? Brand : Skeleton);
+    if (tab) assert.equal(h.hooks.tree?.props.layout, "calendar");
+    h.hooks.mount(() => Route.options.component());
+    const fallback = find(h.hooks.tree, (node) => node.type === "marketing-provider")?.props
+      .loadingFallback as Element;
+    assert.equal(fallback.type, branded ? Brand : Skeleton);
+  }
 });

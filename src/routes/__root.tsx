@@ -79,18 +79,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Nukkia — Marketing Intelligence com IA" },
+      { title: "Nukkia — Estúdio de conteúdo para clínicas" },
       {
         name: "description",
-        content:
-          "Plataforma Nukkia: diagnóstico, identidade de marca, calendário e publicação automática com inteligência artificial.",
+        content: "Contexto da clínica, exemplos de roteiros e cenas editáveis no estúdio Nukkia.",
       },
       { name: "author", content: "Nukkia" },
-      { property: "og:title", content: "Nukkia — Marketing Intelligence com IA" },
+      { property: "og:title", content: "Nukkia — Estúdio de conteúdo para clínicas" },
       {
         property: "og:description",
-        content:
-          "Plataforma Nukkia: diagnóstico, identidade de marca, calendário e publicação automática com inteligência artificial.",
+        content: "Contexto da clínica, exemplos de roteiros e cenas editáveis no estúdio Nukkia.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

@@ -416,7 +416,7 @@ export function DiagnosticWizard({
           <Button
             type="submit"
             disabled={saving || suggesting}
-            className="h-12 w-full rounded-xl bg-white text-sm font-semibold text-zinc-950 hover:bg-white/90"
+            className="h-12 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90"
           >
             {saving ? (
               <>

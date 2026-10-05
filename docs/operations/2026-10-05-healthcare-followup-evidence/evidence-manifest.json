@@ -1,0 +1,46 @@
+{
+  "candidateSha256": "baabfc16dce1e53aa164bbf9870a4cca12e18f21746e781281fbf68d87cfe6c5",
+  "automatedTestsPassed": 580,
+  "authenticatedQualified": false,
+  "allScreensQualified": false,
+  "files": [
+    {
+      "path": "docs/operations/2026-10-05-healthcare-followup-evidence/browser-checks.md",
+      "sha256": "7d2a0c342f967e09bb814c46a7b4ae94b2a8abff52c4950330dcf252c2eb6ecc"
+    },
+    {
+      "path": "docs/operations/2026-10-05-healthcare-followup-evidence/build.log",
+      "sha256": "4d8bc21b93c2614ce5d8403f66306ee529552c6035a7d43db6115e948cd13ceb"
+    },
+    {
+      "path": "docs/operations/2026-10-05-healthcare-followup-evidence/full-lint.log",
+      "sha256": "734b02ba96ef638f22a91666666983bf5d93e4885380fb0c60ea0c2e19386a5a"
+    },
+    {
+      "path": "docs/operations/2026-10-05-healthcare-followup-evidence/scoped-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/operations/2026-10-05-healthcare-followup-evidence/source-manifest.json",
+      "sha256": "8659d2a8e6587927b41408d5fa4d429c3ca8a09c36890c3b7e7a9bb5f397f123"
+    },
+    {
+      "path": "docs/operations/2026-10-05-healthcare-followup-evidence/tests.log",
+      "sha256": "5bd452854b4c9ab643db032c8e21a8d07d06d96e46e7d27c95d028d859b5782a"
+    },
+    {
+      "path": "docs/operations/2026-10-05-healthcare-followup-evidence/typecheck.log",
+      "sha256": "8fa1cf5506304e8abac55868e7f1a136c9b1dde57a3981a382da4c21ea129a6f"
+    },
+    {
+      "path": "docs/design/2026-10-05-palette-evidence/moodboard-final-320-dark.jpg",
+      "sha256": "cf87842df3a1c88260797aa7fe2144c5e7b15350b285d79f70eda76eb36ff934",
+      "candidateSha256": "baabfc16dce1e53aa164bbf9870a4cca12e18f21746e781281fbf68d87cfe6c5"
+    },
+    {
+      "path": "docs/design/2026-10-05-palette-evidence/moodboard-final-light.jpg",
+      "sha256": "e138e4b62dfb4c992ae9f2fb3cbba171df555483fe326220a8f72fa886f44b86",
+      "candidateSha256": "baabfc16dce1e53aa164bbf9870a4cca12e18f21746e781281fbf68d87cfe6c5"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import {
   briefIssues,
   creativeFingerprint,
   creativeStatus,
-  composeContent,
+  composeWorkspaceContent,
   recommendContent,
   CONTENT_APPROACHES,
   firstPostBrief,
@@ -96,16 +96,12 @@ export function FirstPostWorkspace({
   function compose() {
     onData((current) => {
       if (briefIssues(current).length) return current;
-      return {
-        ...current,
-        brand: {
-          ...current.brand,
-          creative: composeContent(
-            current,
-            current.brand.creative?.approach ?? recommendContent(current).approach,
-          ),
-        },
-      };
+      return composeWorkspaceContent(
+        current,
+        current.brand.preferredApproach ??
+          current.brand.creative?.approach ??
+          recommendContent(current).approach,
+      );
     });
   }
   const svgs = useMemo(
@@ -226,12 +222,7 @@ export function FirstPostWorkspace({
     <section className="brand-first-post">
       <div className="brand-workspace-heading">
         <div>
-          <p className="quick-eyebrow">
-            {data.brand.confirmed
-              ? "SEU CONTEXTO VIROU UM PONTO DE PARTIDA · +20 XP"
-              : "VAMOS PREPARAR SEU PONTO DE PARTIDA"}
-          </p>
-          <h1>Sua primeira peça</h1>
+          <h1>Editor da peça</h1>
           <p className="quick-dashboard-intro">Revise o texto e a identidade antes de exportar.</p>
         </div>
         <button className="quick-text-button" onClick={onTrail}>
@@ -240,7 +231,7 @@ export function FirstPostWorkspace({
       </div>
       <div className="brand-focus">
         <span>SEU PRIMEIRO FOCO</span>
-        <strong>{data.answers.goals}</strong>
+        <strong>{data.brand.pieceBrief?.goal || data.answers.goals}</strong>
         {creative && (
           <p>{CONTENT_APPROACHES.find((option) => option.id === creative.approach)?.format}</p>
         )}
@@ -285,7 +276,8 @@ export function FirstPostWorkspace({
                     aria-current={index === activePage ? "page" : undefined}
                     onClick={() => setPage(index)}
                   >
-                    Página {index + 1}
+                    <img src={svgUrl(svgs[index]!)} alt="" width={64} height={80} />
+                    <span>Página {index + 1}</span>
                   </button>
                 ))}
               </nav>
@@ -335,7 +327,7 @@ export function FirstPostWorkspace({
                 onChange={(value) => editCopy("caption", value)}
               />
             </div>
-            <details className="brand-assets" open>
+            <details className="brand-assets">
               <summary>
                 Deixe com a cara da sua marca{" "}
                 <span>

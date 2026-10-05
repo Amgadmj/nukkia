@@ -478,3 +478,23 @@ test("exactly 5 MB and the schema's three inline images are accepted intact", as
   assert.equal(response.status, 200);
   assert.deepEqual((await response.json()).data, data);
 });
+
+test("older writers cannot silently erase the extended library and inspiration document", async () => {
+  const h = harness({ saved: existingRow() });
+  const input = JSON.parse(JSON.stringify(fixture()));
+  delete input.workspaceSchemaVersion;
+  const response = await h.post(saveBody(input, revision));
+  assert.equal(response.status, 426);
+  assert.deepEqual(h.attempts, []);
+  assert.deepEqual(h.row(), existingRow());
+});
+
+test("version-two writers cannot strip new piece instructions, media or planning channels", async () => {
+  const h = harness({ saved: existingRow() });
+  const input = JSON.parse(JSON.stringify(fixture()));
+  input.workspaceSchemaVersion = 2;
+  const response = await h.post(saveBody(input, revision));
+  assert.equal(response.status, 426);
+  assert.deepEqual(h.attempts, []);
+  assert.deepEqual(h.row(), existingRow());
+});

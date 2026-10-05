@@ -1,0 +1,343 @@
+{
+  "branch": "codex/nukkia-onboarding",
+  "base": "5f1a1dab06e003b47614d0597bd8279db2b391c3",
+  "algorithm": "sorted relative path + NUL + file bytes + NUL",
+  "aggregateSha256": "a85f522c3e74592632ee8ad5c8cce44e61059515c69cf4a568d2f97b817f4355",
+  "files": [
+    {
+      "path": "src/components/auth-recovery.tsx",
+      "sha256": "fdd50dc0d096a78217d66891afae9bf7773d4b8767729c1da07ca3875fe55997",
+      "bytes": 5578
+    },
+    {
+      "path": "src/components/content-library.tsx",
+      "sha256": "8d481f479f4b10d5a57fe2bb4c0c65b5ef70440be70a1f37876739619b0e4065",
+      "bytes": 12440
+    },
+    {
+      "path": "src/components/content-studio.tsx",
+      "sha256": "53c41f165559bcc9098a8f9e832c2a52f67782dae50b06a740b7e95c58364b79",
+      "bytes": 7065
+    },
+    {
+      "path": "src/components/demo-workspace.tsx",
+      "sha256": "3512c7989224b4a09a3329371dd0cea1bc4cfac3a09d443bb91cac80e86b3e36",
+      "bytes": 7976
+    },
+    {
+      "path": "src/components/first-post-workspace.tsx",
+      "sha256": "13c896a4166650a210540e636f3d28d0ff156ef2dbd6496e9b7f3e95e7814d0d",
+      "bytes": 19685
+    },
+    {
+      "path": "src/components/health-readiness.tsx",
+      "sha256": "2c8e2dc8a12e7264e231691e0f6e4f8a75f43b9b61843994c9b044bdd0048438",
+      "bytes": 3087
+    },
+    {
+      "path": "src/components/health-studio.tsx",
+      "sha256": "5c004f04e1ba1def76e660159d0743be843979006c82c021944cdebf4b66c469",
+      "bytes": 28339
+    },
+    {
+      "path": "src/components/inspiration-board.tsx",
+      "sha256": "692019e0145abeeddb7f3ec0c556433b15c9f1748ac291192ca91fe6511a4cf4",
+      "bytes": 4709
+    },
+    {
+      "path": "src/components/marketing-provider.tsx",
+      "sha256": "9360b3b8fff7020b3ec1676b7d3ea29f361744d0cb14f4b70820ba3c4064fb2f",
+      "bytes": 26762
+    },
+    {
+      "path": "src/components/marketing-views.tsx",
+      "sha256": "8db60e9ff8b83ac6524e3b2439b99dab938f32afe1e82bae73af2de7580b0623",
+      "bytes": 51130
+    },
+    {
+      "path": "src/components/workspace-context-editor.tsx",
+      "sha256": "b5794e546b41b273d7abf28f333a3be13b19dc1678b67939418eaebf356dce65",
+      "bytes": 18053
+    },
+    {
+      "path": "src/components/workspace-services.tsx",
+      "sha256": "f434118dec2e5c8bca8607cf02c7be48d15babbffef83a8c9bcbf2f217193e36",
+      "bytes": 22004
+    },
+    {
+      "path": "src/components/workspace-shell.tsx",
+      "sha256": "58706b709aa455deeb1b6392c8160ded3e920fba7476a4b12bc0650d9a6c1077",
+      "bytes": 9295
+    },
+    {
+      "path": "src/landing.css",
+      "sha256": "5d46233592b9bb3f0c9f1b24739e8e0b3e2177d54f29f567239959eff7f394e4",
+      "bytes": 10738
+    },
+    {
+      "path": "src/lib/account-data.server.ts",
+      "sha256": "05d6e2ab34ad4383157990978281d31eaca4ee258bbe7645de8b3c4dc6bb932c",
+      "bytes": 3791
+    },
+    {
+      "path": "src/lib/auth-recovery.ts",
+      "sha256": "9579934a2165a319459afce076eb5d6d5383f68726c5b165558641dab187bec4",
+      "bytes": 382
+    },
+    {
+      "path": "src/lib/brand-preview.ts",
+      "sha256": "2978ec7297cc1012b372bb47c355d77975db9c1dc49ff06fba89b67726fbd4b2",
+      "bytes": 20799
+    },
+    {
+      "path": "src/lib/content-library.ts",
+      "sha256": "78db9419e14d5c2aa73253d797c82a366939752d626ffc8a5f4b3e70c4f931be",
+      "bytes": 7761
+    },
+    {
+      "path": "src/lib/health-catalog.ts",
+      "sha256": "0621cdd6facd6b91cafe2d2a1200cb4b4ac2a63113e50b9b11bdf4b6318053f7",
+      "bytes": 15964
+    },
+    {
+      "path": "src/lib/health-studio.ts",
+      "sha256": "d3f6e2d0aab4501ad5d1c0a3f35d2c4325ff07fcb94eb8fc647765e868970798",
+      "bytes": 10590
+    },
+    {
+      "path": "src/lib/inspiration-schema.ts",
+      "sha256": "52d8c7089ec2325d35b158b73dbebbee795c9dffcead2f2acbaf36cb32e7306c",
+      "bytes": 394
+    },
+    {
+      "path": "src/lib/inspirations.ts",
+      "sha256": "28b9f361c9edeabfa53c592613e6dbce96d6301da76eb8b500ed13664c509c46",
+      "bytes": 2183
+    },
+    {
+      "path": "src/lib/logo-reference.ts",
+      "sha256": "fb865a7c7cc44158465356dbc64cd936b0de4e8f84d69d585396e2eb7577ab14",
+      "bytes": 636
+    },
+    {
+      "path": "src/lib/marketing-workspace.ts",
+      "sha256": "c03940df7d55c004ef468478f8d5116cd3ef17db1c94d17cbf1948eb9ae2e9f7",
+      "bytes": 20682
+    },
+    {
+      "path": "src/lib/quick-start.ts",
+      "sha256": "a0f67498f53a2c951a432b4acb637891d4fafde0807838a8b68d3eb15a00a8ad",
+      "bytes": 10921
+    },
+    {
+      "path": "src/lib/service-brief.ts",
+      "sha256": "11f09a16ed11bc20447998700b91b2594a31113c5e8c9edf20efec838ccb9352",
+      "bytes": 3209
+    },
+    {
+      "path": "src/lib/service-catalog-storage.ts",
+      "sha256": "dbbe72fa42ba481d2a39831331dbfc70065c010dfabe6433e63c2e34d2b1fa37",
+      "bytes": 4080
+    },
+    {
+      "path": "src/lib/service-catalog.ts",
+      "sha256": "c592dd6b2fd9667f6f47b8d2c7056b31b46f81ff619523eaf559d9bdb40b088c",
+      "bytes": 4680
+    },
+    {
+      "path": "src/lib/use-logo-url.ts",
+      "sha256": "bc3e7258f50da4960278b97bf3717d5c199ea2d38f5c4124841086d6bea6d806",
+      "bytes": 970
+    },
+    {
+      "path": "src/routes/__root.tsx",
+      "sha256": "47e237318f728eafa4cbfe5c895c55c9c2efa582cc86436ebaf22e3e6c1f433f",
+      "bytes": 4879
+    },
+    {
+      "path": "src/routes/_authenticated/conta.tsx",
+      "sha256": "1ad5524851953bfc2e3e6a3295c7ba493fcecb23650a43ccf16239f6c22e9412",
+      "bytes": 7149
+    },
+    {
+      "path": "src/routes/_authenticated/conteudo.tsx",
+      "sha256": "608e828761800761291956e84a8ae87edbac54e9a0bba31e18a8c47eab298665",
+      "bytes": 20289
+    },
+    {
+      "path": "src/routes/_authenticated/diagnostico.tsx",
+      "sha256": "89bda81a8d216f0a6c2e50bfe76fccbc742b797554cef28cda7358a3248b3959",
+      "bytes": 12000
+    },
+    {
+      "path": "src/routes/_authenticated/marca.tsx",
+      "sha256": "80987378cd367e71648b8b3609f53b8c525ba4f4af6cb970d7520538557809cb",
+      "bytes": 36929
+    },
+    {
+      "path": "src/routes/_authenticated/painel.tsx",
+      "sha256": "69d31e86c9bff528874aed460a1fe108f37328eb81cf363d318f883f17fb2281",
+      "bytes": 2891
+    },
+    {
+      "path": "src/routes/api/conta.ts",
+      "sha256": "7ddf96851f2581955232862352f71c8f1275330394d89479da045fd4d70d9677",
+      "bytes": 2991
+    },
+    {
+      "path": "src/routes/api/exportar-dados.ts",
+      "sha256": "54a71bd67e157cb65f48a617708ec3cafd936d0a487211c12e86e6f4d98a1ac8",
+      "bytes": 2700
+    },
+    {
+      "path": "src/routes/api/marketing-workspace.ts",
+      "sha256": "183ddfe9bc48c429de109d2e440c1952c36c848e91f3a05af853713c3d2419a1",
+      "bytes": 7226
+    },
+    {
+      "path": "src/routes/auth.tsx",
+      "sha256": "8ee315f5f426af10ce42c5c729118402f80558f2e3fd415f85dd8c4894462c59",
+      "bytes": 10957
+    },
+    {
+      "path": "src/routes/demo.tsx",
+      "sha256": "1bbc21605f8dac42b1e00952ff61601c30b88b3addc7132d097344350b39ea95",
+      "bytes": 6962
+    },
+    {
+      "path": "src/routes/index.tsx",
+      "sha256": "f783c73d3791b28ac4b734e2740748edab91a2ff5d3467da2d67e5445231b8bf",
+      "bytes": 7617
+    },
+    {
+      "path": "src/studio.css",
+      "sha256": "667c739961f77110c0d21753b28e1090a54a8b3998d0751e185a44c80519c441",
+      "bytes": 36694
+    },
+    {
+      "path": "src/styles.css",
+      "sha256": "f881b886a1ed27905da9ab10218135150d17cbb0ef4db7fa41d6e9819545bf73",
+      "bytes": 9196
+    },
+    {
+      "path": "src/workspace.css",
+      "sha256": "f002b0a304e2250efa467afe51c076c90113d0ecc794ea00ff77f266e5b064c8",
+      "bytes": 48945
+    },
+    {
+      "path": "tests/account-data.test.ts",
+      "sha256": "7e32c6af0b9a4208ce2053bdbfb14a30908526f82de0c23f65c82805753d727e",
+      "bytes": 3062
+    },
+    {
+      "path": "tests/auth-recovery.test.ts",
+      "sha256": "ae5891dfdf2a983f65ac21bd313dd3fb36a1bfb701ae305a2fb200a69ff35683",
+      "bytes": 581
+    },
+    {
+      "path": "tests/content-library.test.ts",
+      "sha256": "1b930bba6f1a942173902416b2d1a87b99b8c541785f85972080642296f4f5b3",
+      "bytes": 4764
+    },
+    {
+      "path": "tests/health-navigation.test.ts",
+      "sha256": "217a493b9f58cae1b89387ddcee966b9ad4cc21e749a6c7559d27935ddb5bc93",
+      "bytes": 3708
+    },
+    {
+      "path": "tests/health-studio-ui.test.ts",
+      "sha256": "31b49637bbf0c4a4bca025fbc92bedb92a687f6bf0cb72083575dcceed23054c",
+      "bytes": 8818
+    },
+    {
+      "path": "tests/health-studio.test.ts",
+      "sha256": "c2b096b1d3d8106c7696c2d9617799b8dc8343ec05bb966129c358558bd7ba6e",
+      "bytes": 6159
+    },
+    {
+      "path": "tests/identity-recovery-ui.test.ts",
+      "sha256": "3444959ca26c0574aff12d7e0207f29b0c3ed6e5ed70f84055f61c80e5702a0d",
+      "bytes": 9469
+    },
+    {
+      "path": "tests/identity-settings.test.ts",
+      "sha256": "d729f2a351651af51a2e2fda327c2907f083787b8341127b58d81e815d0e9925",
+      "bytes": 23560
+    },
+    {
+      "path": "tests/inspirations.test.ts",
+      "sha256": "6286bf7dafa473429d0589a55213c12a9ffc40bbfd71557d8ec373db0ab70c9d",
+      "bytes": 2185
+    },
+    {
+      "path": "tests/landing-ui.test.ts",
+      "sha256": "521445c9fe1f87b09333e04e8218de57cea40c9d6038cd8e7c3079f1f49cdd01",
+      "bytes": 5405
+    },
+    {
+      "path": "tests/logo-reference.test.ts",
+      "sha256": "d72353a8fde702290217c6d6cf28b88dcf46089f260c308a5570820e695d468b",
+      "bytes": 830
+    },
+    {
+      "path": "tests/marketing-navigation.test.ts",
+      "sha256": "106bb13258e06c63dc7db096b6edc5bfce0602a377ea228e74bba7b0cea628f9",
+      "bytes": 2740
+    },
+    {
+      "path": "tests/marketing-workspace-api.test.ts",
+      "sha256": "b8ab016420c3fc4f934acf8c761e26bd7914be7963358466451b3b0b523412fa",
+      "bytes": 17612
+    },
+    {
+      "path": "tests/planner-ui.test.ts",
+      "sha256": "8a56b45ac6818f812c142b3f640ff0c334d2733fdf05d2738a972f3de34d7a2c",
+      "bytes": 5305
+    },
+    {
+      "path": "tests/promo-video.test.ts",
+      "sha256": "f03e102a31e332503dd682da3c4f909a9bc71522367fd81e366a9065b5279a73",
+      "bytes": 17648
+    },
+    {
+      "path": "tests/service-brief.test.ts",
+      "sha256": "4c1b4d2805a1db7d87070eb5937162afa88b20596395bf65fde8b07a393d696f",
+      "bytes": 10784
+    },
+    {
+      "path": "tests/service-catalog-storage.test.ts",
+      "sha256": "b643412004300dcbc67f3b5fde218e432cec679a17254e68837b1dd6d2d10f76",
+      "bytes": 5124
+    },
+    {
+      "path": "tests/service-catalog.test.ts",
+      "sha256": "6ada80443f817abfc7c96f327ccc3120668dd815cc466e663e5c848d5157a3dc",
+      "bytes": 2471
+    },
+    {
+      "path": "tests/service-validity-native.test.ts",
+      "sha256": "8a172033ca57903d82ae4e5727a3fb764fe054fed5b280f838ce63e40ff385e4",
+      "bytes": 1352
+    },
+    {
+      "path": "tests/workspace-context-editor.test.ts",
+      "sha256": "bd014241f09d9b152715afbaa506266cac7dd9c2e603ecc177b2bc3605afe2c7",
+      "bytes": 10788
+    },
+    {
+      "path": "tests/workspace-refinement-ui.test.ts",
+      "sha256": "04354207e759c93ea5ceae688dc09ba28d28f88af380ec6f33af38f7fdb31f09",
+      "bytes": 8537
+    },
+    {
+      "path": "tests/workspace-services-ui.test.ts",
+      "sha256": "7a5eaf227f2c80c842c8a9d9d8985d39c8a69b1c7a947405861807a9fd47b614",
+      "bytes": 3267
+    },
+    {
+      "path": "tests/workspace-shell-ui.test.ts",
+      "sha256": "c945c3779b66d30181ca625b397cae624d53594971edab5345e3756f1b616906",
+      "bytes": 6664
+    }
+  ]
+}

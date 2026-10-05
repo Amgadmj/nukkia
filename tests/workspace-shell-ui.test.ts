@@ -8,6 +8,7 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { load } from "cheerio";
 import * as workspace from "../src/lib/marketing-workspace.ts";
+import { workspaceLoadingLayout } from "../src/lib/workspace-loading.ts";
 
 const require = createRequire(import.meta.url);
 const cache = new Map<string, Record<string, React.ComponentType<Record<string, unknown>>>>();
@@ -66,11 +67,13 @@ test("progress uses the supplied total and defaults to five stages", () => {
   assert.equal(defaults(".workspace-top-progress small").text(), "2/5");
 });
 
-test("the shell leaves the page title to the main content", () => {
-  const $ = shell();
-  assert.equal($("h1").filter((_, element) => $(element).text() === "Meu painel").length, 1);
-  assert.equal($(".workspace-topbar > span").length, 0);
-  assert.equal(shell({ section: "redes" })(".workspace-topbar > span").length, 0);
+test("top bar follows every selected section and keeps the brand in the profile", () => {
+  for (const item of workspace.WORKSPACE_NAV) {
+    const $ = shell({ section: item.id });
+    assert.equal($(".workspace-top-context").text(), item.label);
+    assert.equal($(".workspace-sidebar .workspace-company strong").text(), "Movitta");
+  }
+  assert.equal(shell({ section: undefined })(".workspace-top-context").text(), "Minha conta");
 });
 
 test("workspace defaults to dark and offers named footer controls", () => {
@@ -152,4 +155,36 @@ test("logo uses the official image as a monochrome symbol with no JPG tile", () 
   assert.equal(logo.find(".nukkia-logo-mark").length, 1);
   assert.equal(logo.find(".bg-white, .rounded-lg, .text-primary").length, 0);
   assert.match(logo.text(), /nukkia/);
+  assert.doesNotMatch(logo.text(), /health/i);
+});
+
+test("calendar is explicit in desktop and mobile navigation, with one active destination per menu", () => {
+  const $ = shell({ section: "conteudo", onCalendar() {}, calendarActive: true });
+  for (const menu of [".workspace-sidebar", ".workspace-mobile-nav"]) {
+    assert.equal($(`${menu} button[aria-label="Calendário"]`).length, 1);
+    assert.equal($(`${menu} button[aria-label="Calendário"]`).attr("aria-current"), "page");
+    assert.equal($(`${menu} button[aria-label="Conteúdo"]`).attr("aria-current"), undefined);
+  }
+  assert.equal($(".workspace-top-context").text(), "Calendário");
+});
+
+test("loading placeholders expose one busy status without fake data, branding or interactive controls", () => {
+  const Skeleton = component("components/workspace-skeleton.tsx").WorkspaceSkeleton!;
+  for (const layout of ["dashboard", "calendar", "editor", "list"]) {
+    const $ = load(renderToStaticMarkup(React.createElement(Skeleton, { layout, fullPage: true })));
+    assert.equal($('[role="status"][aria-busy="true"]').length, 1);
+    assert.equal($("button, a, input, img").length, 0);
+    assert.doesNotMatch($("body").text(), /Nukkia|XP|%/);
+    assert.equal($(".skeleton-content").attr("aria-hidden"), "true");
+    assert.equal($(`.skeleton-${layout}`).length, 1);
+  }
+});
+
+test("destination skeleton distinguishes planning, saved content and editing layouts", () => {
+  assert.equal(workspaceLoadingLayout("/conteudo", "planejamento"), "calendar");
+  assert.equal(workspaceLoadingLayout("/conteudo", "calendario"), "calendar");
+  assert.equal(workspaceLoadingLayout("/conteudo", "biblioteca"), "dashboard");
+  assert.equal(workspaceLoadingLayout("/conteudo", "peca"), "editor");
+  assert.equal(workspaceLoadingLayout("/painel"), "dashboard");
+  assert.equal(workspaceLoadingLayout("/redes"), "list");
 });

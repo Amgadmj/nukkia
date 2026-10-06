@@ -1,0 +1,49 @@
+# Normalize line endings: LF in the repository AND in every working tree,
+# regardless of core.autocrlf. Prettier (via eslint-plugin-prettier) enforces
+# "endOfLine": "lf", so CRLF checkouts on Windows otherwise fail lint on
+# every line.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets: never normalize or diff as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.bmp binary
+*.tif binary
+*.tiff binary
+*.psd binary
+*.mp4 binary
+*.mov binary
+*.webm binary
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.m4a binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.7z binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.node binary
+*.wasm binary
+*.xlsx binary
+*.docx binary
+*.pptx binary

@@ -93,6 +93,9 @@ function renderer(overrides: Record<string, unknown> = {}, globals: Record<strin
       "node:path": path,
       "node:os": os,
       "node:child_process": childProcess,
+      // Harness default: no bundled binary, so the spawned command stays the
+      // bare "ffmpeg" the process-level assertions expect.
+      "ffmpeg-static": null,
       ...overrides,
     },
     globals,
@@ -329,10 +332,13 @@ async function processHarness(t: TestContext) {
     jobs,
     timers,
     async waitJobs(count: number) {
-      const start = Date.now();
-      while (jobs.length < count && Date.now() - start < 5000) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      }
+      // The renderer does real mkdtemp/writeFile I/O before spawning. Bound the
+      // wait by wall-clock time, not event-loop turns: on Windows (NTFS +
+      // Defender scanning each new temp file) that I/O can outlast 100
+      // setImmediate ticks, which spin by in well under a millisecond.
+      const deadline = Date.now() + 5_000;
+      while (jobs.length < count && Date.now() < deadline)
+        await new Promise((resolve) => setTimeout(resolve, 2));
       assert.equal(jobs.length, count);
     },
     async finish(index = 0) {
@@ -418,6 +424,31 @@ test("abort and spawn/encoder failure release resources without leaking filesyst
   assert.deepEqual(await fs.readdir(h.root), []);
 });
 
+test("ffmpeg resolves from FFMPEG_PATH, then PATH, then the ffmpeg-static package", async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "nukkia-ffmpeg-resolve-"));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const bundled = path.join(root, "bundled-ffmpeg");
+  const pathDir = path.join(root, "bin");
+  await fs.mkdir(pathDir);
+  for (const file of [bundled, path.join(pathDir, "ffmpeg")]) {
+    await fs.writeFile(file, "");
+    await fs.chmod(file, 0o755);
+  }
+  const load = (env: Record<string, string>, staticPath: string | null = bundled) =>
+    renderer({ "ffmpeg-static": { default: staticPath } }, { process: { env } }) as Renderer & {
+      resolveFfmpegCommand: (explicit?: string) => Promise<string>;
+    };
+  assert.equal(await load({}).resolveFfmpegCommand("/explicit/ffmpeg"), "/explicit/ffmpeg");
+  assert.equal(
+    await load({ FFMPEG_PATH: "/custom/ffmpeg" }).resolveFfmpegCommand(),
+    "/custom/ffmpeg",
+  );
+  assert.equal(await load({ PATH: pathDir }).resolveFfmpegCommand(), "ffmpeg");
+  assert.equal(await load({ PATH: root }).resolveFfmpegCommand(), bundled);
+  assert.equal(await load({}, path.join(root, "not-downloaded")).resolveFfmpegCommand(), "ffmpeg");
+  assert.equal(await load({}, null).resolveFfmpegCommand(), "ffmpeg");
+});
+
 test("endpoint returns actionable busy/unavailable/timeout responses", async () => {
   const { PromoVideoError } = renderer();
   for (const [code, status] of [
@@ -433,9 +464,19 @@ test("endpoint returns actionable busy/unavailable/timeout responses", async () 
   }
 });
 
+// ffmpeg-static (a runtime dependency) makes ffmpeg available everywhere
+// `npm install` ran its download script; ffprobe still has to come from the
+// system or FFPROBE_PATH, so this test stays skippable.
+const ffmpegStatic = await import("ffmpeg-static")
+  .then((mod) => (mod.default as unknown as string | null) ?? undefined)
+  .catch(() => undefined);
 const ffmpeg =
   process.env.FFMPEG_PATH ||
-  (existsSync("/opt/homebrew/bin/ffmpeg") ? "/opt/homebrew/bin/ffmpeg" : "ffmpeg");
+  (existsSync("/opt/homebrew/bin/ffmpeg")
+    ? "/opt/homebrew/bin/ffmpeg"
+    : ffmpegStatic && existsSync(ffmpegStatic)
+      ? ffmpegStatic
+      : "ffmpeg");
 const ffprobe =
   process.env.FFPROBE_PATH ||
   (existsSync("/opt/homebrew/bin/ffprobe") ? "/opt/homebrew/bin/ffprobe" : "ffprobe");

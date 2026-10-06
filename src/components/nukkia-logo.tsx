@@ -3,15 +3,17 @@ import { cn } from "@/lib/utils";
 export function NukkiaLogo({
   className,
   compact = false,
+  symbolWidth = 30,
 }: {
   className?: string;
   compact?: boolean;
+  symbolWidth?: number;
 }) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <span
         className="nukkia-logo-mark relative block shrink-0 overflow-hidden mix-blend-multiply dark:mix-blend-screen"
-        style={{ width: 30, height: 35.25 }}
+        style={{ width: symbolWidth, height: symbolWidth * 1.175 }}
         aria-hidden="true"
       >
         <img

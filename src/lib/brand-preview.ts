@@ -1,3 +1,5 @@
+import type { DemoData } from "./quick-start.ts";
+import { inspirationSchema } from "./inspiration-schema.ts";
 import { z } from "zod";
 import { brandReferencesFingerprint } from "./brand-sources.ts";
 
@@ -55,7 +57,19 @@ export const CTA_OPTIONS = [
   },
   { value: "website", label: "Levar ao site", copy: "Conheça os detalhes no nosso site." },
 ] as const;
+export const pieceBriefSchema = z.object({
+  asNew: z.boolean().default(false),
+  format: z.enum(["image", "carousel"]).default("image"),
+  idea: z.string().max(600).default(""),
+  goal: z.string().max(1000).default(""),
+  audience: z.string().max(1000).default(""),
+  constraints: z.string().max(600).default(""),
+  ratio: z.literal("4:5").default("4:5"),
+});
 export const briefSchema = z.object({
+  idea: z.string().max(600).optional(),
+  constraints: z.string().max(600).optional(),
+  format: z.enum(["image", "carousel"]).optional(),
   name: z.string().trim().min(2).max(120),
   segment: z.string().trim().min(2).max(120),
   offer: z.string().trim().min(3).max(1000),
@@ -71,7 +85,9 @@ export const postCopySchema = z.object({
   caption: z.string().trim().min(20).max(1800),
 });
 export const creativeSchema = z.object({
-  approach: z.enum(["educate", "trust", "invite"]).default("invite"),
+  approach: z
+    .enum(["educate", "trust", "invite", "question", "checklist", "behind"])
+    .default("invite"),
   questionKey: z.string().default(""),
   slides: z
     .array(z.object({ title: z.string().max(78), body: z.string().max(180) }))
@@ -91,6 +107,21 @@ export const creativeSchema = z.object({
   exported: z.string().nullable().default(null),
 });
 export const brandPreviewSchema = z.object({
+  pieceBrief: pieceBriefSchema.nullable().default(null),
+  serviceBrief: z
+    .object({
+      id: z.string().max(100),
+      catalogRevision: z.string().max(100),
+      visualMaterial: inspirationSchema.nullable().optional(),
+      source: z.string().max(1000),
+      validUntil: z.string().max(10),
+      offer: z.string().max(1000),
+      audience: z.string().max(1000),
+      detail: z.string().max(600),
+    })
+    .nullable()
+    .default(null),
+  inspirationBrief: z.array(inspirationSchema).max(20).default([]),
   referenceUrl: z.string().max(2048).default(""),
   material: z.string().max(8000).default(""),
   research: researchSchema.default({}),
@@ -111,7 +142,10 @@ export const brandPreviewSchema = z.object({
   destination: z.string().max(200).default(""),
   visualStyle: z.enum(["essential", "warm", "dynamic"]).nullable().default(null),
   identityConfirmed: z.boolean().default(false),
-  preferredApproach: z.enum(["educate", "trust", "invite"]).nullable().default(null),
+  preferredApproach: z
+    .enum(["educate", "trust", "invite", "question", "checklist", "behind"])
+    .nullable()
+    .default(null),
   accent: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
@@ -169,10 +203,20 @@ export function firstPostBrief(data: BrandData): FirstPostBrief {
   return {
     name: data.name.trim(),
     segment: data.segment.trim(),
-    offer: data.answers.offers.trim(),
-    audience: data.answers.audience.trim(),
-    goal: data.answers.goals.trim(),
-    detail: data.brand.detail.trim(),
+    offer: data.brand.serviceBrief?.offer ?? data.answers.offers.trim(),
+    audience:
+      data.brand.pieceBrief?.audience.trim() ||
+      data.brand.serviceBrief?.audience ||
+      data.answers.audience.trim(),
+    goal: data.brand.pieceBrief?.goal.trim() || data.answers.goals.trim(),
+    ...(data.brand.pieceBrief
+      ? {
+          idea: data.brand.pieceBrief.idea,
+          constraints: data.brand.pieceBrief.constraints,
+          format: data.brand.pieceBrief.format,
+        }
+      : {}),
+    detail: data.brand.serviceBrief?.detail ?? data.brand.detail.trim(),
     action: data.brand.action,
     destination: data.brand.destination.trim(),
   };
@@ -192,6 +236,14 @@ export function actionableDestination(brief: FirstPostBrief) {
 export function briefIssues(data: BrandData): string[] {
   const brief = firstPostBrief(data);
   const issues: string[] = [];
+  if (data.brand.serviceBrief?.validUntil) {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    if (data.brand.serviceBrief.validUntil < today)
+      issues.push(
+        "O serviço do briefing venceu. Confirme a vigência no catálogo ou remova-o do briefing.",
+      );
+  }
   const references = brandReferencesFingerprint(data.brand);
   if (references && data.brand.referencesConfirmed !== references)
     issues.push(
@@ -223,6 +275,7 @@ export function briefIssues(data: BrandData): string[] {
 export function creativeFingerprint(data: BrandData) {
   const value = JSON.stringify([
     firstPostBrief(data),
+    ...(data.brand.inspirationBrief.length ? [data.brand.inspirationBrief] : []),
     data.brand.creative?.copy,
     data.brand.creative?.slides ?? [],
     data.brand.creative?.approach ?? "invite",
@@ -380,6 +433,27 @@ export const CONTENT_APPROACHES = [
     purpose: "Dê um próximo passo claro a quem já tem interesse.",
     need: "Oferta confirmada e uma chamada coerente, sem prometer resultados.",
   },
+  {
+    id: "question",
+    name: "Responder uma dúvida",
+    format: "Pergunta + resposta",
+    purpose: "Parta de uma pergunta que seu público realmente faz.",
+    need: "Revise a resposta com informações confirmadas da sua prática.",
+  },
+  {
+    id: "checklist",
+    name: "Organizar um checklist",
+    format: "Lista prática",
+    purpose: "Organize os pontos essenciais para orientar o próximo passo.",
+    need: "Inclua apenas orientações que você pode confirmar.",
+  },
+  {
+    id: "behind",
+    name: "Mostrar os bastidores",
+    format: "Processo e equipe",
+    purpose: "Apresente como sua equipe trabalha, com detalhes reais.",
+    need: "Use informações próprias; imagens de pessoas exigem permissão.",
+  },
 ] as const;
 export type ContentApproach = (typeof CONTENT_APPROACHES)[number]["id"];
 function questionKey(data: BrandData) {
@@ -408,7 +482,7 @@ export function recommendContent(data: BrandData) {
         : "educate";
   return {
     approach,
-    observation: `Você confirmou o foco “${goal}” e a oferta “${data.answers.offers}”.`,
+    observation: `Você confirmou o foco “${goal}” e a oferta “${firstPostBrief(data).offer}”.`,
     hypothesis: question
       ? `Responder “${question}” pode ajudar alguém a decidir. Ainda precisamos testar se essa dúvida é uma barreira relevante para seu público.`
       : approach === "trust"
@@ -439,21 +513,22 @@ export function composeContent(data: BrandData, approach: ContentApproach): Crea
   const action = CTA_OPTIONS.find((option) => option.value === brief.action)!.copy;
   const question = data.brand.customerQuestion.trim();
   const answer = data.brand.questionAnswer.trim();
-  const slides =
-    approach === "educate"
-      ? [
-          {
-            title: question ? "O que você precisa saber" : "Um detalhe que faz parte da oferta",
-            body: concise(
-              question
-                ? answer || "Adicione sua resposta no briefing antes de aprovar esta peça."
-                : brief.detail,
-              180,
-            ),
-          },
-          { title: "Seu próximo passo", body: action },
-        ]
-      : [];
+  const slides = (
+    data.brand.pieceBrief ? data.brand.pieceBrief.format === "carousel" : approach === "educate"
+  )
+    ? [
+        {
+          title: question ? "O que você precisa saber" : "Um detalhe que faz parte da oferta",
+          body: concise(
+            question
+              ? answer || "Adicione sua resposta no briefing antes de aprovar esta peça."
+              : brief.detail,
+            180,
+          ),
+        },
+        { title: "Seu próximo passo", body: action },
+      ]
+    : [];
   if (approach === "educate") {
     copy.title = concise(question || brief.offer, 78);
     copy.body = question
@@ -469,6 +544,50 @@ export function composeContent(data: BrandData, approach: ContentApproach): Crea
       .filter(Boolean)
       .join("\n\n")
       .slice(0, 1800);
+  }
+  if (data.brand.pieceBrief?.idea.trim()) {
+    copy.title = concise(data.brand.pieceBrief.idea.trim(), 78);
+    copy.caption = [data.brand.pieceBrief.idea.trim(), copy.caption].join("\n\n").slice(0, 1800);
+  }
+  const topic = data.brand.pieceBrief?.idea.trim() || brief.offer;
+  if (approach === "question") {
+    copy.title = concise(question || `Quer saber mais sobre ${topic}?`, 78);
+    copy.body = concise(answer || brief.detail, 180);
+    copy.caption = [copy.title, copy.body, action, brief.destination]
+      .filter(Boolean)
+      .join("\n\n")
+      .slice(0, 1800);
+    if (slides.length) slides[0] = { title: "Nossa resposta", body: copy.body };
+  }
+  if (approach === "checklist") {
+    copy.title = concise(`Pontos essenciais: ${topic}`, 78);
+    copy.body = concise(brief.detail, 180);
+    copy.caption = [
+      copy.title,
+      `• ${brief.offer}`,
+      `• ${brief.detail}`,
+      `• ${action}`,
+      brief.destination,
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+      .slice(0, 1800);
+    if (slides.length) slides[0] = { title: "O que considerar", body: copy.body };
+  }
+  if (approach === "behind") {
+    copy.title = concise(`Por dentro: ${topic}`, 78);
+    copy.body = concise(brief.detail, 180);
+    copy.caption = [
+      copy.title,
+      `Conheça a proposta de ${brief.name}.`,
+      brief.detail,
+      action,
+      brief.destination,
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+      .slice(0, 1800);
+    if (slides.length) slides[0] = { title: "Nosso jeito de trabalhar", body: copy.body };
   }
   return creativeSchema.parse({
     approach,
@@ -489,6 +608,12 @@ export function creativeIssues(data: BrandData): string[] {
   if (creative.approach === "educate") {
     if (data.brand.customerQuestion.trim() && data.brand.questionAnswer.trim().length < 10)
       issues.push("Confirme a resposta à dúvida no briefing. Não vamos inventá-la.");
+  }
+  if (
+    data.brand.pieceBrief
+      ? data.brand.pieceBrief.format === "carousel"
+      : creative.approach === "educate"
+  ) {
     if (
       creative.slides.length !== 2 ||
       creative.slides.some(
@@ -498,4 +623,16 @@ export function creativeIssues(data: BrandData): string[] {
       issues.push("Complete o título e a mensagem das três páginas antes de aprovar.");
   }
   return issues;
+}
+
+/** Every explicit composition entry point consumes the same new-item intent. */
+export function composeWorkspaceContent(data: DemoData, approach: ContentApproach): DemoData {
+  return {
+    ...data,
+    library: data.brand.pieceBrief?.asNew ? { ...data.library, activeGeneric: null } : data.library,
+    brand: updateBrand(data.brand, {
+      creative: composeContent(data, approach),
+      ...(data.brand.pieceBrief ? { pieceBrief: { ...data.brand.pieceBrief, asNew: false } } : {}),
+    }),
+  };
 }

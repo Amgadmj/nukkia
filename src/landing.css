@@ -1,11 +1,14 @@
 /* Public landing only: the shared brand and workspace own their own styles. */
 .nukkia-landing {
-  --landing-paper: #ffffff;
-  --landing-ink: #191919;
-  --landing-muted: #62635f;
-  --landing-line: #deded9;
-  --landing-soft: #f5f5f2;
-  --landing-blue: #2459ae;
+  --landing-paper: var(--nukkia-bg);
+  --landing-ink: var(--nukkia-text);
+  --landing-muted: var(--nukkia-muted);
+  --landing-line: var(--nukkia-border);
+  --landing-soft: var(--nukkia-subtle);
+  --landing-blue: var(--nukkia-accent);
+  --landing-action: var(--nukkia-action);
+  --landing-on-action: var(--nukkia-on-action);
+  --landing-action-hover: var(--nukkia-action);
   --background: var(--landing-paper);
   --foreground: var(--landing-ink);
   --accent: var(--landing-soft);
@@ -20,12 +23,15 @@
 }
 
 .dark .nukkia-landing {
-  --landing-paper: #161716;
-  --landing-ink: #f3f3ef;
-  --landing-muted: #b0b2aa;
-  --landing-line: #3b3d38;
-  --landing-soft: #20221f;
-  --landing-blue: #9abdf5;
+  --landing-paper: var(--nukkia-bg);
+  --landing-ink: var(--nukkia-text);
+  --landing-muted: var(--nukkia-muted);
+  --landing-line: var(--nukkia-border);
+  --landing-soft: var(--nukkia-subtle);
+  --landing-blue: var(--nukkia-accent);
+  --landing-action: var(--nukkia-action);
+  --landing-on-action: var(--nukkia-on-action);
+  --landing-action-hover: var(--nukkia-action);
   color-scheme: dark;
 }
 
@@ -106,8 +112,8 @@
 }
 
 .nukkia-landing .landing-button-primary {
-  background: var(--landing-ink);
-  color: var(--landing-paper);
+  background: var(--landing-action);
+  color: var(--landing-on-action);
 }
 
 .nukkia-landing .landing-button-outline {
@@ -117,7 +123,7 @@
 }
 
 .nukkia-landing .landing-button-primary:hover {
-  background: var(--landing-blue);
+  background: var(--landing-action-hover);
 }
 
 .nukkia-landing .landing-button-outline:hover {

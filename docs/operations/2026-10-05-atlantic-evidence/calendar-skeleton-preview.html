@@ -1,0 +1,168 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Verificação local — skeleton do calendário</title><style>*{box-sizing:border-box}body{margin:0}:root {
+  color-scheme: light;
+  --nukkia-bg: #ffffff;
+  --nukkia-surface: #ffffff;
+  --nukkia-subtle: #dff1ed;
+  --nukkia-hover: #d0e9e6;
+  --nukkia-text: #122b3a;
+  --nukkia-muted: #526873;
+  --nukkia-action: #006c72;
+  --nukkia-on-action: #ffffff;
+  --nukkia-border: #c9dcdf;
+  --nukkia-focus: #006c72;
+  --nukkia-accent: #006c72;
+  --radius: 0.875rem;
+  --font-heading: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Manrope", ui-sans-serif, system-ui, sans-serif;
+
+  --brand-deep: #122b3a;
+  --brand-blue: #006c72;
+  --brand-cyan: #56c8c8;
+
+  --background: var(--nukkia-bg);
+  --foreground: var(--nukkia-text);
+  --card: var(--nukkia-surface);
+  --card-foreground: var(--nukkia-text);
+  --popover: var(--nukkia-surface);
+  --popover-foreground: var(--nukkia-text);
+  --primary: var(--nukkia-action);
+  --primary-foreground: var(--nukkia-on-action);
+  --secondary: var(--nukkia-subtle);
+  --secondary-foreground: var(--nukkia-text);
+  --muted: var(--nukkia-subtle);
+  --muted-foreground: var(--nukkia-muted);
+  --accent: var(--nukkia-hover);
+  --accent-foreground: var(--nukkia-text);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.99 0.005 250);
+  --success: oklch(0.66 0.16 155);
+  --success-foreground: oklch(0.16 0.05 160);
+  --warning: oklch(0.79 0.16 78);
+  --warning-foreground: oklch(0.24 0.07 70);
+  --border: var(--nukkia-border);
+  --input: var(--nukkia-border);
+  --ring: var(--nukkia-focus);
+  --chart-1: #006c72;
+  --chart-2: #56c8c8;
+  --chart-3: #3e718b;
+  --chart-4: #c18a46;
+  --chart-5: #408e72;
+  --sidebar: var(--nukkia-surface);
+  --sidebar-foreground: var(--nukkia-text);
+  --sidebar-primary: var(--nukkia-action);
+  --sidebar-primary-foreground: var(--nukkia-on-action);
+  --sidebar-accent: var(--nukkia-subtle);
+  --sidebar-accent-foreground: var(--nukkia-text);
+  --sidebar-border: var(--nukkia-border);
+  --sidebar-ring: var(--nukkia-focus);
+}.workspace-skeleton {
+  width: 100%;
+  min-width: 0;
+  color: var(--nukkia-text);
+}
+.workspace-skeleton-full {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  min-height: 100svh;
+  background: var(--nukkia-bg);
+}
+.skeleton-sidebar {
+  border-right: 1px solid var(--nukkia-border);
+  padding: 32px 24px;
+}
+.skeleton-sidebar .skeleton-line {
+  margin-top: 32px;
+}
+.workspace-skeleton-full .skeleton-content {
+  padding: 40px;
+}
+.skeleton-block {
+  background: var(--nukkia-subtle);
+  border-radius: 8px;
+  animation: skeleton-breathe 1.6s ease-in-out infinite alternate;
+}
+.skeleton-heading {
+  height: 28px;
+  width: min(55%, 280px);
+}
+.skeleton-description {
+  height: 14px;
+  width: min(80%, 420px);
+  margin-block: 18px 32px;
+}
+.skeleton-body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.skeleton-panel {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--nukkia-border);
+  border-radius: 18px;
+  background: var(--nukkia-surface);
+}
+.skeleton-line {
+  width: 80%;
+  height: 14px;
+  margin-bottom: 14px;
+}
+.skeleton-short {
+  width: 50%;
+}
+.skeleton-preview {
+  height: 100px;
+  margin-top: 24px;
+}
+.skeleton-editor {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.skeleton-editor .skeleton-preview {
+  height: 300px;
+}
+.skeleton-calendar,
+.skeleton-list {
+  grid-template-columns: 1fr;
+}
+.skeleton-calendar .skeleton-panel {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.skeleton-calendar .skeleton-line {
+  margin: 0;
+}
+.skeleton-calendar .skeleton-short {
+  width: 25%;
+}
+.skeleton-list .skeleton-preview {
+  display: none;
+}
+@keyframes skeleton-breathe {
+  to {
+    opacity: 0.45;
+  }
+}
+@media (max-width: 767px) {
+  .workspace-skeleton-full {
+    grid-template-columns: 1fr;
+  }
+  .skeleton-sidebar {
+    display: none;
+  }
+  .workspace-skeleton-full .skeleton-content {
+    padding: 28px 20px;
+  }
+  .skeleton-body {
+    grid-template-columns: 1fr;
+  }
+  .skeleton-editor .skeleton-preview {
+    height: 200px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block {
+    animation: none;
+  }
+}
+</style><body><div class="workspace-skeleton workspace-skeleton-full" role="status" aria-live="polite" aria-busy="true" aria-label="Carregando calendário"><aside class="skeleton-sidebar" aria-hidden="true"><div class="skeleton-block skeleton-heading"></div><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line"></div></aside><div class="skeleton-content" aria-hidden="true"><div class="skeleton-block skeleton-heading"></div><div class="skeleton-block skeleton-description"></div><div class="skeleton-body skeleton-calendar"><div class="skeleton-panel"><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line skeleton-short"></div></div><div class="skeleton-panel"><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line skeleton-short"></div></div><div class="skeleton-panel"><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line skeleton-short"></div></div><div class="skeleton-panel"><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line skeleton-short"></div></div><div class="skeleton-panel"><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line skeleton-short"></div></div></div></div></div></body></html>

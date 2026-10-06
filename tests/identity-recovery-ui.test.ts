@@ -1,3 +1,4 @@
+import * as serviceBriefDomain from "../src/lib/service-brief.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -47,11 +48,16 @@ const react = {
 function load(file: string, overrides: Record<string, unknown>) {
   const modules: Record<string, unknown> = {
     react,
+    "@/lib/service-brief": serviceBriefDomain,
     "react/jsx-runtime": {
       jsx: (type: unknown, props: object) => ({ type, props }),
       jsxs: (type: unknown, props: object) => ({ type, props }),
     },
+    "./inspiration-board": { InspirationBoard: "inspiration-board" },
+    "@/components/inspiration-board": { InspirationBoard: "inspiration-board" },
+    "./workspace-services": { WorkspaceServices: "workspace-services" },
     "lucide-react": {},
+    "@/lib/use-logo-url": { useLogoUrl: (value: string | null) => ({ url: value }) },
     "@/lib/brand-preview": preview,
     "@/lib/post-art": art,
     ...overrides,
@@ -264,4 +270,33 @@ test("an asset finishing after the identity screen unmounts cannot modify anothe
   await asset;
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(writes, 0);
+});
+
+test("demo identity confirmation returns to the chosen content view", () => {
+  const calls: string[] = [];
+  const component = load("components/demo-workspace", {
+    "@/lib/content-library": {},
+    "./health-readiness": {},
+    "./content-library": {},
+    "@/lib/service-catalog-storage": {},
+    "./workspace-shell": { WorkspaceShell: "shell" },
+    "./marketing-views": { LocalIdentity: "identity" },
+    "./content-studio": {},
+    "./health-studio": {},
+    "./workspace-context-editor": {},
+    "@/lib/marketing-workspace": workspaceLib,
+  }).DemoWorkspace;
+  const tree = nodes(
+    component({
+      data: demoSchema.parse({ name: "QA", answers: {} }),
+      section: "marca",
+      contentView: "abordagens",
+      editor: { retorno: "conteudo" },
+      onSection: (section: string) => calls.push(`section:${section}`),
+      onContentView: (view: string) => calls.push(`view:${view}`),
+    }),
+  );
+  const identity = tree.find((node) => node.type === "identity")!;
+  (identity.props as unknown as { onContinue: () => void }).onContinue();
+  assert.deepEqual(calls, ["view:abordagens"]);
 });

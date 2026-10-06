@@ -1,8 +1,13 @@
+import { WorkspaceSkeleton } from "@/components/workspace-skeleton";
+import { HealthReadiness } from "@/components/health-readiness";
+import { ContentLibrary, SaveToLibrary } from "@/components/content-library";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMarketingWorkspace } from "@/components/marketing-provider";
 import { ContentStudio } from "@/components/content-studio";
+import { HealthStudio } from "@/components/health-studio";
 import { ContentReadiness } from "@/components/content-readiness";
+import { contentReturn } from "@/lib/marketing-workspace";
 import { briefIssues, identityReady } from "@/lib/brand-preview";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,16 +26,29 @@ import { useBrandKit, useCompany } from "@/lib/company";
 import type { CarouselSlide, Storyboard } from "@/lib/content-engine/types";
 
 export const Route = createFileRoute("/_authenticated/conteudo")({
-  validateSearch: z.object({ aba: z.enum(["peca", "abordagens", "calendario"]).catch("peca") }),
+  validateSearch: z.object({
+    aba: z
+      .enum([
+        "briefing",
+        "peca",
+        "abordagens",
+        "calendario",
+        "saude",
+        "biblioteca",
+        "planejamento",
+        "revisao",
+      ])
+      .catch("saude"),
+  }),
   head: () => ({
     meta: [
-      { title: "Calendário de conteúdo | Nukkia" },
+      { title: "Conteúdo | Nukkia" },
       {
         name: "description",
-        content: "Planejamento mensal de posts, textos aprovados e peças geradas por IA.",
+        content: "Prepare exemplos, edite cenas e organize rascunhos de conteúdo para sua clínica.",
       },
-      { property: "og:title", content: "Calendário de conteúdo | Nukkia" },
-      { property: "og:description", content: "Seu mês de publicações planejado pela Nukkia." },
+      { property: "og:title", content: "Conteúdo | Nukkia" },
+      { property: "og:description", content: "Roteiros e cenas editáveis no estúdio de saúde." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -41,6 +59,7 @@ export const Route = createFileRoute("/_authenticated/conteudo")({
 type ContentItem = {
   id: string;
   scheduled_for: string;
+  updated_at: string;
   channel: string;
   format: string;
   pillar: string | null;
@@ -69,31 +88,77 @@ function Conteudo() {
   const { data, setData } = useMarketingWorkspace();
   const { aba } = Route.useSearch();
   const navigate = useNavigate();
-  const setView = (view: "peca" | "abordagens" | "calendario") =>
-    void navigate({ to: "/conteudo", search: { aba: view } });
+  const setView = (
+    view:
+      | "briefing"
+      | "peca"
+      | "abordagens"
+      | "calendario"
+      | "saude"
+      | "biblioteca"
+      | "planejamento"
+      | "revisao",
+  ) => void navigate({ to: "/conteudo", search: { aba: view } });
   return (
     <div className="space-y-7">
       <div className="workspace-tabs" role="tablist" aria-label="Conteúdo">
         {(
           [
+            ["briefing", "Briefing da peça"],
+            ["saude", "Estúdio de saúde"],
             ["peca", "Minha peça"],
-            ["abordagens", "Três abordagens"],
-            ["calendario", "Planejamento mensal"],
+            ["biblioteca", "Biblioteca"],
+            ["planejamento", "Planejar versões"],
+            ["calendario", "Plano da conta"],
+            ["revisao", "Prontidão e revisão"],
           ] as const
         ).map(([id, label]) => (
-          <button key={id} role="tab" aria-selected={aba === id} onClick={() => setView(id)}>
+          <button
+            key={id}
+            role="tab"
+            aria-selected={aba === id || (id === "briefing" && aba === "abordagens")}
+            onClick={() => setView(id)}
+          >
             {label}
           </button>
         ))}
       </div>
-      {aba === "calendario" ? (
+      {(aba === "peca" || aba === "saude") && (
+        <SaveToLibrary
+          data={data}
+          onData={setData}
+          kind={aba === "peca" ? "generic" : "health"}
+          onLibrary={() => setView("biblioteca")}
+        />
+      )}
+      {aba === "revisao" ? (
+        <HealthReadiness data={data} />
+      ) : aba === "biblioteca" || aba === "planejamento" ? (
+        <ContentLibrary
+          data={data}
+          onData={setData}
+          onOpen={setView}
+          planning={aba === "planejamento"}
+        />
+      ) : aba === "saude" ? (
+        <HealthStudio data={data} onData={setData} />
+      ) : aba === "calendario" ? (
         <Calendario
           data={data}
-          onIdentity={() => void navigate({ to: "/marca", search: { retorno: "conteudo" } })}
+          onIdentity={() =>
+            void navigate({
+              to: "/marca",
+              search: { retorno: "conteudo", origemConteudo: contentReturn(aba) },
+            })
+          }
           onContext={() =>
             void navigate({
               to: "/diagnostico",
-              search: { editar: "contexto", retorno: "conteudo" },
+              search: {
+                editar: "contexto",
+                retorno: "conteudo",
+                origemConteudo: contentReturn(aba),
+              },
             })
           }
         />
@@ -104,11 +169,20 @@ function Conteudo() {
           onEditBrief={() =>
             void navigate({
               to: "/diagnostico",
-              search: { editar: "contexto", retorno: "conteudo" },
+              search: {
+                editar: "contexto",
+                retorno: "conteudo",
+                origemConteudo: contentReturn(aba),
+              },
             })
           }
           onTrail={() => void navigate({ to: "/trilha" })}
-          onIdentity={() => void navigate({ to: "/marca", search: { retorno: "conteudo" } })}
+          onIdentity={() =>
+            void navigate({
+              to: "/marca",
+              search: { retorno: "conteudo", origemConteudo: contentReturn(aba) },
+            })
+          }
           view={aba}
           onView={setView}
           onVideo={async (frames) => {
@@ -127,11 +201,34 @@ function Conteudo() {
           }}
         />
       )}
+      {aba === "biblioteca" && (
+        <Calendario
+          data={data}
+          libraryMode
+          onIdentity={() =>
+            void navigate({
+              to: "/marca",
+              search: { retorno: "conteudo", origemConteudo: contentReturn(aba) },
+            })
+          }
+          onContext={() =>
+            void navigate({
+              to: "/diagnostico",
+              search: {
+                editar: "contexto",
+                retorno: "conteudo",
+                origemConteudo: contentReturn(aba),
+              },
+            })
+          }
+        />
+      )}
     </div>
   );
 }
 
 function Calendario({
+  libraryMode = false,
   data,
   onIdentity,
   onContext,
@@ -139,6 +236,7 @@ function Calendario({
   data: DemoData;
   onIdentity: () => void;
   onContext: () => void;
+  libraryMode?: boolean;
 }) {
   const { data: company } = useCompany();
   const { data: brandKit } = useBrandKit(company?.id);
@@ -147,7 +245,7 @@ function Calendario({
   const [gerandoArte, setGerandoArte] = useState<string | null>(null);
   const planReady = contentPlanReady(data, Boolean(brandKit));
 
-  const { data: itens } = useQuery({
+  const itemsQuery = useQuery({
     enabled: Boolean(company?.id),
     queryKey: ["content-items", company?.id],
     queryFn: async () => {
@@ -161,6 +259,8 @@ function Calendario({
     },
   });
 
+  const itens = itemsQuery.data;
+
   async function gerarPlano() {
     if (!company) return;
     setGerando(true);
@@ -172,18 +272,27 @@ function Calendario({
       }
       toast.success("Calendário do mês criado!");
       queryClient.invalidateQueries({ queryKey: ["content-items", company.id] });
+    } catch {
+      toast.error("Não foi possível conectar. Seu plano anterior foi preservado.");
     } finally {
       setGerando(false);
     }
   }
 
   async function aprovar(item: ContentItem, caption: string) {
-    const { error } = await supabase
+    if (!company) return;
+    const { data: saved, error } = await supabase
       .from("content_items")
       .update({ caption, status: "approved" })
-      .eq("id", item.id);
-    if (error) {
-      toast.error("Não foi possível aprovar o texto.");
+      .eq("id", item.id)
+      .eq("company_id", company.id)
+      .eq("updated_at", item.updated_at)
+      .select("id")
+      .maybeSingle();
+    if (error || !saved) {
+      toast.error(
+        "Não foi possível aprovar. O item pode ter mudado; recarregue o plano e confira a versão atual.",
+      );
       return;
     }
     toast.success("Texto aprovado!");
@@ -205,6 +314,10 @@ function Calendario({
         item.format === "reels" ? "Roteiro pronto — gerando o vídeo..." : "Peça gerada!",
       );
       queryClient.invalidateQueries({ queryKey: ["content-items", company!.id] });
+    } catch {
+      toast.error(
+        "Não foi possível confirmar a geração. Confira o estado do item antes de tentar novamente.",
+      );
     } finally {
       setGerandoArte(null);
     }
@@ -214,22 +327,41 @@ function Calendario({
     return <p className="text-muted-foreground">Cadastre sua empresa no painel para começar.</p>;
   }
 
+  if (itemsQuery.isPending) return <WorkspaceSkeleton layout="calendar" />;
+  if (itemsQuery.isError)
+    return (
+      <section role="alert" className="workspace-card">
+        <h2>Não foi possível carregar o plano</h2>
+        <p>Os itens salvos não foram alterados.</p>
+        <button className="quick-secondary" onClick={() => void itemsQuery.refetch()}>
+          Tentar novamente
+        </button>
+      </section>
+    );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Calendário de conteúdo</h1>
+          {libraryMode ? (
+            <h2 className="text-2xl font-semibold">Itens do plano da conta</h2>
+          ) : (
+            <h1 className="text-3xl font-bold">Calendário de conteúdo</h1>
+          )}
           <p className="mt-1 text-muted-foreground">
-            Textos e peças criados no tom da sua marca, prontos para aprovar e agendar.
+            Datas pretendidas e peças da conta. Planejar ou aprovar um texto não publica conteúdo
+            nem concede aprovação profissional de saúde.
           </p>
         </div>
-        <Button onClick={gerarPlano} disabled={gerando || !planReady}>
-          <Sparkles className="size-4" />
-          {gerando ? "Criando plano..." : "Gerar plano do mês"}
-        </Button>
+        {!libraryMode && (
+          <Button onClick={gerarPlano} disabled={gerando || !planReady}>
+            <Sparkles className="size-4" />
+            {gerando ? "Criando plano..." : "Gerar plano do mês"}
+          </Button>
+        )}
       </div>
 
-      {(briefIssues(data).length > 0 || !identityReady(data.brand)) && (
+      {!libraryMode && (briefIssues(data).length > 0 || !identityReady(data.brand)) && (
         <ContentReadiness
           data={data}
           context="calendar"
@@ -340,7 +472,9 @@ function ItemCard({
   onGerarArte: (item: ContentItem) => void;
   gerandoArte: boolean;
 }) {
-  const [caption, setCaption] = useState(item.caption ?? "");
+  const [draft, setDraft] = useState({ caption: item.caption ?? "", revision: item.updated_at });
+  const caption = draft.caption;
+  const conflict = draft.revision !== item.updated_at;
   const { data: carouselUrls } = useCarouselUrls(item.id, item.slides ?? []);
   const { data: imageUrl } = useSignedUrl(item.image_path);
   const { data: videoUrl } = useSignedUrl(item.video_path);
@@ -353,7 +487,7 @@ function ItemCard({
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">
-            {new Date(item.scheduled_for).toLocaleDateString("pt-BR", {
+            {new Date(`${item.scheduled_for.slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR", {
               day: "2-digit",
               month: "short",
             })}
@@ -366,7 +500,7 @@ function ItemCard({
           </Badge>
           {item.status === "approved" && (
             <Badge>
-              <CheckCircle2 className="mr-1 size-3" /> Aprovado
+              <CheckCircle2 className="mr-1 size-3" /> Texto aprovado
             </Badge>
           )}
         </div>
@@ -435,15 +569,36 @@ function ItemCard({
           <Textarea
             id={`caption-${item.id}`}
             value={caption}
-            onChange={(event) => setCaption(event.target.value)}
+            onChange={(event) => setDraft({ ...draft, caption: event.target.value })}
             rows={6}
             maxLength={2200}
           />
         </div>
+        {conflict && (
+          <div role="alert" className="brand-review-note">
+            <p>
+              Este item mudou na conta. Seu texto local foi preservado; copie-o antes de carregar a
+              versão atual.
+            </p>
+            <p>Texto atual na conta: {item.caption || "Sem legenda"}</p>
+            <Button
+              variant="outline"
+              onClick={() => setDraft({ caption: item.caption ?? "", revision: item.updated_at })}
+            >
+              Usar texto atualizado da conta
+            </Button>
+          </div>
+        )}
         {item.hashtags && <p className="text-xs text-muted-foreground">{item.hashtags}</p>}
         {item.cta && <p className="text-sm font-medium">CTA: {item.cta}</p>}
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => onAprovar(item, caption)}>
+          <Button
+            size="sm"
+            disabled={conflict}
+            onClick={() => {
+              if (!conflict) onAprovar({ ...item, updated_at: draft.revision }, caption);
+            }}
+          >
             Aprovar texto
           </Button>
           <Button

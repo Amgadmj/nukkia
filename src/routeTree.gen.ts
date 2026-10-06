@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as PropostaRouteImport } from './routes/proposta'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedBoasVindasRouteImport } from './routes/_authenticated/boas-vindas'
@@ -61,6 +62,11 @@ const DemoRoute = DemoRouteImport.update({
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PropostaRoute = PropostaRouteImport.update({
+  id: '/proposta',
+  path: '/proposta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermosRoute = TermosRouteImport.update({
@@ -190,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/demo': typeof DemoRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/proposta': typeof PropostaRoute
   '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
@@ -220,6 +227,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/demo': typeof DemoRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/proposta': typeof PropostaRoute
   '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
@@ -252,6 +260,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/demo': typeof DemoRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/proposta': typeof PropostaRoute
   '/termos': typeof TermosRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/boas-vindas': typeof AuthenticatedBoasVindasRoute
@@ -284,6 +293,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/demo'
     | '/privacidade'
+    | '/proposta'
     | '/termos'
     | '/admin'
     | '/boas-vindas'
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/demo'
     | '/privacidade'
+    | '/proposta'
     | '/termos'
     | '/admin'
     | '/boas-vindas'
@@ -345,6 +356,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/demo'
     | '/privacidade'
+    | '/proposta'
     | '/termos'
     | '/_authenticated/admin'
     | '/_authenticated/boas-vindas'
@@ -377,6 +389,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DemoRoute: typeof DemoRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
+  PropostaRoute: typeof PropostaRoute
   TermosRoute: typeof TermosRoute
   ApiArteRoute: typeof ApiArteRoute
   ApiBrandPreviewRoute: typeof ApiBrandPreviewRoute
@@ -428,6 +441,13 @@ declare module '@tanstack/react-router' {
       path: '/privacidade'
       fullPath: '/privacidade'
       preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proposta': {
+      id: '/proposta'
+      path: '/proposta'
+      fullPath: '/proposta'
+      preLoaderRoute: typeof PropostaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/termos': {
@@ -636,6 +656,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DemoRoute: DemoRoute,
   PrivacidadeRoute: PrivacidadeRoute,
+  PropostaRoute: PropostaRoute,
   TermosRoute: TermosRoute,
   ApiArteRoute: ApiArteRoute,
   ApiBrandPreviewRoute: ApiBrandPreviewRoute,

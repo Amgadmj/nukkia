@@ -76,6 +76,8 @@ function mount(
     },
     "lucide-react": {},
     "@/lib/brand-preview": preview,
+    "./piece-brief": { PieceBrief: "piece-brief" },
+    "./content-library": { SavedContentPicker: "saved-content-picker" },
     "./content-recommendation": { ContentRecommendation: "recommendation" },
     "./content-readiness": { ContentReadiness: "readiness" },
     "./first-post-workspace": { FirstPostWorkspace: "editor" },
@@ -88,6 +90,7 @@ function mount(
       { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } },
     ).outputText,
     {
+      window: { confirm: () => true },
       exports,
       require: (id: string) => {
         if (!(id in modules)) throw new Error(id);
@@ -178,4 +181,24 @@ test("a pending approach survives the round trip to identity without generating 
     "trust",
   );
   assert.equal(restored.data().brand.creative, null);
+});
+
+test("confirming a new piece clears the active saved item without changing its history", () => {
+  const seed = mount().data();
+  seed.brand.creative = preview.composeContent(seed, "educate");
+  const id = crypto.randomUUID();
+  seed.library.activeGeneric = id;
+  seed.brand.pieceBrief = preview.pieceBriefSchema.parse({
+    format: "image",
+    idea: "Nova peça independente",
+    asNew: true,
+  });
+  const ui = mount(true, "educate", seed, "abordagens");
+  const button = ui
+    .render()
+    .find((element) => element.type === "button" && text(element).includes("Usar esta abordagem"))!;
+  button.props.onClick!();
+  assert.equal(ui.data().library.activeGeneric, null);
+  assert.equal(ui.data().brand.creative!.copy.title, "Nova peça independente");
+  assert.equal(ui.data().brand.pieceBrief!.asNew, false);
 });

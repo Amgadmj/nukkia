@@ -1,3 +1,5 @@
+import * as serviceBriefDomain from "../src/lib/service-brief.ts";
+import { saveLibraryVersion } from "../src/lib/content-library.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -59,13 +61,18 @@ function harness() {
           },
         ];
       },
+      useId: () => "trail-test",
       useEffect() {},
       useRef: (v: unknown) => ({ current: v }),
     },
+    "@/lib/service-brief": serviceBriefDomain,
     "react/jsx-runtime": {
       jsx: (type: unknown, props: object) => ({ type, props }),
       jsxs: (type: unknown, props: object) => ({ type, props }),
     },
+    "./inspiration-board": { InspirationBoard: "inspiration-board" },
+    "@/components/inspiration-board": { InspirationBoard: "inspiration-board" },
+    "./workspace-services": { WorkspaceServices: "workspace-services" },
     "lucide-react": {},
     "@/lib/brand-preview": preview,
     "@/lib/quick-start": quick,
@@ -109,6 +116,15 @@ function harness() {
           },
           onEditBrief() {
             actions.push("editor");
+          },
+          onChooseApproach(approach?: string) {
+            actions.push(approach ? `approaches:${approach}` : "approaches");
+          },
+          onResumeSaved(id: string, version: number) {
+            actions.push(`${id}:${version}`);
+          },
+          onEditPiece() {
+            actions.push("image");
           },
         }),
       );
@@ -178,4 +194,89 @@ test("trail completed sections carry explicit completion state instead of decora
   const progress = tree.find((n) => n.type === "progress")!;
   assert.equal(progress.props.value, 3);
   assert.equal(progress.props.max, 5);
+});
+
+test("home creation cards route video to scenes and image to a new piece brief", () => {
+  const app = harness();
+  let tree = app.render("WorkspaceOverview");
+  tree.find((n) => n.type === "button" && n.props["aria-label"] === "Criar roteiro de vídeo")!.props
+    .onClick!();
+  tree = app.render("WorkspaceOverview");
+  tree.find((n) => n.type === "button" && n.props["aria-label"] === "Criar imagem")!.props
+    .onClick!();
+  assert.deepEqual(app.actions, ["conteudo", "approaches:invite"]);
+  assert.equal(app.data().name, "Movitta");
+});
+
+test("home resumes the newest saved item by its exact id and version", () => {
+  const app = harness();
+  app.data().brand.creative = preview.composeContent(app.data(), "invite");
+  Object.assign(app.data(), saveLibraryVersion(app.data(), "generic"));
+  const item = app.data().library.items[0]!;
+  const button = app
+    .render("WorkspaceOverview")
+    .find((node) => node.type === "button" && text(node).includes("Retomar versão 1"));
+  assert.ok(button);
+  button.props.onClick!();
+  assert.deepEqual(app.actions, [`${item.id}:1`]);
+});
+
+test("home carousel choice selects an educational approach without replacing the draft", () => {
+  const app = harness();
+  app.data().brand.creative = preview.composeContent(app.data(), "invite");
+  app.data().brand.creative!.copy.title = "Texto humano preservado";
+  const before = JSON.stringify(app.data());
+  const action = app
+    .render("WorkspaceOverview")
+    .find((n) => n.type === "button" && n.props["aria-label"] === "Criar carrossel");
+  assert.ok(action, "The accepted carousel format needs a working entry");
+  action.props.onClick!();
+  assert.deepEqual(app.actions, ["approaches:educate"]);
+  assert.equal(JSON.stringify(app.data()), before);
+});
+
+test("home saved preview depicts the saved snapshot rather than unsaved editor changes", () => {
+  const app = harness();
+  app.data().brand.creative = preview.composeContent(app.data(), "invite");
+  app.data().brand.creative!.copy.title = "Versão guardada QA";
+  Object.assign(app.data(), saveLibraryVersion(app.data(), "generic"));
+  app.data().brand.creative!.copy.title = "Alteração ainda não guardada";
+  const button = app
+    .render("WorkspaceOverview")
+    .find((n) => n.type === "button" && text(n).includes("Retomar versão 1"))!;
+  const thumbnail = nodes(button).find((n) => n.type === "img");
+  assert.ok(thumbnail, "Saved work needs its actual visual preview");
+  assert.match(decodeURIComponent(String(thumbnail.props.src)), /Versão guardada QA/);
+  assert.doesNotMatch(
+    decodeURIComponent(String(thumbnail.props.src)),
+    /Alteração ainda não guardada/,
+  );
+});
+
+test("trail dots reveal explanations without navigating or changing saved progress", () => {
+  const app = harness();
+  const before = JSON.stringify(app.data());
+  let tree = app.render("DeliveryJourney");
+  const dots = tree.filter((n) => n.type === "button" && n.props["aria-expanded"] !== undefined);
+  assert.equal(dots.length, 5);
+  const identity = dots.find((n) => text(n).includes("Identidade da marca"))!;
+  identity.props.onClick!();
+  tree = app.render("DeliveryJourney");
+  const selected = tree.find((n) => n.type === "button" && n.props["aria-expanded"] === true)!;
+  assert.match(text(selected), /Identidade da marca/);
+  const panel = tree.find((n) => n.props.id === selected.props["aria-controls"])!;
+  assert.ok(panel);
+  const bullets = nodes(panel).filter((n) => n.type === "li");
+  assert.ok(bullets.length >= 2 && bullets.length <= 3);
+  assert.deepEqual(app.actions, []);
+  assert.equal(JSON.stringify(app.data()), before);
+  nodes(panel).find((n) => n.type === "button" && text(n).includes("Escolher uma direção"))!.props
+    .onClick!();
+  assert.deepEqual(app.actions, ["marca"]);
+});
+
+test("home no longer duplicates the section title and workspace brand", () => {
+  const tree = harness().render("WorkspaceOverview");
+  assert.equal(tree.filter((n) => n.type === "h1" && text(n) === "Meu painel").length, 0);
+  assert.equal(tree.filter((n) => n.props.className === "command-heading").length, 0);
 });

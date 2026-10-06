@@ -6,6 +6,7 @@ import {
   Bell,
   Brain,
   CalendarDays,
+  Film,
   LayoutDashboard,
   Menu,
   Moon,
@@ -20,12 +21,13 @@ import { useTheme } from "./theme-provider";
 import { WORKSPACE_NAV, type WorkspaceSection } from "@/lib/marketing-workspace";
 import "@/demo.css";
 import "@/workspace.css";
+import "@/studio.css";
 
 const icons = {
   dashboard: LayoutDashboard,
   trophy: Trophy,
   brain: Brain,
-  calendar: CalendarDays,
+  calendar: Film,
   palette: Palette,
   channels: Share2,
   chart: BarChart3,
@@ -34,6 +36,8 @@ export function WorkspaceShell({
   name,
   section,
   onSection,
+  onCalendar,
+  calendarActive = false,
   xp,
   completed,
   total = 5,
@@ -44,6 +48,8 @@ export function WorkspaceShell({
   name: string;
   section?: WorkspaceSection | undefined;
   onSection: (id: WorkspaceSection) => void;
+  onCalendar?: () => void;
+  calendarActive?: boolean;
   xp: number;
   completed: number;
   total?: number;
@@ -90,27 +96,51 @@ export function WorkspaceShell({
         >
           <NukkiaLogo compact={compact} />
         </button>
-        {!compact && <p className="workspace-nav-label">SEU WORKSPACE</p>}
+        {!compact && <p className="workspace-nav-label">BRASIL · MEDICINA</p>}
         <nav aria-label="Navegação principal">
-          {WORKSPACE_NAV.map((item) => {
-            const Icon = icons[item.icon];
-            return (
-              <button
-                key={item.id}
-                title={compact ? item.label : undefined}
-                aria-label={item.label}
-                aria-current={section === item.id ? "page" : undefined}
-                onClick={() => {
-                  onSection(item.id);
-                  setMobileOpen(false);
-                }}
-              >
-                <Icon size={18} strokeWidth={1.7} />
-                {!compact && <span>{item.label}</span>}
-                {!compact && item.id === "trilha" && <small>{xp} XP</small>}
-              </button>
-            );
-          })}
+          {[
+            { label: "Workspace", ids: ["painel", "trilha"] },
+            { label: "Criação", ids: ["conteudo"] },
+            { label: "Marca", ids: ["cerebro", "marca"] },
+            { label: "Canais", ids: ["redes", "metricas"] },
+          ].map((group) => (
+            <div className="workspace-nav-group" key={group.label}>
+              {!compact && <p>{group.label}</p>}
+              {WORKSPACE_NAV.filter((item) => group.ids.includes(item.id)).map((item) => {
+                const Icon = icons[item.icon];
+                return (
+                  <button
+                    key={item.id}
+                    title={compact ? item.label : undefined}
+                    aria-label={item.label}
+                    aria-current={!calendarActive && section === item.id ? "page" : undefined}
+                    onClick={() => {
+                      onSection(item.id);
+                      setMobileOpen(false);
+                    }}
+                  >
+                    <Icon size={18} strokeWidth={1.7} />
+                    {!compact && <span>{item.label}</span>}
+                    {!compact && item.id === "trilha" && <small>{xp} XP</small>}
+                  </button>
+                );
+              })}
+              {group.label === "Criação" && onCalendar && (
+                <button
+                  title={compact ? "Calendário" : undefined}
+                  aria-label="Calendário"
+                  aria-current={calendarActive ? "page" : undefined}
+                  onClick={() => {
+                    onCalendar();
+                    setMobileOpen(false);
+                  }}
+                >
+                  <CalendarDays size={18} strokeWidth={1.7} />
+                  {!compact && <span>Calendário</span>}
+                </button>
+              )}
+            </div>
+          ))}
         </nav>
         <div className="workspace-sidebar-bottom">
           {!compact && (
@@ -127,7 +157,7 @@ export function WorkspaceShell({
             {!compact && (
               <div>
                 <strong>{name || "Sua marca"}</strong>
-                <small>Marketing workspace</small>
+                <small>Conteúdo para clínicas</small>
               </div>
             )}
           </div>
@@ -247,9 +277,15 @@ export function WorkspaceShell({
           >
             <Menu size={20} />
           </button>
+          <h1 className="workspace-top-context">
+            {calendarActive
+              ? "Calendário"
+              : (WORKSPACE_NAV.find((item) => item.id === section)?.label ?? "Minha conta")}
+          </h1>
           <button className="workspace-top-progress" onClick={() => onSection("trilha")}>
             <Trophy size={14} />
             <span>Primeira entrega</span>
+            <progress aria-label="Progresso da primeira entrega" value={completed} max={total} />
             <small>
               {completed}/{total}
             </small>

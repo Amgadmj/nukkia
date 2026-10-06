@@ -70,37 +70,39 @@ const $ = load(
   ),
 );
 
-test("landing introduces brand context with the approved single main heading", () => {
+test("landing introduces the health studio under Nukkia with one clear main heading", () => {
   assert.equal($("h1").length, 1);
   assert.equal(
     $("h1").text().replace(/\s+/g, " ").trim(),
-    "Seu negócio tem história. Seu marketing precisa conhecê-la.",
+    "O cuidado é seu.A próxima ideia, da Nukkia.",
   );
   assert.ok(
     $("main")
       .text()
-      .includes("Reúna o que define sua marca e transforme esse contexto em conteúdo com direção."),
+      .includes("Da identidade da sua clínica ao conteúdo revisado e ao planejamento do mês."),
   );
 });
 
 test("the hero discovery CTA opens the demo and signup and login keep distinct destinations", () => {
   const cta = $("main a").first();
   assert.equal(cta.text().trim(), "Conhecer a Nukkia");
-  assert.equal(cta.attr("href"), "/demo");
-  const signup = $("header a").filter((_, el) => $(el).text().trim() === "Criar conta");
+  const destination = new URL(cta.attr("href")!, "https://nukkia.test");
+  assert.equal(destination.pathname, "/demo");
+  assert.equal(destination.searchParams.get("passo"), "0");
+  const signup = $("footer a").filter((_, el) => $(el).text().trim() === "Criar conta");
   const login = $("header a").filter((_, el) => $(el).text().trim() === "Entrar");
   assert.equal(signup.attr("href"), "/auth?modo=cadastro");
   assert.equal(login.attr("href"), "/auth?modo=entrar");
-  assert.equal($("main a[href='/auth?modo=cadastro']").length > 0, true);
+  assert.equal($("footer a[href='/auth?modo=cadastro']").length > 0, true);
 });
 
 test("product preview visibly identifies fictional illustrative content and editorial review", () => {
   const figure = $("main figure");
   assert.equal(figure.length, 1);
-  assert.match(figure.find("figcaption").text(), /exemplo conceitual/i);
-  assert.match(figure.text(), /marca fictícia/i);
-  assert.match(figure.text(), /rascunho/i);
-  assert.match(figure.text(), /revisão/i);
+  assert.match(figure.find("figcaption").text(), /exemplo ilustrativo/i);
+  assert.match(figure.text(), /Exemplo fictício/i);
+
+  assert.match(figure.text(), /revisado/i);
   assert.equal(figure.find("button, a, [role='button']").length, 0);
 });
 
@@ -112,13 +114,15 @@ test("visible claims and page metadata do not promise publishing or integrated m
     /publica(?:ção|ções|r)? autom[aá]tic|agendad[oa]s? automaticamente|publica no Instagram|alcance, engajamento|\d+\s*%/i,
   );
   assert.match(head.meta.find((item) => item.name === "description")!.content!, /contexto/);
+  assert.match($("header").text(), /nukkia/);
+  assert.doesNotMatch($("header").text(), /nukkia\s+health/i);
 });
 
 test("keyboard navigation has a working skip target and a labeled theme control", () => {
   const skip = $("a").first();
   assert.equal(skip.text().trim(), "Ir para o conteúdo");
-  assert.equal(skip.attr("href"), "#conteudo");
-  assert.equal($("main#conteudo[tabindex='-1']").length, 1);
+  assert.equal(skip.attr("href"), "#proposta-conteudo");
+  assert.equal($("main#proposta-conteudo[tabindex='-1']").length, 1);
   assert.equal($("header nav[aria-label]").length, 1);
   assert.equal($("header button[aria-label='Ativar tema claro']").length, 1);
 });

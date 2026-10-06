@@ -1,0 +1,110 @@
+.workspace-skeleton {
+  width: 100%;
+  min-width: 0;
+  color: var(--nukkia-text);
+}
+.workspace-skeleton-full {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  min-height: 100svh;
+  background: var(--nukkia-bg);
+}
+.skeleton-sidebar {
+  border-right: 1px solid var(--nukkia-border);
+  padding: 32px 24px;
+}
+.skeleton-sidebar .skeleton-line {
+  margin-top: 32px;
+}
+.workspace-skeleton-full .skeleton-content {
+  padding: 40px;
+}
+.skeleton-block {
+  background: var(--nukkia-subtle);
+  border-radius: 8px;
+  animation: skeleton-breathe 1.6s ease-in-out infinite alternate;
+}
+.skeleton-heading {
+  height: 28px;
+  width: min(55%, 280px);
+}
+.skeleton-description {
+  height: 14px;
+  width: min(80%, 420px);
+  margin-block: 18px 32px;
+}
+.skeleton-body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.skeleton-panel {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--nukkia-border);
+  border-radius: 18px;
+  background: var(--nukkia-surface);
+}
+.skeleton-line {
+  width: 80%;
+  height: 14px;
+  margin-bottom: 14px;
+}
+.skeleton-short {
+  width: 50%;
+}
+.skeleton-preview {
+  height: 100px;
+  margin-top: 24px;
+}
+.skeleton-editor {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.skeleton-editor .skeleton-preview {
+  height: 300px;
+}
+.skeleton-calendar,
+.skeleton-list {
+  grid-template-columns: 1fr;
+}
+.skeleton-calendar .skeleton-panel {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.skeleton-calendar .skeleton-line {
+  margin: 0;
+}
+.skeleton-calendar .skeleton-short {
+  width: 25%;
+}
+.skeleton-list .skeleton-preview {
+  display: none;
+}
+@keyframes skeleton-breathe {
+  to {
+    opacity: 0.45;
+  }
+}
+@media (max-width: 767px) {
+  .workspace-skeleton-full {
+    grid-template-columns: 1fr;
+  }
+  .skeleton-sidebar {
+    display: none;
+  }
+  .workspace-skeleton-full .skeleton-content {
+    padding: 28px 20px;
+  }
+  .skeleton-body {
+    grid-template-columns: 1fr;
+  }
+  .skeleton-editor .skeleton-preview {
+    height: 200px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block {
+    animation: none;
+  }
+}

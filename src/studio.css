@@ -1,0 +1,2135 @@
+/* Layout and flow from the operator's Holo screenshots; Nukkia identity. */
+.nukkia-workspace.workspace-shell {
+  --ws-canvas: var(--nukkia-surface);
+  --ws-wash-teal: #006c7216;
+  --ws-wash-cyan: #56c8c817;
+  --ws-wash-ink: #122b3a0d;
+  --ws-border: var(--nukkia-border);
+  --ws-bg: var(--nukkia-bg);
+  --ws-subtle: var(--nukkia-subtle);
+  --ws-action: var(--nukkia-action);
+  --ws-on-action: var(--nukkia-on-action);
+}
+.dark .nukkia-workspace.workspace-shell {
+  --ws-canvas: var(--nukkia-surface);
+  --ws-wash-teal: #006c7216;
+  --ws-wash-cyan: #56c8c810;
+  --ws-wash-ink: #006c721a;
+  --ws-border: var(--nukkia-border);
+  --ws-bg: var(--nukkia-bg);
+  --ws-subtle: var(--nukkia-subtle);
+  --ws-action: var(--nukkia-action);
+  --ws-on-action: var(--nukkia-on-action);
+}
+.nukkia-workspace .workspace-sidebar {
+  width: 178px;
+  padding: 22px 12px 16px;
+  border: 0;
+  background: var(--ws-bg);
+}
+.nukkia-workspace .workspace-brand-button {
+  margin: 0 9px 18px;
+}
+.nukkia-workspace .workspace-nav-label {
+  font-size: 8px;
+  margin: 0 10px 20px;
+  letter-spacing: 0.09em;
+}
+.nukkia-workspace .workspace-sidebar nav,
+.nukkia-workspace .workspace-mobile-nav nav {
+  gap: 19px;
+}
+.nukkia-workspace .workspace-nav-group {
+  display: grid;
+  gap: 3px;
+}
+.nukkia-workspace .workspace-nav-group > p {
+  margin: 0 10px 4px;
+  color: var(--ws-muted);
+  font-size: 10px;
+}
+.nukkia-workspace .workspace-sidebar nav button,
+.nukkia-workspace .workspace-mobile-nav nav button {
+  min-height: 37px;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 24px;
+  font-size: 11px;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .workspace-sidebar nav button[aria-current="page"],
+.nukkia-workspace .workspace-mobile-nav nav button[aria-current="page"] {
+  background: var(--ws-surface);
+  color: var(--ws-text);
+  box-shadow:
+    0 1px 5px #0b202b09,
+    inset 0 0 0 1px var(--ws-border);
+}
+.nukkia-workspace .workspace-sidebar nav small {
+  font-size: 8px;
+}
+.nukkia-workspace .workspace-collapse {
+  top: 63px;
+}
+.nukkia-workspace .workspace-level-card {
+  padding: 12px 9px;
+  font-size: 10px;
+  border-radius: 14px;
+}
+.nukkia-workspace .workspace-level-card small {
+  font-size: 9px;
+}
+.nukkia-workspace .workspace-company {
+  margin-top: 14px;
+  padding-top: 14px;
+}
+.nukkia-workspace .workspace-account-actions {
+  margin-top: 12px;
+}
+.nukkia-workspace .workspace-account-actions > button {
+  font-size: 10px;
+  padding-inline: 7px;
+}
+.nukkia-workspace .workspace-footer-controls {
+  margin-top: 12px;
+}
+.nukkia-workspace .workspace-body {
+  margin-left: 178px;
+  padding-right: 10px;
+}
+.nukkia-workspace.is-collapsed .workspace-sidebar {
+  width: 76px;
+}
+.nukkia-workspace.is-collapsed .workspace-body {
+  margin-left: 76px;
+}
+.nukkia-workspace.is-collapsed .workspace-brand-button {
+  margin: 0 0 18px;
+  justify-content: center;
+}
+.nukkia-workspace.is-collapsed .workspace-sidebar nav button {
+  padding-inline: 0;
+  justify-content: center;
+}
+.nukkia-workspace .workspace-topbar {
+  height: 52px;
+  padding: 0 22px;
+  border: 0;
+  background: var(--ws-bg);
+}
+.nukkia-workspace .workspace-top-context {
+  font-size: 11px;
+  color: var(--ws-muted);
+  max-width: min(45vw, 260px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nukkia-workspace .workspace-top-progress progress {
+  width: 88px;
+  height: 4px;
+  accent-color: var(--ws-accent);
+}
+.nukkia-workspace .workspace-main {
+  min-height: calc(100svh - 52px);
+  padding: 32px clamp(20px, 5vw, 76px) 48px;
+  border-radius: 24px 24px 0 0;
+  background:
+    radial-gradient(ellipse 68% 380px at 8% 0, var(--ws-wash-teal), transparent),
+    radial-gradient(ellipse 50% 330px at 95% 0, var(--ws-wash-cyan), transparent),
+    radial-gradient(ellipse 45% 290px at 55% 0, var(--ws-wash-ink), transparent), var(--ws-canvas);
+}
+.nukkia-workspace .workspace-page {
+  max-width: 1040px;
+  gap: 24px;
+}
+.nukkia-workspace .workspace-page-heading {
+  padding-block: 0;
+}
+.nukkia-workspace .workspace-page-heading h1 {
+  font-size: clamp(24px, 2.3vw, 31px);
+  margin-block: 8px 12px;
+}
+.nukkia-workspace .workspace-page-heading > p:not(.workspace-eyebrow) {
+  font-size: 13px;
+  line-height: 1.65;
+}
+.nukkia-workspace .workspace-card,
+.nukkia-workspace .workspace-focus-card,
+.nukkia-workspace .workspace-preview-card {
+  padding: 22px;
+  border-radius: 18px;
+}
+.nukkia-workspace .workspace-card h2 {
+  font-size: 17px;
+}
+.nukkia-workspace.workspace-shell .quick-primary,
+.nukkia-workspace.workspace-shell .quick-secondary {
+  min-height: 40px;
+  border-radius: 24px;
+  font-size: 12px;
+}
+.nukkia-workspace.workspace-shell .quick-primary {
+  background: var(--ws-action);
+  color: var(--ws-on-action);
+}
+.nukkia-workspace .workspace-tabs {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 24px;
+  padding: 4px;
+  background: var(--ws-subtle);
+  border-radius: 24px;
+  border: 1px solid var(--ws-border);
+}
+.nukkia-workspace .workspace-tabs > button {
+  padding: 8px 14px;
+  font-size: 11px;
+  border-radius: 20px;
+}
+.nukkia-workspace .workspace-tabs > button[aria-selected="true"] {
+  color: var(--ws-text);
+  background: var(--ws-surface);
+  box-shadow: 0 2px 6px #0b202b0a;
+}
+
+/* Home: setup, creation, and actual saved work. */
+.nukkia-workspace .command-heading h1 {
+  font-size: 27px;
+}
+.nukkia-workspace .command-center {
+  gap: 28px;
+}
+.nukkia-workspace .home-start-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.95fr) minmax(0, 1.3fr);
+  gap: 20px;
+}
+.nukkia-workspace .home-setup-card,
+.nukkia-workspace .home-studio-card {
+  border-radius: 20px;
+  background: var(--ws-surface);
+  padding: 23px;
+  border: 1px solid var(--ws-border);
+}
+.nukkia-workspace .home-setup-card h2,
+.nukkia-workspace .home-studio-card h2 {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  letter-spacing: -0.035em;
+  margin-bottom: 18px;
+}
+.nukkia-workspace .home-setup-card > button {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 9px;
+  border-radius: 12px;
+  text-align: left;
+}
+.nukkia-workspace .home-setup-card > button:hover {
+  background: var(--ws-hover);
+}
+.nukkia-workspace .home-setup-card > button[data-complete="true"] {
+  background: var(--ws-success-bg);
+  color: var(--ws-success);
+}
+.nukkia-workspace .home-setup-card strong,
+.nukkia-workspace .home-setup-card small {
+  display: block;
+}
+.nukkia-workspace .home-setup-card strong {
+  font-size: 12px;
+  color: var(--ws-text);
+  font-weight: 650;
+}
+.nukkia-workspace .home-setup-card small {
+  margin-top: 3px;
+  font-size: 10px;
+  color: var(--ws-muted);
+  line-height: 1.5;
+}
+.nukkia-workspace .home-setup-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--ws-accent);
+  background: var(--ws-subtle);
+  border-radius: 10px;
+}
+.nukkia-workspace .home-studio-card {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px;
+  gap: 12px;
+  align-content: center;
+}
+.nukkia-workspace .home-studio-card h2 {
+  font-size: 23px;
+  margin-block: 10px;
+}
+.nukkia-workspace .home-studio-card p {
+  font-size: 12px;
+  color: var(--ws-muted);
+  max-width: 260px;
+  line-height: 1.7;
+}
+.nukkia-workspace .home-studio-card .quick-primary {
+  width: fit-content;
+  min-width: 0;
+  margin: 12px 0 0;
+  padding: 11px 18px;
+}
+.nukkia-workspace .home-studio-card > small {
+  grid-column: 1 / -1;
+  font-size: 9px;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .home-scene-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  min-height: 140px;
+  grid-row: 1 / 3;
+  grid-column: 2;
+}
+.nukkia-workspace .home-scene-art span {
+  display: grid;
+  place-items: center;
+  width: 67px;
+  height: 100px;
+  flex-shrink: 0;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-subtle);
+  border-radius: 13px;
+  box-shadow: 0 9px 22px #122b3a0b;
+  color: var(--ws-accent);
+}
+.nukkia-workspace .home-scene-art span:first-child {
+  transform: rotate(-14deg) translateX(35px);
+}
+.nukkia-workspace .home-scene-art span:last-child {
+  transform: rotate(15deg) translateX(-35px);
+}
+.nukkia-workspace .home-scene-art span:nth-child(2) {
+  z-index: 1;
+  background: var(--ws-surface);
+}
+.nukkia-workspace .command-section-title h2 {
+  font-size: 17px;
+}
+.nukkia-workspace .home-format-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.nukkia-workspace .home-format-card {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  min-height: 175px;
+  padding: 23px;
+  border: 1px solid var(--ws-border);
+  border-radius: 18px;
+  background: var(--ws-surface);
+  text-align: left;
+}
+.nukkia-workspace button.home-format-card:hover {
+  border-color: var(--ws-accent);
+  transform: translateY(-2px);
+}
+.nukkia-workspace .home-format-card strong {
+  font-size: 19px;
+  font-family: var(--font-heading);
+  letter-spacing: -0.04em;
+}
+.nukkia-workspace .home-format-card p {
+  font-size: 12px;
+  color: var(--ws-muted);
+  line-height: 1.6;
+  max-width: 190px;
+  margin: 10px 0 25px;
+}
+.nukkia-workspace .home-format-art {
+  position: absolute;
+  bottom: -6px;
+  right: 13px;
+  color: var(--ws-accent);
+  opacity: 0.35;
+  transform: rotate(-10deg);
+}
+.nukkia-workspace .format-image .home-format-art {
+  color: var(--ws-accent);
+  transform: rotate(12deg);
+}
+.nukkia-workspace .format-email .home-format-art {
+  color: var(--ws-muted);
+}
+.nukkia-workspace .home-format-arrow {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--ws-border);
+  border-radius: 50%;
+}
+.nukkia-workspace .home-planned {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--ws-muted);
+  padding: 5px 10px;
+  background: var(--ws-subtle);
+  border-radius: 20px;
+}
+.nukkia-workspace .home-library-empty {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  border: 1px dashed var(--ws-border);
+  border-radius: 18px;
+  padding: 23px;
+  font-size: 12px;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .home-library-empty .quick-text-button {
+  margin-left: auto;
+}
+.nukkia-workspace .home-draft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 240px));
+  gap: 18px;
+}
+.nukkia-workspace .home-draft-card {
+  display: grid;
+  text-align: left;
+  gap: 9px;
+  font-size: 12px;
+}
+.nukkia-workspace .home-draft-card > small {
+  font-size: 10px;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .home-draft-cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 4 / 3;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--ws-subtle);
+  border: 1px solid var(--ws-border);
+}
+.nukkia-workspace .home-draft-cover > span {
+  font-size: 8px;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .home-draft-cover strong {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.nukkia-workspace .home-draft-cover svg {
+  align-self: end;
+  color: var(--ws-accent);
+}
+.nukkia-workspace .home-objective {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--ws-subtle);
+  border-radius: 14px;
+}
+.nukkia-workspace .home-objective > div {
+  display: grid;
+  gap: 6px;
+}
+.nukkia-workspace .home-objective small {
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .home-objective strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.nukkia-workspace .home-objective span {
+  font-size: 10px;
+  color: var(--ws-muted);
+}
+
+/* Progressive creation and a central canvas with a scene rail. */
+.nukkia-workspace .health-studio {
+  gap: 20px;
+}
+.nukkia-workspace .studio-toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.nukkia-workspace .studio-back {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 22px;
+  background: var(--ws-surface);
+  border: 1px solid var(--ws-border);
+  font-size: 11px;
+}
+.nukkia-workspace .studio-stepper {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  width: fit-content;
+  background: var(--ws-surface);
+  border-radius: 24px;
+  border: 1px solid var(--ws-border);
+}
+.nukkia-workspace .studio-stepper button {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 7px 11px;
+  border-radius: 20px;
+  font: inherit;
+  font-size: 10px;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .studio-stepper button span {
+  font-size: 9px;
+  opacity: 0.7;
+}
+.nukkia-workspace .studio-stepper button[aria-current="step"] {
+  background: var(--ws-subtle);
+  color: var(--ws-text);
+  font-weight: 650;
+}
+.nukkia-workspace .studio-demo-note {
+  text-align: center;
+  color: var(--ws-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.nukkia-workspace .studio-intro {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.nukkia-workspace .studio-kicker {
+  font-size: 9px;
+  color: var(--ws-muted);
+  letter-spacing: 0.11em;
+}
+.nukkia-workspace .studio-intro h1 {
+  font-family: var(--font-heading);
+  font-size: clamp(25px, 3vw, 34px);
+  letter-spacing: -0.045em;
+  line-height: 1.3;
+  margin: 10px 0;
+  font-weight: 550;
+}
+.nukkia-workspace .studio-intro p {
+  font-size: 12px;
+  color: var(--ws-muted);
+  line-height: 1.7;
+}
+.nukkia-workspace .studio-create-home {
+  max-width: 800px;
+  width: 100%;
+  margin: 32px auto;
+}
+.nukkia-workspace .studio-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+.nukkia-workspace .studio-mode-card {
+  display: flex;
+  gap: 17px;
+  align-items: center;
+  padding: 21px;
+  min-height: 115px;
+  border-radius: 19px;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-surface);
+  color: var(--ws-text);
+  text-align: left;
+}
+.nukkia-workspace .studio-mode-card > span:nth-child(2) {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.nukkia-workspace .studio-mode-card strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+.nukkia-workspace .studio-mode-card small {
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .studio-mode-card em {
+  font-style: normal;
+  font-size: 9px;
+  color: var(--ws-muted);
+}
+.nukkia-workspace button.studio-mode-card:hover {
+  border-color: var(--ws-accent);
+  background: var(--ws-subtle);
+}
+.nukkia-workspace .studio-mode-card > svg:last-child {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.nukkia-workspace .studio-mode-art {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 15px;
+  background: var(--ws-subtle);
+  color: var(--ws-accent);
+}
+.nukkia-workspace .studio-mode-card[aria-disabled="true"] .studio-mode-art {
+  color: var(--ws-muted);
+}
+.nukkia-workspace .studio-instructions {
+  max-width: 570px;
+  width: 100%;
+  margin: 30px auto;
+  display: grid;
+  gap: 22px;
+}
+.nukkia-workspace .studio-instructions .studio-intro {
+  margin-bottom: 0;
+}
+.nukkia-workspace .health-studio label {
+  font-size: 12px;
+}
+.nukkia-workspace .health-studio input,
+.nukkia-workspace .health-studio select,
+.nukkia-workspace .health-studio textarea {
+  font-size: 12px;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.nukkia-workspace .studio-template-brief {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+  background: var(--ws-subtle);
+  border-radius: 14px;
+  font-size: 12px;
+}
+.nukkia-workspace .studio-template-brief > svg {
+  flex-shrink: 0;
+  color: var(--ws-accent);
+}
+.nukkia-workspace .studio-template-brief p {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--ws-muted);
+  line-height: 1.7;
+}
+.nukkia-workspace .studio-segmented {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+.nukkia-workspace .studio-segmented legend {
+  font-size: 11px;
+  margin-bottom: 9px;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .studio-segmented > div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.nukkia-workspace .studio-segmented button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 24px;
+  background: var(--ws-surface);
+  border: 1px solid var(--ws-border);
+  font-size: 11px;
+}
+.nukkia-workspace .studio-segmented button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px var(--ws-accent);
+  border-color: var(--ws-accent);
+}
+.nukkia-workspace .studio-ratio-icon {
+  display: block;
+  height: 15px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+.nukkia-workspace .studio-next {
+  display: flex;
+  justify-content: end;
+}
+.nukkia-workspace .studio-next .quick-primary {
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 21px;
+}
+.nukkia-workspace .studio-choices {
+  width: 100%;
+  margin: 25px auto;
+}
+.nukkia-workspace .studio-option-card {
+  overflow: hidden;
+  background: var(--ws-surface);
+  border-radius: 18px;
+  border: 1px solid var(--ws-border);
+  padding: 0;
+}
+.nukkia-workspace .studio-option-card:hover {
+  border-color: var(--ws-accent);
+}
+.nukkia-workspace .studio-option-cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  aspect-ratio: 4 / 5;
+  padding: 28px;
+  background: #e9ece9;
+  color: #202325;
+  text-align: left;
+}
+.nukkia-workspace .studio-option-cover > span {
+  font-size: 8px;
+  color: #525c58;
+}
+.nukkia-workspace .studio-option-cover strong {
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.nukkia-workspace .studio-option-cover > svg {
+  align-self: end;
+}
+.nukkia-workspace .cover-1 {
+  background: #ece8e2;
+}
+.nukkia-workspace .cover-2 {
+  background: #e4eaed;
+}
+.nukkia-workspace .studio-option-copy {
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  font-size: 12px;
+  text-align: left;
+}
+.nukkia-workspace .studio-option-copy > span {
+  font-size: 11px;
+}
+.nukkia-workspace .studio-option-copy small {
+  font-size: 10px;
+}
+.nukkia-workspace .studio-option-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--ws-text) !important;
+}
+.nukkia-workspace .studio-editor {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+  max-width: 850px;
+  margin: 10px auto;
+}
+.nukkia-workspace .studio-editor-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+}
+.nukkia-workspace .studio-editor-heading h1 {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  letter-spacing: -0.025em;
+}
+.nukkia-workspace .studio-editor-heading p {
+  font-size: 10px;
+  color: var(--ws-muted);
+  margin-top: 8px;
+}
+.nukkia-workspace .studio-canvas-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px;
+  gap: 20px;
+  align-items: start;
+}
+.nukkia-workspace .studio-preview-stage {
+  min-width: 0;
+  padding: 20px clamp(12px, 6vw, 60px);
+  border-radius: 22px;
+  background: var(--ws-subtle);
+}
+.nukkia-workspace .studio-preview-stage .health-animatic > label {
+  color: var(--ws-muted);
+  font-weight: 400;
+  font-size: 10px;
+  margin-top: 10px;
+}
+.nukkia-workspace .studio-preview-stage .health-animatic > label input {
+  padding: 0;
+  accent-color: var(--ws-accent);
+  border: 0;
+}
+.nukkia-workspace .health-text-frame {
+  border-radius: 14px;
+}
+.nukkia-workspace .studio-scene-rail {
+  display: grid;
+  gap: 12px;
+  max-height: 620px;
+  overflow-y: auto;
+  padding: 3px;
+}
+.nukkia-workspace .studio-scene-rail > button {
+  padding: 0;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid transparent;
+}
+.nukkia-workspace .studio-scene-rail > button[aria-pressed="true"] {
+  border-color: var(--ws-accent);
+  box-shadow: 0 0 0 1px var(--ws-accent);
+}
+.nukkia-workspace .studio-scene-thumb {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px;
+  aspect-ratio: 4 / 5;
+  background: #f1f1ed;
+  color: #202325;
+  border: 1px solid #d6d9d4;
+  border-radius: 10px;
+}
+.nukkia-workspace .studio-scene-thumb strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 9px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.nukkia-workspace .studio-scene-rail small {
+  display: block;
+  padding: 6px 2px;
+  font-size: 9px;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .studio-scene-editor {
+  padding: 22px;
+  border-radius: 18px;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-surface);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px;
+  gap: 16px;
+}
+.nukkia-workspace .studio-scene-editor-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  grid-column: 1 / -1;
+}
+.nukkia-workspace .studio-scene-editor-title h2 {
+  font-size: 13px;
+}
+.nukkia-workspace .studio-scene-editor-title span {
+  font-size: 9px;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .studio-scene-editor > label {
+  grid-column: 1 / -1;
+}
+.nukkia-workspace .studio-scene-editor > div:has(> label) {
+  grid-column: 2;
+}
+.nukkia-workspace .studio-scene-editor .health-tools {
+  grid-column: 1 / -1;
+}
+.nukkia-workspace .health-tools > button {
+  border-radius: 22px;
+  font-size: 10px;
+}
+.nukkia-workspace .health-studio .studio-production,
+.nukkia-workspace .health-studio .studio-catalog {
+  font-size: 11px;
+  color: var(--ws-muted);
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--ws-border);
+}
+.nukkia-workspace .studio-production summary,
+.nukkia-workspace .studio-catalog summary {
+  min-height: 28px;
+}
+.nukkia-workspace .studio-catalog select {
+  max-width: 260px;
+}
+
+/* Context: one focused panel at a time, with the same step navigation. */
+.nukkia-workspace .context-editor {
+  max-width: 680px;
+  gap: 20px;
+}
+.nukkia-workspace .context-editor .workspace-page-heading {
+  text-align: center;
+}
+.nukkia-workspace .context-editor .workspace-page-heading h1 {
+  font-size: 28px;
+}
+.nukkia-workspace .context-editor .workspace-page-heading > p:not(.workspace-eyebrow) {
+  max-width: 520px;
+  margin-inline: auto;
+  font-size: 12px;
+}
+.nukkia-workspace .context-health-link {
+  background: var(--ws-surface);
+  color: var(--ws-text);
+  border-radius: 24px;
+  font-size: 11px;
+  min-height: 36px;
+}
+.nukkia-workspace .context-stepper {
+  margin-inline: auto;
+}
+.nukkia-workspace .context-progress {
+  background: transparent;
+  padding: 4px;
+  gap: 12px;
+}
+.nukkia-workspace .context-progress > span {
+  font-size: 10px;
+}
+.nukkia-workspace .context-progress progress {
+  width: 90px;
+}
+.nukkia-workspace .context-section {
+  border: 0;
+  background: transparent;
+  padding: 6px 0;
+}
+.nukkia-workspace .context-section h2 {
+  font-size: 15px;
+  margin-bottom: 20px;
+}
+.nukkia-workspace .context-section h2:focus {
+  outline: none;
+}
+.nukkia-workspace .context-editor .brand-fields {
+  gap: 18px;
+}
+.nukkia-workspace .context-editor .quick-input {
+  background: var(--ws-surface);
+  font-size: 12px;
+  border-radius: 12px;
+  border-color: var(--ws-border);
+}
+.nukkia-workspace .context-editor .brand-fields > label,
+.nukkia-workspace .context-field-pair label {
+  color: var(--ws-text);
+  font-size: 11px;
+}
+.nukkia-workspace .context-editor .context-save {
+  flex-wrap: wrap;
+}
+.nukkia-workspace .context-editor .context-chapters {
+  padding-top: 20px;
+  border-top: 1px solid var(--ws-border);
+  font-size: 12px;
+  color: var(--ws-muted);
+}
+.nukkia-workspace .context-chapters > summary {
+  cursor: pointer;
+}
+.nukkia-workspace .context-chapters .workspace-card-top {
+  margin-top: 20px;
+}
+.nukkia-workspace .context-editor [hidden] {
+  display: none !important;
+}
+
+/* The existing image editor uses the same central-preview composition. */
+.nukkia-workspace .workspace-content .brand-first-post {
+  max-width: 850px;
+  margin: 0 auto;
+}
+.nukkia-workspace .workspace-content .brand-workspace-heading h1 {
+  font-size: 24px;
+}
+.nukkia-workspace .workspace-content .brand-focus {
+  padding: 16px 20px;
+  border-radius: 16px;
+}
+.nukkia-workspace .workspace-content .brand-studio {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+.nukkia-workspace .workspace-content .brand-art-column {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px;
+  gap: 16px;
+  align-items: start;
+  position: static;
+  padding: 22px;
+  background: var(--ws-subtle);
+  border-radius: 22px;
+}
+.nukkia-workspace .workspace-content .brand-post-art {
+  grid-column: 1;
+  grid-row: 1;
+  width: min(100%, 360px);
+  justify-self: center;
+  border-radius: 14px;
+}
+.nukkia-workspace .workspace-content .brand-page-tabs {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  max-height: 540px;
+  overflow-y: auto;
+}
+.nukkia-workspace .workspace-content .brand-page-tabs button {
+  padding: 3px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ws-muted);
+  font-size: 9px;
+}
+.nukkia-workspace .workspace-content .brand-page-tabs button[aria-current="page"] {
+  border-color: var(--ws-accent);
+}
+.nukkia-workspace .workspace-content .brand-page-tabs img {
+  width: 100%;
+  height: auto;
+  border-radius: 7px;
+}
+.nukkia-workspace .workspace-content .brand-page-tabs span {
+  display: block;
+  padding-top: 4px;
+}
+.nukkia-workspace .workspace-content .brand-art-column > p,
+.nukkia-workspace .workspace-content .brand-art-column > details {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.nukkia-workspace .workspace-content .brand-edit-column {
+  padding: 22px;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-surface);
+  border-radius: 18px;
+}
+.nukkia-workspace .workspace-content .brand-edit-column .brand-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.nukkia-workspace .workspace-content .brand-edit-column .brand-fields > label:last-child {
+  grid-column: 1 / -1;
+}
+.nukkia-workspace .workspace-content .brand-edit-column .brand-fields label {
+  color: var(--ws-text);
+  font-size: 11px;
+}
+.nukkia-workspace .workspace-content .brand-edit-column .quick-input {
+  background: var(--ws-canvas);
+  color: var(--ws-text);
+  border: 1px solid var(--ws-border);
+  border-radius: 12px;
+  font-size: 12px;
+}
+.nukkia-workspace .workspace-content .brand-delivery-actions .quick-primary {
+  min-width: 0;
+}
+.nukkia-workspace .studio-intro h1:focus,
+.nukkia-workspace .studio-editor-heading h1:focus {
+  outline: none;
+}
+
+/* Existing brand onboarding gets the same Nukkia canvas and controls. */
+.nukkia-workspace.quick-demo {
+  background: var(--nukkia-bg);
+  color: #122b3a;
+  font-family: "Manrope", sans-serif;
+}
+.dark .nukkia-workspace.quick-demo {
+  background: #0b202b;
+  color: #f5f9fa;
+}
+.nukkia-workspace .quick-onboarding {
+  background:
+    radial-gradient(ellipse 60% 320px at 10% 0, #006c7217, transparent),
+    radial-gradient(ellipse 50% 300px at 90% 0, #56c8c816, transparent);
+}
+.nukkia-workspace.quick-demo .quick-question {
+  max-width: 600px;
+}
+.nukkia-workspace.quick-demo .quick-input {
+  background: #ffffff;
+  color: #122b3a;
+  border-color: #c9dcdf;
+  border-radius: 14px;
+}
+.dark .nukkia-workspace.quick-demo .quick-input {
+  background: #15333f;
+  color: #f5f9fa;
+  border-color: #365761;
+}
+.nukkia-workspace.quick-demo .quick-primary {
+  background: var(--nukkia-action);
+  color: #fff;
+  border-radius: 24px;
+}
+.dark .nukkia-workspace.quick-demo .quick-primary {
+  background: var(--nukkia-action);
+  color: var(--nukkia-on-action);
+}
+.nukkia-workspace.quick-demo .quick-back,
+.nukkia-workspace.quick-demo .quick-hint,
+.nukkia-workspace.quick-demo .brand-microcopy,
+.nukkia-workspace.quick-demo .quick-eyebrow {
+  color: #526873;
+}
+.dark .nukkia-workspace.quick-demo .quick-back,
+.dark .nukkia-workspace.quick-demo .quick-hint,
+.dark .nukkia-workspace.quick-demo .brand-microcopy,
+.dark .nukkia-workspace.quick-demo .quick-eyebrow {
+  color: #adc3cb;
+}
+.nukkia-workspace.quick-demo .quick-back {
+  background: #ffffff;
+  border: 1px solid #c9dcdf;
+  border-radius: 24px;
+  padding: 7px 12px;
+}
+.dark .nukkia-workspace.quick-demo .quick-back {
+  background: #15333f;
+  border-color: #365761;
+}
+.nukkia-workspace.quick-demo .quick-segments span[data-state="current"] {
+  background: #006c72;
+}
+.nukkia-workspace.quick-demo .quick-segments span[data-state="complete"] {
+  background: #56c8c8;
+}
+.nukkia-workspace.quick-demo .quick-top-progress > div {
+  background: #006c72;
+}
+.nukkia-workspace.quick-demo .quick-mark {
+  mix-blend-mode: multiply;
+}
+.nukkia-workspace.quick-demo .quick-mark img {
+  filter: grayscale(1) invert(1) brightness(2) contrast(1.4) invert(1);
+}
+.dark .nukkia-workspace.quick-demo .quick-mark {
+  mix-blend-mode: screen;
+}
+.dark .nukkia-workspace.quick-demo .quick-mark img {
+  filter: grayscale(1) invert(1) brightness(2) contrast(1.4);
+}
+
+@media (max-width: 1050px) {
+  .nukkia-workspace .home-studio-card {
+    grid-template-columns: minmax(0, 1fr) 100px;
+  }
+  .nukkia-workspace .home-scene-art {
+    transform: scale(0.8);
+  }
+  .nukkia-workspace .studio-toolbar {
+    gap: 12px;
+  }
+  .nukkia-workspace .studio-toolbar > .health-tools {
+    margin-left: auto;
+  }
+}
+@media (max-width: 767px) {
+  .nukkia-workspace .workspace-body,
+  .nukkia-workspace.is-collapsed .workspace-body {
+    margin-left: 0;
+    padding-right: 0;
+  }
+  .nukkia-workspace .workspace-main {
+    padding: 24px 16px 40px;
+    border-radius: 20px 20px 0 0;
+  }
+  .nukkia-workspace .workspace-topbar {
+    padding-inline: 16px;
+  }
+  .nukkia-workspace .workspace-top-progress progress {
+    display: none;
+  }
+  .nukkia-workspace .home-start-grid {
+    grid-template-columns: 1fr;
+  }
+  .nukkia-workspace .home-format-grid {
+    gap: 10px;
+  }
+  .nukkia-workspace .home-format-card {
+    min-height: 165px;
+    padding: 17px;
+  }
+  .nukkia-workspace .home-format-card strong {
+    font-size: 16px;
+  }
+  .nukkia-workspace .home-format-card p {
+    font-size: 10px;
+  }
+  .nukkia-workspace .home-format-art {
+    width: 48px;
+    height: 48px;
+  }
+  .nukkia-workspace .studio-stepper {
+    flex-wrap: wrap;
+  }
+  .nukkia-workspace .studio-toolbar .studio-stepper {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+  .nukkia-workspace .studio-create-home,
+  .nukkia-workspace .studio-instructions {
+    margin-block: 15px;
+  }
+  .nukkia-workspace .studio-mode-card {
+    padding: 17px;
+    gap: 12px;
+  }
+  .nukkia-workspace .studio-mode-art {
+    width: 40px;
+    height: 45px;
+  }
+  .nukkia-workspace .studio-canvas-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nukkia-workspace .studio-scene-rail {
+    display: flex;
+    max-height: none;
+    overflow-x: auto;
+    padding: 4px;
+  }
+  .nukkia-workspace .studio-scene-rail > button {
+    width: 80px;
+    flex-shrink: 0;
+  }
+  .nukkia-workspace .studio-editor-heading {
+    align-items: start;
+  }
+  .nukkia-workspace .context-field-pair {
+    grid-template-columns: 1fr;
+  }
+  .nukkia-workspace .context-editor .workspace-page-heading h1 {
+    font-size: 24px;
+  }
+}
+@media (max-width: 480px) {
+  .nukkia-workspace .home-format-grid,
+  .nukkia-workspace .studio-mode-grid {
+    grid-template-columns: 1fr;
+  }
+  .nukkia-workspace .home-format-card {
+    min-height: 130px;
+  }
+  .nukkia-workspace .health-options {
+    grid-template-columns: 1fr;
+  }
+  .nukkia-workspace .studio-option-cover {
+    aspect-ratio: 4 / 3;
+  }
+  .nukkia-workspace .studio-scene-editor {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+  }
+  .nukkia-workspace .studio-scene-editor > div:has(> label) {
+    grid-column: 1;
+  }
+  .nukkia-workspace .studio-scene-editor-title {
+    flex-wrap: wrap;
+  }
+  .nukkia-workspace .studio-stepper button {
+    padding-inline: 8px;
+  }
+  .nukkia-workspace .workspace-content .brand-art-column {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 14px;
+  }
+  .nukkia-workspace .workspace-content .brand-page-tabs {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+    overflow-x: auto;
+  }
+  .nukkia-workspace .workspace-content .brand-page-tabs button {
+    width: 65px;
+    flex-shrink: 0;
+  }
+  .nukkia-workspace .workspace-content .brand-edit-column .brand-fields {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nukkia-workspace .home-format-card {
+    transition:
+      transform 160ms,
+      border-color 160ms;
+  }
+}
+
+/* Services follow the screenshot's master-list/detail layout with Nukkia tokens. */
+.services-catalog {
+  min-width: 0;
+}
+.services-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+.services-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+.services-heading > .quick-primary {
+  width: auto;
+  margin: 0;
+}
+.services-heading h2 {
+  font-size: 22px;
+  margin: 0 0 8px;
+  letter-spacing: -0.03em;
+}
+.services-heading p,
+.services-local-note,
+.services-selection p {
+  color: var(--ws-muted);
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 0;
+}
+.services-local-note {
+  margin-bottom: 20px;
+}
+.services-layout {
+  display: grid;
+  grid-template-columns: minmax(170px, 230px) minmax(0, 1fr);
+  gap: 32px;
+  border-top: 1px solid var(--ws-border);
+  padding-top: 24px;
+}
+.services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.services-list > p {
+  color: var(--ws-muted);
+  font-size: 13px;
+}
+.services-list button {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ws-text);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.services-list button[aria-current="true"] {
+  background: var(--ws-subtle);
+  border-color: var(--ws-border);
+}
+.services-list button span {
+  color: var(--ws-muted);
+  font-size: 12px;
+}
+.services-detail {
+  min-width: 0;
+}
+.services-detail h3 {
+  margin: 0;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.services-detail-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.services-state {
+  border: 1px solid var(--ws-border);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+.services-state-confirmed,
+.services-saved {
+  color: #15803d;
+}
+.dark .services-state-confirmed,
+.dark .services-saved {
+  color: #86efac;
+}
+.services-detail dl {
+  display: grid;
+  gap: 20px;
+  margin: 26px 0;
+}
+.services-detail dt {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ws-muted);
+  margin-bottom: 6px;
+}
+.services-detail dd {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.services-detail form {
+  display: grid;
+  gap: 20px;
+}
+.services-detail label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 0;
+}
+.services-detail input,
+.services-detail textarea,
+.services-detail select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--ws-border);
+  border-radius: 8px;
+  background: var(--ws-canvas, var(--ws-bg));
+  color: var(--ws-text);
+  padding: 11px 13px;
+  font: inherit;
+}
+.services-detail textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+.services-detail .services-checkbox {
+  flex-direction: row;
+  align-items: center;
+  font-weight: 400;
+}
+.services-detail .services-checkbox input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.services-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 0.6fr);
+  gap: 20px;
+}
+.services-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.services-actions button,
+.services-heading button {
+  flex-shrink: 0;
+}
+.services-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ws-border);
+}
+.services-selection p {
+  flex: 1;
+  min-width: 160px;
+}
+.services-pending {
+  color: var(--ws-muted);
+  font-size: 13px;
+}
+.services-saved {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.services-empty {
+  padding: 32px 0;
+}
+.services-empty p {
+  color: var(--ws-muted);
+  font-size: 14px;
+  line-height: 1.7;
+  max-width: 480px;
+}
+.services-notice {
+  background: var(--ws-subtle);
+  border: 1px solid var(--ws-border);
+  padding: 18px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+.services-notice p,
+.services-feedback {
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.services-catalog button:focus-visible,
+.services-catalog input:focus-visible,
+.services-catalog textarea:focus-visible,
+.services-catalog select:focus-visible {
+  outline: 2px solid var(--ws-action, #006c72);
+  outline-offset: 3px;
+}
+.services-catalog button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (max-width: 640px) {
+  .services-heading {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .services-heading > div,
+  .services-heading > .quick-primary {
+    width: 100%;
+  }
+  .services-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+  .services-list {
+    max-height: 230px;
+    overflow-y: auto;
+  }
+  .services-form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .services-actions {
+    align-items: stretch;
+  }
+  .services-actions button {
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+  }
+}
+
+.services-detail fieldset {
+  display: grid;
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.nukkia-workspace .brain-tabs {
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.nukkia-workspace .workspace-page [hidden] {
+  display: none !important;
+}
+
+/* Complete the accepted visual chooser and preview-first identity workbench. */
+.nukkia-workspace .home-saved-thumbnail {
+  width: 100%;
+  height: 210px;
+  object-fit: contain;
+  border-radius: 16px;
+  background: var(--ws-subtle);
+}
+.nukkia-workspace .format-carousel {
+  background: linear-gradient(130deg, var(--ws-surface), var(--ws-subtle));
+}
+.nukkia-workspace .approach-thumbnail {
+  display: block;
+  width: 100%;
+  height: 210px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: var(--ws-subtle);
+  margin-block: 16px;
+}
+.nukkia-workspace .identity-workbench {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.2fr);
+  gap: 28px;
+  align-items: start;
+}
+.nukkia-workspace .identity-live-preview {
+  position: sticky;
+  top: 24px;
+}
+.nukkia-workspace .identity-live-preview img {
+  display: block;
+  width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+  margin-block: 18px;
+}
+.nukkia-workspace .identity-controls {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.nukkia-workspace .identity-controls .workspace-secondary-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.nukkia-workspace .saved-content-picker {
+  margin-block: 20px;
+}
+.nukkia-workspace .saved-content-picker summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.nukkia-workspace .saved-content-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  gap: 20px;
+}
+.nukkia-workspace .saved-content-strip article {
+  min-width: 0;
+  max-width: 360px;
+  padding: 16px;
+  border: 1px solid var(--ws-border);
+  border-radius: 16px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.nukkia-workspace .saved-content-strip img {
+  width: 100%;
+  height: 180px;
+  object-fit: contain;
+  background: var(--ws-subtle);
+  border-radius: 10px;
+}
+.nukkia-workspace .saved-content-strip label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.nukkia-workspace .saved-content-strip h3,
+.nukkia-workspace .saved-content-strip p {
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.nukkia-workspace .saved-content-strip select {
+  width: 100%;
+  min-width: 0;
+}
+.nukkia-workspace .account-page {
+  max-width: 960px;
+}
+.nukkia-workspace .account-page > .account-data-card {
+  background: var(--ws-surface);
+  border-color: var(--ws-border);
+  border-radius: 24px;
+  box-shadow: none;
+  color: var(--ws-text);
+}
+@media (max-width: 900px) {
+  .nukkia-workspace .identity-workbench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nukkia-workspace .identity-live-preview {
+    position: static;
+  }
+  .nukkia-workspace .identity-live-preview img {
+    max-height: 300px;
+  }
+}
+
+.nukkia-workspace .account-page > .account-danger {
+  border-color: var(--ws-error);
+}
+
+/* Section titles live in the shared top bar; the brand stays in the profile. */
+.nukkia-workspace .workspace-top-context {
+  margin: 0;
+  min-width: 0;
+  max-width: none;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(14px, 1.2vw, 17px);
+  font-weight: 600;
+  color: var(--ws-text);
+}
+.nukkia-workspace .journey-page {
+  max-width: 900px;
+}
+.journey-intro {
+  margin: 0;
+  color: var(--ws-muted);
+  font-size: 14px;
+}
+.journey-path {
+  list-style: none;
+  margin: 0;
+  padding: 28px clamp(12px, 4vw, 40px);
+  border: 1px solid var(--ws-border);
+  border-radius: 28px;
+  background:
+    radial-gradient(ellipse at 10% 30%, var(--ws-wash-ink), transparent 55%),
+    radial-gradient(ellipse at 90% 70%, var(--ws-wash-cyan), transparent 55%), var(--ws-surface);
+}
+.journey-stop {
+  margin: 0;
+  padding: 0;
+}
+.journey-stage {
+  display: grid;
+  grid-template-columns: 40% 20% 40%;
+}
+.journey-dot {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 9px;
+  padding: 8px;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  color: var(--ws-text);
+  cursor: pointer;
+  text-align: center;
+}
+.is-right .journey-dot {
+  grid-column: 3;
+}
+.journey-orbit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  color: var(--ws-accent);
+  background: var(--ws-canvas);
+  border: 6px solid var(--ws-border);
+  box-shadow:
+    0 0 0 2px var(--ws-canvas),
+    0 8px 24px var(--ws-wash-ink);
+}
+.journey-dot.is-selected .journey-orbit {
+  border-color: var(--ws-accent);
+  box-shadow: 0 0 0 5px var(--ws-wash-teal);
+}
+.journey-dot.is-complete .journey-orbit {
+  color: var(--ws-success);
+  background: var(--ws-success-bg);
+}
+.journey-check {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  padding: 3px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: var(--ws-success);
+  color: var(--ws-canvas);
+}
+.journey-dot strong {
+  font-family: "Sora", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.journey-dot small {
+  font-size: 12px;
+  color: var(--ws-muted);
+}
+.journey-dot.is-complete small {
+  color: var(--ws-success);
+}
+.journey-dot:focus-visible {
+  outline: 3px solid var(--ws-accent);
+  outline-offset: 4px;
+}
+.journey-connector {
+  display: block;
+  width: 100%;
+  height: 68px;
+  overflow: visible;
+}
+.journey-connector path {
+  fill: none;
+  stroke: var(--ws-border);
+  stroke-width: 8;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.journey-detail {
+  grid-column: 1 / -1;
+  margin-top: 18px;
+  padding: clamp(16px, 3vw, 28px);
+  border: 1px solid var(--ws-border);
+  border-radius: 20px;
+  background: var(--ws-canvas);
+}
+.journey-detail[hidden] {
+  display: none;
+}
+.journey-detail h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+.journey-detail ul {
+  margin: 0 0 20px;
+  padding-left: 20px;
+  color: var(--ws-muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.journey-detail li + li {
+  margin-top: 8px;
+}
+.journey-actions {
+  display: grid;
+  gap: 8px;
+}
+.journey-action {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--ws-border);
+  border-radius: 12px;
+  background: var(--ws-surface);
+  color: var(--ws-text);
+  text-align: left;
+  cursor: pointer;
+}
+.journey-action > svg {
+  flex-shrink: 0;
+}
+.journey-action > span {
+  flex: 1;
+  min-width: 0;
+}
+.journey-action strong {
+  display: block;
+  font-size: 13px;
+}
+.journey-action small {
+  display: block;
+  color: var(--ws-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.journey-action:hover {
+  border-color: var(--ws-accent);
+}
+@media (max-width: 520px) {
+  .journey-stage {
+    grid-template-columns: 45% 10% 45%;
+  }
+  .journey-dot {
+    grid-column: 1 / 3;
+  }
+  .is-right .journey-dot {
+    grid-column: 2 / 4;
+  }
+  .journey-orbit {
+    width: 72px;
+    height: 72px;
+  }
+  .journey-connector {
+    height: 50px;
+  }
+  .journey-detail h2 {
+    font-size: 16px;
+  }
+}
+.journey-page .workspace-trail-summary {
+  padding: 18px 22px;
+}
+.journey-page .workspace-trail-summary strong {
+  font-size: 18px;
+}
+.journey-page .workspace-trail-summary p {
+  font-size: 13px;
+}
+.journey-detail ul {
+  list-style: disc;
+}
+.journey-connector path {
+  stroke: var(--ws-accent);
+  opacity: 0.25;
+}
+
+/* Accepted brief → editor → saved planning journey. */
+.nukkia-workspace .piece-brief {
+  max-width: 900px;
+  margin-inline: auto;
+  display: grid;
+  gap: 22px;
+}
+.nukkia-workspace .piece-brief label,
+.nukkia-workspace .material-input label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.nukkia-workspace .piece-brief textarea {
+  min-height: 100px;
+}
+.nukkia-workspace .piece-brief fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.nukkia-workspace .piece-source {
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--ws-subtle);
+}
+.nukkia-workspace .piece-brief [aria-pressed="true"] {
+  border-color: var(--ws-accent);
+  box-shadow: inset 0 0 0 1px var(--ws-accent);
+}
+.nukkia-workspace .material-input {
+  display: grid;
+  gap: 14px;
+  padding-block: 16px;
+  min-width: 0;
+}
+.nukkia-workspace .material-input input[type="file"] {
+  max-width: 100%;
+  width: 100%;
+}
+.nukkia-workspace .material-current img,
+.nukkia-workspace .material-pending > img {
+  width: 100%;
+  max-width: 340px;
+  max-height: 260px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: var(--ws-subtle);
+}
+.nukkia-workspace .material-pending {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--ws-border);
+  border-radius: 14px;
+}
+.nukkia-workspace .material-strip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-block: 12px;
+}
+.nukkia-workspace .material-strip button {
+  flex: 0 0 120px;
+  color: var(--ws-text);
+  background: var(--ws-subtle);
+  padding: 8px;
+  border: 1px solid var(--ws-border);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.nukkia-workspace .material-strip img {
+  width: 100%;
+  height: 85px;
+  object-fit: contain;
+}
+.nukkia-workspace .planning-agenda {
+  display: grid;
+  gap: 8px;
+}
+.nukkia-workspace .planning-agenda button {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) minmax(140px, 0.6fr);
+  gap: 14px;
+  text-align: left;
+  padding: 16px;
+  color: var(--ws-text);
+  background: var(--ws-surface);
+  border: 1px solid var(--ws-border);
+  border-radius: 14px;
+  overflow-wrap: anywhere;
+}
+.nukkia-workspace .planning-agenda button[aria-pressed="true"] {
+  border-color: var(--ws-accent);
+  background: var(--ws-subtle);
+}
+.nukkia-workspace .planning-detail {
+  max-width: 820px;
+}
+.nukkia-workspace .planning-detail .library-thumbnail {
+  max-height: 280px;
+  object-fit: contain;
+}
+.nukkia-workspace .workspace-content .brand-studio {
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 1fr);
+  align-items: start;
+}
+.nukkia-workspace .workspace-content .brand-art-column {
+  position: sticky;
+  top: 20px;
+  padding: 16px;
+  grid-template-columns: minmax(0, 1fr) 64px;
+  gap: 12px;
+}
+.nukkia-workspace .workspace-content .brand-edit-column .brand-fields {
+  grid-template-columns: minmax(0, 1fr);
+}
+.nukkia-workspace .workspace-content .brand-edit-column {
+  padding: 18px;
+}
+.nukkia-workspace .workspace-content .brand-post-art {
+  width: 100%;
+  max-width: 460px;
+}
+.nukkia-workspace .piece-context {
+  font-size: 13px;
+}
+@media (max-width: 1100px) {
+  .nukkia-workspace .workspace-content .brand-studio {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nukkia-workspace .workspace-content .brand-art-column {
+    position: static;
+  }
+}
+@media (max-width: 600px) {
+  .nukkia-workspace .planning-agenda button {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .nukkia-workspace .piece-brief {
+    padding: 18px;
+  }
+  .nukkia-workspace .workspace-content .brand-art-column {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nukkia-workspace .workspace-content .brand-page-tabs {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+  }
+  .nukkia-workspace .workspace-content .brand-page-tabs button {
+    flex: 0 0 64px;
+  }
+}
+.nukkia-workspace .identity-applied-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 260px);
+  gap: 24px;
+  align-items: center;
+}
+.nukkia-workspace .identity-applied-preview img {
+  width: 100%;
+  border-radius: 14px;
+}
+@media (max-width: 600px) {
+  .nukkia-workspace .identity-applied-preview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nukkia-workspace .identity-applied-preview img {
+    max-width: 280px;
+    justify-self: center;
+  }
+}
+
+/* Atlantic accents distinguish navigation and creation surfaces without tinting client artwork. */
+.nukkia-workspace .workspace-nav-group > p {
+  color: var(--nukkia-action);
+}
+.nukkia-workspace .workspace-sidebar nav button[aria-current="page"],
+.nukkia-workspace .workspace-mobile-nav nav button[aria-current="page"] {
+  background: var(--nukkia-subtle);
+  color: var(--nukkia-text);
+  border-color: var(--nukkia-border);
+  box-shadow: inset 3px 0 var(--nukkia-action);
+}
+.nukkia-workspace .workspace-nav-group:nth-child(2) button svg {
+  color: var(--nukkia-action);
+}
+.nukkia-workspace .workspace-nav-group:nth-child(3) button svg {
+  color: #3e718b;
+}
+.dark .nukkia-workspace .workspace-nav-group:nth-child(3) button svg {
+  color: #8ebbd3;
+}
+.nukkia-workspace .workspace-topbar {
+  border-bottom: 2px solid var(--nukkia-border);
+}
+.nukkia-workspace .home-format-card {
+  border-top: 3px solid var(--nukkia-action);
+}
+.nukkia-workspace .brand-approach-card[data-selected="true"] {
+  background: var(--nukkia-subtle);
+  border-color: var(--nukkia-action);
+  box-shadow: inset 0 3px var(--nukkia-action);
+}
+.nukkia-workspace .brand-approach-badge {
+  color: var(--nukkia-action);
+}
+
+.nukkia-workspace .home-format-card.format-video {
+  background: var(--nukkia-subtle);
+}
+.nukkia-workspace .home-format-card.format-image {
+  background: color-mix(in srgb, #56c8c8 17%, var(--nukkia-surface));
+}
+.nukkia-workspace .home-format-card.format-carousel {
+  background: color-mix(in srgb, #3e718b 12%, var(--nukkia-surface));
+}

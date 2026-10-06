@@ -236,6 +236,7 @@ export function BrandOnboarding({
     <div className="quick-onboarding" data-revealed={revealed}>
       <div className="quick-floating-logo">
         <OnboardingMark />
+        <p className="quick-logo-greeting">Nukkia</p>
       </div>
       <main
         className={`quick-question brand-question${step === 3 ? " brand-recommendation-question" : ""}`}
@@ -274,6 +275,12 @@ export function BrandOnboarding({
             ][step]
           }
         </h1>
+        {step === 0 && (
+          <p className="quick-hint">
+            Português do Brasil. Comece pelo site ou informe o contexto manualmente; suas respostas
+            continuam editáveis.
+          </p>
+        )}
         {step === 3 && (
           <p className="quick-hint">
             Seu ponto de partida está definido. Agora vamos dar forma ao primeiro conteúdo.

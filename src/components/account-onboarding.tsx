@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { BrandOnboarding } from "./brand-onboarding";
+import { BrandLoading } from "./brand-loading";
 import { useMarketingWorkspace } from "./marketing-provider";
 import { supabase } from "@/integrations/supabase/client";
 import { useBrandResearch } from "@/lib/use-brand-research";
@@ -64,11 +65,19 @@ export function AccountOnboarding({
     )
       return;
     if (company && data.onboarded && !replay) {
-      void navigate({ to: "/painel", replace: true });
-      return;
+      const life = lifetime.current;
+      const timer = window.setTimeout(
+        () => {
+          if (life?.active && lifetime.current === life)
+            void navigate({ to: "/painel", replace: true });
+        },
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 650,
+      );
+      return () => window.clearTimeout(timer);
     }
     // The core helper is idempotent; never dirty the seed before cloud recovery.
     setData((current) => recordWorkspaceEvent(current, "started"));
+    return undefined;
   }, [company, data.onboarded, error, navigate, ownerId, replay, setData, sync]);
   async function finish(completed: DemoData) {
     const life = lifetime.current;
@@ -178,18 +187,10 @@ export function AccountOnboarding({
       }
     }
   }
-  if (sync === "loading") {
-    return (
-      <div className="nukkia-workspace dark quick-demo">
-        <p role="status" className="quick-storage-notice">
-          Preparando seu workspace…
-        </p>
-      </div>
-    );
-  }
+  if (sync === "loading") return <BrandLoading />;
   if (sync === "conflict")
     return (
-      <div className="nukkia-workspace dark quick-demo">
+      <div className="nukkia-workspace quick-demo">
         <section className="quick-storage-notice" aria-labelledby="workspace-version-title">
           <h1 id="workspace-version-title">Escolha qual versão continuar.</h1>
           <p>As duas versões foram preservadas.</p>
@@ -204,8 +205,9 @@ export function AccountOnboarding({
         </section>
       </div>
     );
+  if (company && data.onboarded && !replay && !saving && !error) return <BrandLoading />;
   return (
-    <div className="nukkia-workspace dark quick-demo">
+    <div className="nukkia-workspace quick-demo">
       {error && (
         <p className="quick-storage-notice" role="alert">
           {error}

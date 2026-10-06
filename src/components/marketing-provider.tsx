@@ -8,6 +8,7 @@ import {
   type SetStateAction,
 } from "react";
 import { z } from "zod";
+import { WorkspaceSkeleton } from "./workspace-skeleton";
 import { useCompany, useDiagnostic, type Company } from "@/lib/company";
 import { apiFetch } from "@/lib/api";
 import { demoSchema, type DemoData } from "@/lib/quick-start";
@@ -33,17 +34,21 @@ import "@/demo.css";
 import "@/workspace.css";
 import "./workspace-save-status.css";
 
-export function MarketingProvider({ ownerId, children }: { ownerId: string; children: ReactNode }) {
+export function MarketingProvider({
+  ownerId,
+  children,
+  loadingFallback,
+}: {
+  ownerId: string;
+  children: ReactNode;
+  loadingFallback?: ReactNode;
+}) {
   const company = useCompany();
   // The shared company query can briefly retain the previous account's cache.
   const owned = company.data?.owner_id === ownerId ? company.data : null;
   const diagnostic = useDiagnostic(owned?.id);
   if (company.isLoading || (owned && diagnostic.isLoading))
-    return (
-      <p role="status" className="workspace-loading">
-        Preparando seu espaço…
-      </p>
-    );
+    return loadingFallback ?? <WorkspaceSkeleton fullPage />;
   // A background query failure must not unmount an existing in-memory draft.
   if ((company.error && !owned) || (company.data && !owned))
     return (
@@ -182,6 +187,10 @@ function restoreCloud(cloud: Cloud, fallback: DemoData): StoredWorkspace {
 class WorkspaceRequestError extends Error {}
 
 async function workspaceResponseError(response: Response) {
+  if (response.status === 426)
+    return new WorkspaceRequestError(
+      "Esta versão do aplicativo precisa ser atualizada antes de sincronizar. Preserve seu rascunho local e atualize a página.",
+    );
   if (response.status === 401)
     return new WorkspaceRequestError(
       "Sua sessão não foi reconhecida. Entre na conta em outra aba e tente novamente.",

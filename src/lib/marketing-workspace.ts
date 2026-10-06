@@ -131,7 +131,12 @@ export function essentialDiagnostic(data: DemoData) {
   return { completed, total: 4, complete: completed === 4 };
 }
 
+export type ContentReturn = "briefing" | "abordagens" | "peca";
+export function contentReturn(value: unknown): ContentReturn | undefined {
+  return value === "briefing" || value === "abordagens" || value === "peca" ? value : undefined;
+}
 export type ContextSearch = {
+  origemConteudo?: ContentReturn | undefined;
   editar?: "contexto" | "diagnostico" | undefined;
   retorno?: WorkspaceSection | undefined;
   capitulo?: number | undefined;
@@ -141,6 +146,9 @@ export function contextSearch(search: Record<string, unknown>): ContextSearch {
   const chapter = Number(search["capitulo"]);
   return {
     editar: search["editar"],
+    ...(contentReturn(search["origemConteudo"])
+      ? { origemConteudo: contentReturn(search["origemConteudo"]) }
+      : {}),
     retorno: WORKSPACE_NAV.some((s) => s.id === search["retorno"])
       ? (search["retorno"] as WorkspaceSection)
       : "painel",

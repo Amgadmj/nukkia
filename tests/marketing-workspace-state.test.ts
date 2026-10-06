@@ -299,6 +299,8 @@ function harness(
     react,
     "react/jsx-runtime": { jsx, jsxs: jsx },
     zod,
+    "./brand-loading": { BrandLoading: "brand-loading" },
+    "./workspace-skeleton": { WorkspaceSkeleton: "workspace-skeleton" },
     "@/lib/company": {
       useCompany: () => ({
         data: currentCompany,
@@ -1463,6 +1465,8 @@ function onboardingHarness(
     body: { companyId: string; data: DemoData; expectedRevision: string | null };
     resolve: (response: Pick<Response, "ok" | "status" | "json">) => void;
   }[] = [];
+  const transitionTimers = new Map<number, () => void>();
+  let transitionTimerId = 0;
   let finishInvalidation: (() => void) | undefined;
   const value = {
     data: { ...draft("Onboarding draft"), onboarded: options.onboarded ?? false },
@@ -1506,9 +1510,12 @@ function onboardingHarness(
     },
     "react/jsx-runtime": { jsx, jsxs: jsx },
     zod,
+    "./brand-loading": { BrandLoading: "brand-loading" },
+    "./workspace-skeleton": { WorkspaceSkeleton: "workspace-skeleton" },
     "@tanstack/react-router": { useNavigate: () => navigate },
     "@tanstack/react-query": { useQueryClient: () => queryClient },
     "./brand-onboarding": { BrandOnboarding: "brand-onboarding" },
+    "./quick-start-flow": { OnboardingMark: "onboarding-mark" },
     "./marketing-provider": { useMarketingWorkspace: () => value },
     "@/lib/marketing-workspace": workspace,
     "@/lib/quick-start": quickStart,
@@ -1583,6 +1590,13 @@ function onboardingHarness(
     exports,
     console,
     window: {
+      matchMedia: () => ({ matches: false }),
+      setTimeout: (callback: () => void) => {
+        const id = ++transitionTimerId;
+        transitionTimers.set(id, callback);
+        return id;
+      },
+      clearTimeout: (id: number) => transitionTimers.delete(id),
       sessionStorage: {
         setItem(key: string, raw: string) {
           if (storageFails) throw new Error("Storage unavailable");
@@ -1633,6 +1647,13 @@ function onboardingHarness(
     settle,
     render,
     status: () => text(tree),
+    isBrandLoading: () => Boolean(findElement(tree, "brand-loading")),
+    finishTransition() {
+      const pending = [...transitionTimers.values()];
+      transitionTimers.clear();
+      pending.forEach((run) => run());
+      render();
+    },
     resolutions,
     retries: () => retries,
     canEdit: () => Boolean(findElement(tree, "brand-onboarding")?.props.onData),
@@ -1696,6 +1717,10 @@ test("onboarding waits for cloud readiness before recording started or redirecti
   h.value.sync = "saved";
   await h.settle();
   assert.equal(h.edits.length, 0);
+  assert.equal(h.canEdit(), false, "returning accounts must never flash profile questions");
+  assert.equal(h.isBrandLoading(), true);
+  assert.equal(h.navigations.length, 0, "keep the centered logo before entering the dashboard");
+  h.finishTransition();
   assert.deepEqual(h.navigations, [{ to: "/painel", replace: true }]);
 });
 
@@ -1931,9 +1956,45 @@ test("initial cloud loading exposes no form edits and restores the form when rea
   const h = onboardingHarness(t, { company: true, sync: "loading" });
   assert.equal(h.canEdit(), false);
   assert.equal(h.edits.length, 0);
-  assert.match(h.status(), /Preparando seu workspace/);
+  assert.equal(h.isBrandLoading(), true);
   assert.doesNotMatch(h.status(), /Salvando|Somente nesta aba/);
   h.value.sync = "ready";
   await h.settle();
   assert.equal(h.canEdit(), true);
+});
+
+test("returning-account transition cannot navigate after logout or an account change", async (t) => {
+  for (const event of ["SIGNED_OUT", "SIGNED_IN"]) {
+    const h = onboardingHarness(t, { company: true, onboarded: true });
+    await h.settle();
+    assert.equal(h.isBrandLoading(), true);
+    h.auth(event, event === "SIGNED_IN" ? "another-owner" : undefined);
+    h.finishTransition();
+    assert.equal(h.navigations.length, 0);
+  }
+});
+
+test("a conflict interrupts the returning-account transition without discarding either version", async (t) => {
+  const h = onboardingHarness(t, { company: true, onboarded: true });
+  await h.settle();
+  h.value.sync = "conflict";
+  h.render();
+  h.finishTransition();
+  assert.equal(h.navigations.length, 0);
+  assert.equal(h.isBrandLoading(), false);
+  assert.match(h.status(), /As duas versões foram preservadas/);
+  h.click("Usar versão da conta");
+  await h.settle();
+  assert.equal(h.isBrandLoading(), true);
+  h.finishTransition();
+  assert.equal(h.navigations.length, 1);
+});
+
+test("explicit onboarding replay keeps the questions for a configured account", async (t) => {
+  const h = onboardingHarness(t, { company: true, onboarded: true, replay: true });
+  await h.settle();
+  h.finishTransition();
+  assert.equal(h.canEdit(), true);
+  assert.equal(h.isBrandLoading(), false);
+  assert.equal(h.navigations.length, 0);
 });

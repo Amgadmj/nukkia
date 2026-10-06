@@ -1,3 +1,4 @@
+import * as serviceBriefDomain from "../src/lib/service-brief.ts";
 import test from "node:test";
 import * as research from "../src/lib/brand-research.ts";
 import assert from "node:assert/strict";
@@ -18,7 +19,11 @@ function journey(onCalendar?: () => void) {
   const module = { exports: {} as Record<string, react.ComponentType<Record<string, unknown>>> };
   const dependencies: Record<string, unknown> = {
     react,
+    "@/lib/service-brief": serviceBriefDomain,
     "react/jsx-runtime": jsx,
+    "./inspiration-board": { InspirationBoard: "inspiration-board" },
+    "@/components/inspiration-board": { InspirationBoard: "inspiration-board" },
+    "./workspace-services": { WorkspaceServices: "workspace-services" },
     "lucide-react": icons,
     "@/lib/quick-start": quick,
     "@/lib/brand-preview": preview,

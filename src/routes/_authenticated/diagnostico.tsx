@@ -1,3 +1,4 @@
+import { WorkspaceSkeleton } from "@/components/workspace-skeleton";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -43,7 +44,8 @@ export const Route = createFileRoute("/_authenticated/diagnostico")({
       { title: "Cérebro da marca | Nukkia" },
       {
         name: "description",
-        content: "Construa o cérebro de marketing da sua empresa, uma resposta de cada vez.",
+        content:
+          "Construa a cópia digital da sua marca: serviços, público, objetivos e referências reunidos no Cérebro.",
       },
     ],
   }),
@@ -76,13 +78,14 @@ function Diagnostico() {
       <WorkspaceContextEditor
         data={workspace.data}
         onData={workspace.setData}
+        onHealthStudio={() => void navigate({ to: "/conteudo", search: { aba: "saude" } })}
         mode={search.editar}
         chapter={search.capitulo}
         onReport={company ? () => void navigate({ search: { relatorio: true } }) : undefined}
         onReturn={() =>
           void navigate({
             to: WORKSPACE_NAV.find((item) => item.id === (search.retorno ?? "painel"))!.to,
-            search: {},
+            search: search.retorno === "conteudo" ? { aba: search.origemConteudo ?? "peca" } : {},
           })
         }
         onChapter={(chapter) =>
@@ -91,6 +94,7 @@ function Diagnostico() {
             search: {
               editar: chapter === undefined ? "contexto" : "diagnostico",
               retorno: search.retorno ?? "painel",
+              origemConteudo: search.origemConteudo,
               capitulo: chapter,
             },
           })
@@ -100,6 +104,13 @@ function Diagnostico() {
   if (search.etapa === undefined && !showReport)
     return (
       <BrandBrain
+        onServiceBrief={() => void navigate({ to: "/conteudo", search: { aba: "briefing" } })}
+        serviceBriefDisabled={workspace.sync === "loading" || workspace.sync === "conflict"}
+        catalogScope={
+          workspace.company?.owner_id === workspace.ownerId
+            ? { kind: "account", ownerId: workspace.ownerId, companyId: workspace.company.id }
+            : undefined
+        }
         data={workspace.data}
         onData={workspace.setData}
         onSection={(id) => void navigate({ to: WORKSPACE_NAV.find((item) => item.id === id)!.to })}
@@ -115,11 +126,7 @@ function Diagnostico() {
       />
     );
   if (companyQuery.isLoading || diagnosticQuery.isLoading)
-    return (
-      <p role="status" className="text-muted-foreground">
-        Carregando seu cérebro de marketing…
-      </p>
-    );
+    return <WorkspaceSkeleton layout="editor" />;
   if (companyQuery.error || diagnosticQuery.error)
     return (
       <p role="alert">

@@ -1,0 +1,11 @@
+# In-app skeletons and explicit calendar — 5 October 2026
+
+Branch codex/nukkia-onboarding; unchanged base 5f1a1dab06e003b47614d0597bd8279db2b391c3. Delta file hashes: skeleton-calendar-source.json. Earlier evidence remains historical.
+
+Logo transition limited to /boas-vindas after sign-in. Authenticated pending/provider loads elsewhere use destination-specific skeletons (cards/editor/agenda/list). AppShell initial cloud recovery keeps its shell and shows content placeholders; subsequent refresh preserves mounted content/drafts. Calendar plan, Brain, trail, channels and results initial load branches use inline skeletons; existing errors/retries retained. Placeholders expose a busy status, hide decorative shapes from assistive technology, use Atlantic semantic tokens and stop animation for reduced motion.
+
+Shared desktop/collapsed/mobile navigation now contains Calendário under Criação. It opens existing exact-version monthly planning (account: /conteudo?aba=planejamento; local: conteudo/vista=planejamento), has its own active state/header, and closes the mobile menu. No extra calendar storage or publishing behavior.
+
+593 tests pass; typecheck/build/scoped lint pass; diff whitespace clean. Added behavior tests for login-only branding, route-specific layouts, active calendar navigation, initial skeleton versus mounted-content retention during refresh. Intermediate fixture failures were resolved, not a remaining product failure. Full unrelated lint backlog not rerun; previous 99 errors/9 warnings remain historical.
+
+Browser: existing Clínica Atlantic QA session preserved; Enter on Calendário opened planning and closed menu; active label/header, both theme menus and calendar reload verified at existing 390px viewport. calendar-sidebar.jpg and calendar-sidebar-light.jpg show actual app navigation. calendar-skeleton-render.jpg shows the actual component rendered into a local static HTML fixture, not a live authenticated network delay. That temporary public fixture was removed; source-rendered HTML remains in this evidence directory. Live authenticated slow-network timing remains unqualified without a signed-in test session. No new server, cloud mutation, deployment or provider activation.

@@ -1,3 +1,4 @@
+import { WorkspaceSkeleton } from "@/components/workspace-skeleton";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -81,12 +82,7 @@ function Trilha() {
     }
   }
 
-  if (foundation.loading)
-    return (
-      <p role="status" className="text-muted-foreground">
-        Carregando sua trilha…
-      </p>
-    );
+  if (foundation.loading) return <WorkspaceSkeleton layout="list" />;
   if (foundation.error)
     return (
       <p role="alert">

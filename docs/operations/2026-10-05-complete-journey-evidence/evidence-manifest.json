@@ -1,0 +1,159 @@
+{
+  "candidateSha256": "73f0d2fcdf7e3d0da374b80cc20ebffce84179f878256f6c9f7bc7e28caee24d",
+  "base": "5f1a1dab06e003b47614d0597bd8279db2b391c3",
+  "browserQualified": false,
+  "authenticatedQualified": false,
+  "files": [
+    {
+      "path": "build.log",
+      "sha256": "a8f928e2a0ad7089b8204655bea2990d3f8ccf87690c7fc619270b63b5f86538",
+      "bytes": 24799,
+      "status": "source/automated verification or qualification record; not browser proof"
+    },
+    {
+      "path": "delta-paths.json",
+      "sha256": "642f1cccba2813b133e48aa9609092761ba1eff025e74018193d0e5bee00d901",
+      "bytes": 1476,
+      "status": "source/automated verification or qualification record; not browser proof"
+    },
+    {
+      "path": "domain-red.log",
+      "sha256": "f15938f7bbbb4cf06539370ed02b9d3a294d551b8b688b081a877b181ec22876",
+      "bytes": 4192,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "entry-files.json",
+      "sha256": "00cf0a22dc6e5897e9c835a64d394f065cd757c59e1675357927de378114bbae",
+      "bytes": 14140,
+      "status": "source/automated verification or qualification record; not browser proof"
+    },
+    {
+      "path": "format-red.log",
+      "sha256": "a603a92322dd8aadd3ff817b84fafd70f69630f1888c543d72446126d65a3014",
+      "bytes": 1831,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "full-lint.log",
+      "sha256": "734b02ba96ef638f22a91666666983bf5d93e4885380fb0c60ea0c2e19386a5a",
+      "bytes": 28739,
+      "status": "source/automated verification or qualification record; not browser proof"
+    },
+    {
+      "path": "health-material-red.log",
+      "sha256": "9518ba961f481305fe4e7a689eb86858c357cf54985d28e253878669cec3c2bf",
+      "bytes": 1883,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "library-red.log",
+      "sha256": "0baa42cee9ed897ffa659fccbfe13ce460d43956fc25f7523222f3b8b63b5ff8",
+      "bytes": 2900,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "media-red.log",
+      "sha256": "9f16bff75a33debafca1435979095a66b92c090d9a520fb3705cb505f9ba95fb",
+      "bytes": 1745,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "new-item-red.log",
+      "sha256": "6210619229ffcb37a00e6701564f0bc594670f9c9e4ed91513194633aa466b9c",
+      "bytes": 1702,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "recompose-red.log",
+      "sha256": "1cc1fb5676f3a9334a278b8fdaa0be6b046f38214d15beb5fcf3a38768bf3511",
+      "bytes": 2636,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "return-red.log",
+      "sha256": "a6e6cc89214dd6a2b2ecbb0dfdd392d071520be8590f814a8f10af308e094d39",
+      "bytes": 5166,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "review-fixes.log",
+      "sha256": "f99f455685b6f48bed0de7ae8a3d0107bc1e12009e6f300cd8699396b5cc7935",
+      "bytes": 3939,
+      "status": "source/automated verification or qualification record; not browser proof"
+    },
+    {
+      "path": "review-red.log",
+      "sha256": "0a60d633e12a30f3b437b4cf2fa7db1789806a1b8d9907a9fc45be5370ec8230",
+      "bytes": 3966,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "schema-red.log",
+      "sha256": "070dcd232b87ffa4003a907e6e22decfe0c475a53eb707055d4a79906ac11803",
+      "bytes": 2335,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "scoped-lint.log",
+      "sha256": "65969cb186e94e12345ec3e15d6ce75d458a4349fd5a9057e372280b0d832d0c",
+      "bytes": 489,
+      "status": "source/automated verification or qualification record; not browser proof"
+    },
+    {
+      "path": "service-red.log",
+      "sha256": "9c8269844e8c32d4d71ba6594c76c3b279565b429bffd7a47212982cb3f2fdee",
+      "bytes": 1873,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "source-manifest.json",
+      "sha256": "0175ce1483b6d1b14e145b9f8f45509f2e9c5e652cb8c383f9f61b8ac102c8d3",
+      "bytes": 13143,
+      "status": "source/automated verification or qualification record; not browser proof"
+    },
+    {
+      "path": "tests-progress.log",
+      "sha256": "5593ce56e27c8f8b573f5b674e71f6f701630c782f59798e6e8144c7a8d4b70f",
+      "bytes": 53278,
+      "status": "source/automated verification or qualification record; not browser proof"
+    },
+    {
+      "path": "tests.log",
+      "sha256": "a0347e7b9b5ae8a2749c2ca1639db5e6ad796dad8815f7ad3538ce33179f8b4d",
+      "bytes": 53920,
+      "status": "source/automated verification or qualification record; not browser proof"
+    },
+    {
+      "path": "typecheck-progress.log",
+      "sha256": "8188c6ddba41fe98495cd56d294bedbc321d3b9bdaa28ab3d11d69b9cb7f79be",
+      "bytes": 9069,
+      "status": "source/automated verification or qualification record; not browser proof"
+    },
+    {
+      "path": "typecheck.log",
+      "sha256": "8fa1cf5506304e8abac55868e7f1a136c9b1dde57a3981a382da4c21ea129a6f",
+      "bytes": 29,
+      "status": "source/automated verification or qualification record; not browser proof"
+    },
+    {
+      "path": "upload-race-red.log",
+      "sha256": "367b73cd3be6ee3c5f4d93b6b03fc52dde95d849be5adab06adc620b30db4a1e",
+      "bytes": 1556,
+      "status": "intentional pre-fix regression evidence"
+    },
+    {
+      "path": "browser-checks.md",
+      "sha256": "0229ae552630225c2cfd0a6915950faade1d5fcf3d8f9fe90079cbfad6a6f43c",
+      "bytes": 2619,
+      "status": "partial current-candidate browser evidence; see browser-checks.md"
+    },
+    {
+      "path": "home-1360-dark.jpg",
+      "sha256": "cc0daff7434828e1294e21ab1f4c56de19049b811718567c5936dda7785de04a",
+      "bytes": 127142,
+      "status": "partial current-candidate browser evidence; see browser-checks.md"
+    }
+  ],
+  "browserStatus": "partial: onboarding/home/service creation; confirmation connector blocked"
+}

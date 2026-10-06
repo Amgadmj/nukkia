@@ -1,0 +1,22 @@
+{
+  "previousAggregate": "553b9c03d40de70870830ea78149dfb34875e299c50faefd519e469609653f8e",
+  "currentAggregate": "cc2a64d6e327af554216289aefae6c9ee2d52481774b131de4e5f7624d824aa1",
+  "changed": [
+    "src/components/content-library.tsx",
+    "src/components/content-recommendation.tsx",
+    "src/components/content-studio.tsx",
+    "src/components/demo-workspace.tsx",
+    "src/components/marketing-views.tsx",
+    "src/routes/_authenticated/conta.tsx",
+    "src/routes/_authenticated/conteudo.tsx",
+    "src/routes/_authenticated/painel.tsx",
+    "src/routes/demo.tsx",
+    "src/studio.css",
+    "tests/content-library-ui.test.ts",
+    "tests/content-preparation-ui.test.ts",
+    "tests/workspace-refinement-ui.test.ts"
+  ],
+  "returnedToBase": [
+    "src/lib/marketing-workspace.ts"
+  ]
+}

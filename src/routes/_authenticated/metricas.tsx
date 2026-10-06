@@ -1,3 +1,4 @@
+import { WorkspaceSkeleton } from "@/components/workspace-skeleton";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart3, CalendarDays, CheckCircle2, Send } from "lucide-react";
@@ -99,12 +100,7 @@ function Metricas() {
     },
   });
 
-  if (companyQuery.isPending)
-    return (
-      <p role="status" className="text-muted-foreground">
-        Carregando seus resultados…
-      </p>
-    );
+  if (companyQuery.isPending) return <WorkspaceSkeleton layout="dashboard" />;
   if (companyQuery.isError)
     return (
       <div role="alert" className="space-y-4">

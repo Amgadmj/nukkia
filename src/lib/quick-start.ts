@@ -1,6 +1,9 @@
+import { inspirationSchema } from "./inspiration-schema.ts";
+import { contentLibrarySchema } from "./content-library.ts";
 import { z } from "zod";
 import { answersSchema, CHAPTERS, hasAnswer, type Answers } from "./onboarding.ts";
 import { brandPreviewSchema, creativeStatus, researchSchema } from "./brand-preview.ts";
+import { healthStudioSchema } from "./health-studio.ts";
 
 export const QUICK_GOALS = [
   { value: "Atrair novos clientes", detail: "Ser encontrado pelas pessoas certas." },
@@ -144,6 +147,13 @@ export const hypothesisSchema = z.object({
   source: z.enum(["user", "suggestion"]).default("user"),
 });
 export const demoSchema = z.object({
+  workspaceSchemaVersion: z
+    .union([z.literal(2), z.literal(3)])
+    .default(3)
+    .transform(() => 3 as const),
+  library: contentLibrarySchema,
+  inspirations: z.array(inspirationSchema).max(20).default([]),
+  healthStudio: healthStudioSchema.default({}),
   name: z.string().max(120),
   segment: z.string().max(120).default(""),
   onboarded: z.boolean().default(false),

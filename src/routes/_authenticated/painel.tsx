@@ -1,3 +1,4 @@
+import { resumeLibraryVersion } from "@/lib/content-library";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { WorkspaceOverview } from "@/components/marketing-views";
 import { useMarketingWorkspace } from "@/components/marketing-provider";
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/_authenticated/painel")({
   component: Painel,
 });
 function Painel() {
-  const { data } = useMarketingWorkspace();
+  const { data, setData } = useMarketingWorkspace();
   const navigate = useNavigate();
   const { data: company } = useCompany();
   const { data: kit } = useBrandKit(company?.id);
@@ -36,6 +37,22 @@ function Painel() {
   return (
     <WorkspaceOverview
       data={data}
+      onLibrary={() => void navigate({ to: "/conteudo", search: { aba: "biblioteca" } })}
+      onResumeSaved={(id, version) => {
+        if (
+          !window.confirm(
+            "Retomar esta versão? Guarde antes o rascunho atual que deseja manter. A aprovação deverá ser refeita.",
+          )
+        )
+          return;
+        const item = data.library.items.find((item) => item.id === id);
+        if (!item) return;
+        setData((current) => resumeLibraryVersion(current, id, version));
+        void navigate({
+          to: "/conteudo",
+          search: { aba: item.kind === "generic" ? "peca" : "saude" },
+        });
+      }}
       onSection={section}
       onEditBrief={() =>
         void navigate({ to: "/diagnostico", search: { editar: "contexto", retorno: "painel" } })
@@ -48,7 +65,29 @@ function Painel() {
       metricsState={
         snapshots.isError ? "error" : company?.id && snapshots.isPending ? "loading" : "ready"
       }
-      onChooseApproach={() => void navigate({ to: "/conteudo", search: { aba: "abordagens" } })}
+      onChooseApproach={(approach) => {
+        if (approach)
+          setData((current) => ({
+            ...current,
+            brand: {
+              ...current.brand,
+              preferredApproach: approach,
+              pieceBrief: {
+                ...(current.brand.pieceBrief ?? {
+                  idea: "",
+                  goal: "",
+                  audience: "",
+                  constraints: "",
+                  ratio: "4:5" as const,
+                }),
+                asNew: true,
+                format: approach === "educate" ? ("carousel" as const) : ("image" as const),
+              },
+            },
+          }));
+        void navigate({ to: "/conteudo", search: { aba: "briefing" } });
+      }}
+      onEditPiece={() => void navigate({ to: "/conteudo", search: { aba: "peca" } })}
     />
   );
 }

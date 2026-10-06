@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system Nukkia — paleta "Cérebro Tech".
- * Roxo Profundo #2A0845 · Azul Elétrico #3B82F6 · Ciano Neon #06B6D4 · Branco Neutro #F8FAFC
+ * Nukkia — official visual system (docs/nukkia-visual-system.md).
+ * Atlantic: Ink #122B3A · Teal #006C72 · Cyan #56C8C8 · Paper #FFFFFF
  * Tipografia: Sora (títulos) e Manrope (texto).
  */
 
@@ -62,93 +62,113 @@
 }
 
 :root {
+  color-scheme: light;
+  --nukkia-bg: #ffffff;
+  --nukkia-surface: #ffffff;
+  --nukkia-subtle: #dff1ed;
+  --nukkia-hover: #d0e9e6;
+  --nukkia-text: #122b3a;
+  --nukkia-muted: #526873;
+  --nukkia-action: #006c72;
+  --nukkia-on-action: #ffffff;
+  --nukkia-border: #c9dcdf;
+  --nukkia-focus: #006c72;
+  --nukkia-accent: #006c72;
   --radius: 0.875rem;
   --font-heading: "Sora", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Manrope", ui-sans-serif, system-ui, sans-serif;
 
-  --brand-deep: oklch(0.219 0.121 305.5);
-  --brand-blue: oklch(0.623 0.214 259.8);
-  --brand-cyan: oklch(0.715 0.143 215.2);
+  --brand-deep: #122b3a;
+  --brand-blue: #006c72;
+  --brand-cyan: #56c8c8;
 
-  --background: oklch(0.984 0.003 247.86);
-  --foreground: oklch(0.219 0.121 305.5);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.219 0.121 305.5);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.219 0.121 305.5);
-  /* Darkened from --brand-blue's 0.623 to 0.52 — white text on the original
-     value measured ~3.7:1, short of WCAG AA's 4.5:1 for normal-size text
-     (UI/UX review). --brand-blue itself is untouched (still used for
-     gradients/branding where text contrast doesn't apply). */
-  --primary: oklch(0.52 0.214 259.8);
-  --primary-foreground: oklch(0.99 0.005 250);
-  --secondary: oklch(0.955 0.012 260);
-  --secondary-foreground: oklch(0.219 0.121 305.5);
-  --muted: oklch(0.955 0.012 260);
-  --muted-foreground: oklch(0.52 0.045 285);
-  --accent: oklch(0.715 0.143 215.2);
-  --accent-foreground: oklch(0.18 0.09 305);
+  --background: var(--nukkia-bg);
+  --foreground: var(--nukkia-text);
+  --card: var(--nukkia-surface);
+  --card-foreground: var(--nukkia-text);
+  --popover: var(--nukkia-surface);
+  --popover-foreground: var(--nukkia-text);
+  --primary: var(--nukkia-action);
+  --primary-foreground: var(--nukkia-on-action);
+  --secondary: var(--nukkia-subtle);
+  --secondary-foreground: var(--nukkia-text);
+  --muted: var(--nukkia-subtle);
+  --muted-foreground: var(--nukkia-muted);
+  --accent: var(--nukkia-hover);
+  --accent-foreground: var(--nukkia-text);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.99 0.005 250);
   --success: oklch(0.66 0.16 155);
   --success-foreground: oklch(0.16 0.05 160);
   --warning: oklch(0.79 0.16 78);
   --warning-foreground: oklch(0.24 0.07 70);
-  --border: oklch(0.905 0.017 265);
-  --input: oklch(0.905 0.017 265);
-  --ring: oklch(0.623 0.214 259.8);
-  --chart-1: oklch(0.623 0.214 259.8);
-  --chart-2: oklch(0.715 0.143 215.2);
-  --chart-3: oklch(0.45 0.18 305);
-  --chart-4: oklch(0.79 0.16 78);
-  --chart-5: oklch(0.66 0.16 155);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.219 0.121 305.5);
-  --sidebar-primary: oklch(0.623 0.214 259.8);
-  --sidebar-primary-foreground: oklch(0.99 0.005 250);
-  --sidebar-accent: oklch(0.955 0.012 260);
-  --sidebar-accent-foreground: oklch(0.219 0.121 305.5);
-  --sidebar-border: oklch(0.905 0.017 265);
-  --sidebar-ring: oklch(0.623 0.214 259.8);
+  --border: var(--nukkia-border);
+  --input: var(--nukkia-border);
+  --ring: var(--nukkia-focus);
+  --chart-1: #006c72;
+  --chart-2: #56c8c8;
+  --chart-3: #3e718b;
+  --chart-4: #c18a46;
+  --chart-5: #408e72;
+  --sidebar: var(--nukkia-surface);
+  --sidebar-foreground: var(--nukkia-text);
+  --sidebar-primary: var(--nukkia-action);
+  --sidebar-primary-foreground: var(--nukkia-on-action);
+  --sidebar-accent: var(--nukkia-subtle);
+  --sidebar-accent-foreground: var(--nukkia-text);
+  --sidebar-border: var(--nukkia-border);
+  --sidebar-ring: var(--nukkia-focus);
 }
 
 .dark {
-  --background: oklch(0.163 0.072 303);
-  --foreground: oklch(0.975 0.006 250);
-  --card: oklch(0.212 0.084 303);
-  --card-foreground: oklch(0.975 0.006 250);
-  --popover: oklch(0.212 0.084 303);
-  --popover-foreground: oklch(0.975 0.006 250);
-  --primary: oklch(0.66 0.2 260);
-  --primary-foreground: oklch(0.14 0.06 303);
-  --secondary: oklch(0.26 0.08 300);
-  --secondary-foreground: oklch(0.975 0.006 250);
-  --muted: oklch(0.26 0.08 300);
-  --muted-foreground: oklch(0.74 0.035 280);
-  --accent: oklch(0.755 0.135 213);
-  --accent-foreground: oklch(0.14 0.06 303);
+  color-scheme: dark;
+  --nukkia-bg: #0b202b;
+  --nukkia-surface: #15333f;
+  --nukkia-subtle: #1c414b;
+  --nukkia-hover: #25515a;
+  --nukkia-text: #f5f9fa;
+  --nukkia-muted: #adc3cb;
+  --nukkia-action: #56c8c8;
+  --nukkia-on-action: #0b202b;
+  --nukkia-border: #365761;
+  --nukkia-focus: #56c8c8;
+  --nukkia-accent: #78d7d3;
+  --background: var(--nukkia-bg);
+  --foreground: var(--nukkia-text);
+  --card: var(--nukkia-surface);
+  --card-foreground: var(--nukkia-text);
+  --popover: var(--nukkia-surface);
+  --popover-foreground: var(--nukkia-text);
+  --primary: var(--nukkia-action);
+  --primary-foreground: var(--nukkia-on-action);
+  --secondary: var(--nukkia-subtle);
+  --secondary-foreground: var(--nukkia-text);
+  --muted: var(--nukkia-subtle);
+  --muted-foreground: var(--nukkia-muted);
+  --accent: var(--nukkia-hover);
+  --accent-foreground: var(--nukkia-text);
   --destructive: oklch(0.68 0.19 22);
   --destructive-foreground: oklch(0.98 0.005 250);
   --success: oklch(0.72 0.15 155);
-  --success-foreground: oklch(0.14 0.06 303);
+  --success-foreground: #0b202b;
   --warning: oklch(0.83 0.15 80);
   --warning-foreground: oklch(0.18 0.06 70);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.66 0.2 260);
-  --chart-1: oklch(0.66 0.2 260);
-  --chart-2: oklch(0.755 0.135 213);
-  --chart-3: oklch(0.62 0.2 310);
-  --chart-4: oklch(0.83 0.15 80);
-  --chart-5: oklch(0.72 0.15 155);
-  --sidebar: oklch(0.19 0.08 303);
-  --sidebar-foreground: oklch(0.975 0.006 250);
-  --sidebar-primary: oklch(0.66 0.2 260);
-  --sidebar-primary-foreground: oklch(0.14 0.06 303);
-  --sidebar-accent: oklch(0.26 0.08 300);
-  --sidebar-accent-foreground: oklch(0.975 0.006 250);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.66 0.2 260);
+  --border: var(--nukkia-border);
+  --input: var(--nukkia-border);
+  --ring: var(--nukkia-focus);
+  --chart-1: #56c8c8;
+  --chart-2: #a3e3db;
+  --chart-3: #7badc4;
+  --chart-4: #e9be7c;
+  --chart-5: #81cba8;
+  --sidebar: var(--nukkia-surface);
+  --sidebar-foreground: var(--nukkia-text);
+  --sidebar-primary: var(--nukkia-action);
+  --sidebar-primary-foreground: var(--nukkia-on-action);
+  --sidebar-accent: var(--nukkia-subtle);
+  --sidebar-accent-foreground: var(--nukkia-text);
+  --sidebar-border: var(--nukkia-border);
+  --sidebar-ring: var(--nukkia-focus);
 }
 
 @layer base {
@@ -194,26 +214,7 @@
 
 /* Nukkia workspace. Scoped so the public site retains its existing theme. */
 .nukkia-workspace {
-  color-scheme: dark;
-  --background: #08071a;
-  --foreground: #f8faff;
-  --card: #100d2b;
-  --card-foreground: #f8faff;
-  --popover: #17133a;
-  --popover-foreground: #f8faff;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --secondary: #17133a;
-  --secondary-foreground: #f8faff;
-  --muted: #17133a;
-  --muted-foreground: #a8b2c7;
-  --accent: #14cbe3;
-  --accent-foreground: #09051f;
-  --border: #30345b;
-  --input: #3b416d;
-  --ring: #3b82f6;
-  --sidebar: #0d0925;
-  --sidebar-foreground: #f8faff;
+  color-scheme: inherit;
   --font-heading: "Sora", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
@@ -223,7 +224,7 @@
 .nukkia-workspace input:not([type="checkbox"]):not([type="radio"]),
 .nukkia-workspace textarea,
 .nukkia-workspace select {
-  background-color: #17191d;
+  background-color: var(--nukkia-surface);
 }
 .nukkia-workspace select {
   min-height: 44px;
@@ -236,14 +237,14 @@
   cursor: pointer;
 }
 .nukkia-workspace :focus-visible {
-  outline: 2px solid #60a5fa;
+  outline: 2px solid var(--nukkia-focus);
   outline-offset: 3px;
 }
 
 /* One continuous logo movement: center of the viewport -> quiet header mark.
    The official source stays untouched; the dark treatment is presentation-only. */
 .nukkia-welcome {
-  --background: #000;
+  --background: var(--nukkia-bg);
   overflow-x: clip;
 }
 .nukkia-welcome-logo {

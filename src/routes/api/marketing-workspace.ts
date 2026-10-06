@@ -125,6 +125,17 @@ async function handleRequest(request: Request): Promise<Response> {
       if (!input.success) return json({ message: "Dados do espaço inválidos" }, 400);
       const data = parseWorkspace(input.data.data);
       if (!data.success) return json({ message: "Dados do espaço inválidos" }, 400);
+      if (
+        input.data.expectedRevision !== null &&
+        (input.data.data as Record<string, unknown>)["workspaceSchemaVersion"] !== 3
+      )
+        return json(
+          {
+            code: "WORKSPACE_UPGRADE_REQUIRED",
+            message: "Atualize a página antes de salvar. Seu rascunho local foi preservado.",
+          },
+          426,
+        );
       companyId = input.data.companyId;
       mutation = { data: data.data, expectedRevision: input.data.expectedRevision };
     }

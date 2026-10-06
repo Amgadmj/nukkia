@@ -1,0 +1,22 @@
+{
+  "src/components/workspace-skeleton.tsx": "0c07fac80127ad00d2dea039bc59f2ebe25c621512903e889f9ab76cc25f4b92",
+  "src/components/workspace-skeleton.css": "19636f5a49b302be96259ae3bc98a4c428bffdc97f0a9122fd3a8d56cf47374e",
+  "src/lib/workspace-loading.ts": "cb003c1b48123706bc71084ea68c04c04e48dd4bc24240e26dd9c621e907c5c9",
+  "src/components/marketing-provider.tsx": "b748a25a4e75f2be3740889a77827152b3df6d0c8b14d354f901e6d83090e15a",
+  "src/routes/_authenticated/route.tsx": "ba0c7ab089a5850fa8e2445fea12382d11249be2a02625b0d5575d0ce1e9c231",
+  "src/components/workspace-shell.tsx": "b0e33828159b422f17348661ad02ab48534a86015dd951132dd53960b1ffffd0",
+  "src/components/demo-workspace.tsx": "06a51ac17402012d7be41a50e40b62490fae5054cec2f28deb3d4ee63f851481",
+  "src/components/app-shell.tsx": "6eb8a12dc0d0e6b75f5adbaa87a47eb8c043cd6d279c8aebb62f1b57b78ae8ba",
+  "src/routes/_authenticated/trilha.tsx": "bda5ba6b32f8e347351cf0b3ae759c424e543a187736a0fb69db9d211a3f0195",
+  "src/routes/_authenticated/redes.tsx": "fb5939d9532fc02af59d0063cbbbed81ffea50baac20dee92e350a26ffca09c8",
+  "src/routes/_authenticated/diagnostico.tsx": "9caa6ecf7ebd5ca82906d0fa7292faef5325e717d06c41de3a9780452c9d768c",
+  "src/routes/_authenticated/metricas.tsx": "1167c7c576919184adce2355e48ab3c3156a1470c42a4b40bd3a0aa1b6548539",
+  "src/routes/_authenticated/conteudo.tsx": "f553abe6c57752941ea250d3f9cfb147c97e9d3dcad992fd04201e27ba0f8533",
+  "tests/marketing-workspace-state.test.ts": "718e25e472011549d9f49e1aff9c0b68b5672214cb24319f54b8453c720cf2d3",
+  "tests/workspace-shell-ui.test.ts": "ac3788f92b4aec1d17c78961febad58bd0b4baad26569b7759bfef4083a0c641",
+  "tests/welcome-integration.test.ts": "e7a9e5c5125696385f5689756677227942b44099bff081d3cfb27c4508575f79",
+  "tests/channel-coherence.test.ts": "3cd5ed0f832f062bb2b6fbdbc9a2ce112208356a6eedff1dc522ba423c5800b3",
+  "tests/planner-ui.test.ts": "454cb4d3fc9baa994462ab72de846f00cc78884ee3d45545e5c7a7b8781d9567",
+  "tests/app-shell-loading.test.ts": "c25638d02d5ec4e1d9bb67f6afeb9118b0bdf0b4422af0a2c5febca303714676",
+  "tests/workspace-save-placement.test.ts": "bf325a3dbef4013aabe0ab5002ea8ad95b7843a02937b8631cc3d0916028a33c"
+}

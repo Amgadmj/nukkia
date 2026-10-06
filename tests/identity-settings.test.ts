@@ -1,3 +1,4 @@
+import * as art from "../src/lib/post-art.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -177,6 +178,7 @@ function mount({
     "@/lib/onboarding": onboarding,
     "@/lib/marketing-workspace": workspace,
     "@/lib/brand-research": research,
+    "@/components/inspiration-board": { InspirationBoard: "inspiration-board" },
     "./brand-onboarding": {},
     "./brand-sources": {},
     "./research-suggestions": {},
@@ -192,10 +194,12 @@ function mount({
       "SelectTrigger",
       "SelectValue",
     ]),
+    "@/lib/use-logo-url": { useLogoUrl: (value: string | null) => ({ url: value }) },
     "@/lib/brand-preview": preview,
     "@/lib/brand-story": story,
     "@/lib/quick-start": quick,
     "@/lib/post-art": {
+      ...art,
       prepareAsset: async (file: File) => {
         if (prepareImage) return prepareImage(file);
         if (file.type === "image/svg+xml") throw new Error("Use PNG, JPG ou WebP de até 5 MB.");
@@ -652,3 +656,13 @@ for (const retorno of ["painel", "trilha", "conteudo"] as const) {
     assert.deepEqual(ui.navigations, []);
   });
 }
+
+test("identity returns to the originating piece briefing after confirmation", () => {
+  const ui = mount({ search: { retorno: "conteudo", origemConteudo: "briefing" } });
+  nodes(ui.render())
+    .find((x) => x.type === "button" && text(x).includes("Confirmar ajustes"))!
+    .props.onClick();
+  assert.deepEqual(JSON.parse(JSON.stringify(ui.navigations)), [
+    { to: "/conteudo", search: { aba: "briefing" } },
+  ]);
+});

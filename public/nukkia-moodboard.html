@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Nukkia — duas direções de cor</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: #f1f1ec;
+        color: #142522;
+        font-family: Manrope, Arial, sans-serif;
+      }
+      h1,
+      h2,
+      h3,
+      .wordmark {
+        font-family: Sora, Arial, sans-serif;
+      }
+      button,
+      a {
+        font: inherit;
+      }
+      button:focus-visible,
+      a:focus-visible {
+        outline: 3px solid #00758b;
+        outline-offset: 5px;
+      }
+      a {
+        color: inherit;
+      }
+      header {
+        padding: 48px 5vw 32px;
+        max-width: 1500px;
+        margin: auto;
+      }
+      .topline {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .wordmark {
+        font-size: 28px;
+        letter-spacing: -1.4px;
+        font-weight: 600;
+      }
+      .mark {
+        display: inline-block;
+        width: 30px;
+        height: 35.25px;
+        overflow: hidden;
+        position: relative;
+        mix-blend-mode: multiply;
+      }
+      .mark img {
+        position: absolute;
+        width: 275%;
+        max-width: none;
+        height: auto;
+        left: -87.5%;
+        top: -43.5%;
+        filter: grayscale(1) invert(1) brightness(2) contrast(1.4) invert(1);
+      }
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+      .lede {
+        max-width: 770px;
+        font-size: 17px;
+        line-height: 1.7;
+        color: #4e605d;
+      }
+      h1 {
+        font-size: clamp(32px, 4.2vw, 60px);
+        letter-spacing: -0.05em;
+        line-height: 1.12;
+        margin: 34px 0 18px;
+        font-weight: 500;
+      }
+      nav {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 22px;
+      }
+      nav a,
+      .toggle {
+        border: 1px solid #bac8c3;
+        padding: 10px 16px;
+        border-radius: 30px;
+        text-decoration: none;
+        background: transparent;
+        cursor: pointer;
+      }
+      .directions {
+        max-width: 1500px;
+        padding: 0 5vw;
+        margin: auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 26px;
+      }
+      .direction {
+        min-width: 0;
+        --ink: #122b3a;
+        --primary: #006c72;
+        --accent: #56c8c8;
+        --wash: #dff1ed;
+        --paper: #f5f9fa;
+        --line: #d5e2e5;
+        --muted: #4c626c;
+        --night: #0b202b;
+        --nightpanel: #15333f;
+        --on: #fff;
+        background: var(--paper);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        overflow: hidden;
+      }
+      .direction[data-palette="eucalyptus"] {
+        --ink: #193c34;
+        --primary: #336859;
+        --accent: #b76646;
+        --wash: #e3eadb;
+        --paper: #faf8f2;
+        --line: #dcded0;
+        --muted: #566359;
+        --night: #152b24;
+        --nightpanel: #233e34;
+      }
+      .intro {
+        padding: 32px 30px 24px;
+      }
+      .intro h2 {
+        font-size: 34px;
+        letter-spacing: -0.05em;
+        margin: 8px 0 12px;
+        font-weight: 500;
+      }
+      .intro p {
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--muted);
+        margin: 0;
+      }
+      .concept {
+        height: 210px;
+        padding: 26px 30px;
+        background: var(--ink);
+        color: var(--paper);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: flex-end;
+      }
+      .concept strong {
+        position: relative;
+        z-index: 1;
+        font: 500 32px/1.15 Sora;
+        letter-spacing: -0.035em;
+        max-width: 260px;
+      }
+      .shape {
+        position: absolute;
+        width: 270px;
+        height: 270px;
+        right: -28px;
+        top: -90px;
+        border: 36px solid var(--accent);
+        border-radius: 50%;
+        opacity: 0.8;
+      }
+      .shape:after {
+        content: "";
+        position: absolute;
+        inset: 25px;
+        border: 1px solid var(--paper);
+        border-radius: 50%;
+      }
+      .direction[data-palette="eucalyptus"] .shape {
+        border-radius: 60% 10% 60% 10%;
+        transform: rotate(-15deg);
+        top: -70px;
+        right: -80px;
+        border-width: 50px;
+      }
+      .material {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding: 18px 24px;
+      }
+      .texture {
+        height: 80px;
+        border-radius: 12px;
+        background:
+          repeating-linear-gradient(105deg, transparent, transparent 3px, #ffffff35 4px),
+          var(--wash);
+        padding: 16px;
+        color: var(--ink);
+        font-size: 12px;
+        display: flex;
+        align-items: end;
+      }
+      .texture:last-child {
+        background:
+          radial-gradient(circle at 80% 20%, var(--accent), transparent 65%), var(--paper);
+        border: 1px solid var(--line);
+      }
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        padding: 6px 24px 24px;
+        gap: 7px;
+      }
+      .swatch {
+        min-width: 0;
+      }
+      .chip {
+        height: 65px;
+        border-radius: 9px;
+        border: 1px solid #00000014;
+      }
+      .swatch span {
+        display: block;
+        font-size: 10px;
+        line-height: 1.5;
+        margin-top: 5px;
+      }
+      .swatch code {
+        font-size: 10px;
+      }
+      .sample-wrap {
+        padding: 0 24px 24px;
+      }
+      .sample-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .sample-label h3 {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .toggle {
+        font-size: 11px;
+        padding: 7px 10px;
+        border-color: var(--line);
+        color: var(--ink);
+      }
+      .sample {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 10px 40px #14252207;
+        display: grid;
+        grid-template-columns: 102px 1fr;
+        min-height: 300px;
+      }
+      .mini-nav {
+        padding: 20px 12px;
+        border-right: 1px solid var(--line);
+        background: var(--paper);
+        font-size: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .mini-nav .brand {
+        gap: 4px;
+      }
+      .mini-nav .mark {
+        width: 16px;
+        height: 19px;
+      }
+      .mini-nav .wordmark {
+        font-size: 17px;
+        letter-spacing: -0.7px;
+      }
+      .mini-nav .selected {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--wash);
+        padding: 8px;
+        border-radius: 6px;
+        margin-left: -5px;
+      }
+      .mini-content {
+        padding: 20px;
+        min-width: 0;
+      }
+      .mini-title {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 24px;
+      }
+      .mini-content h3 {
+        font-size: 18px;
+        letter-spacing: -0.04em;
+        margin: 0 0 9px;
+      }
+      .mini-content p {
+        font-size: 11px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+      .mini-actions {
+        display: flex;
+        gap: 7px;
+        margin: 18px 0;
+      }
+      .cta {
+        display: inline-block;
+        background: var(--primary);
+        color: white;
+        padding: 9px 12px;
+        border-radius: 7px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+      .secondary {
+        display: inline-block;
+        border: 1px solid var(--line);
+        padding: 9px 10px;
+        border-radius: 7px;
+        font-size: 10px;
+      }
+      .draft {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+      }
+      .art {
+        width: 52px;
+        min-width: 52px;
+        height: 62px;
+        background: var(--wash);
+        border-radius: 5px;
+        display: grid;
+        place-items: center;
+        color: var(--ink);
+        font: 500 9px/1.4 Sora;
+        text-align: center;
+      }
+      .draft b {
+        font-size: 10px;
+      }
+      .draft p {
+        font-size: 9px;
+        margin: 4px 0;
+      }
+      .tag {
+        font-size: 9px;
+        color: var(--muted);
+      }
+      .sample.dark {
+        background: var(--night);
+        color: var(--paper);
+        --line: #ffffff26;
+        --muted: #becfc9;
+      }
+      .sample.dark .mini-nav {
+        background: var(--nightpanel);
+      }
+      .sample.dark .mark {
+        mix-blend-mode: screen;
+      }
+      .sample.dark .mark img {
+        filter: grayscale(1) invert(1) brightness(2) contrast(1.4);
+      }
+      .sample.dark .mini-nav .selected {
+        background: var(--night);
+        color: var(--paper);
+      }
+      .sample.dark .secondary {
+        color: var(--paper);
+      }
+      .notes {
+        padding: 0 30px 30px;
+        font-size: 12px;
+        line-height: 1.7;
+        color: var(--muted);
+      }
+      .notes strong {
+        color: var(--ink);
+      }
+      .rules {
+        max-width: 1400px;
+        margin: 30px auto 0;
+        padding: 28px 5vw 48px;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 30px;
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .rules h3 {
+        font-size: 14px;
+      }
+      .rules p {
+        color: #4e605d;
+      }
+      footer {
+        border-top: 1px solid #d6ded8;
+        padding: 22px 5vw;
+        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        color: #4e605d;
+      }
+      .comparison {
+        padding: 20px 5vw 0;
+        max-width: 1500px;
+        margin: auto;
+        font-size: 13px;
+        line-height: 1.8;
+      }
+      @media (max-width: 900px) {
+        .directions {
+          grid-template-columns: 1fr;
+        }
+        .rules {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        .intro {
+          padding: 26px 24px;
+        }
+        .topline {
+          align-items: start;
+        }
+        header {
+          padding-top: 24px;
+        }
+        .sample {
+          grid-template-columns: 86px 1fr;
+        }
+        .mini-content {
+          padding: 16px;
+        }
+        .swatches {
+          gap: 5px;
+        }
+        .swatch code {
+          font-size: 9px;
+        }
+        footer {
+          flex-direction: column;
+        }
+      }
+      @media print {
+        nav,
+        .toggle {
+          display: none;
+        }
+        .directions {
+          display: block;
+        }
+        .direction {
+          break-inside: avoid;
+          margin-bottom: 30px;
+        }
+        .rules {
+          display: block;
+        }
+        body {
+          background: white;
+        }
+        * {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="topline">
+        <span class="brand"
+          ><span class="mark"><img src="/nukkia-official.jpg" alt="" /></span
+          ><span class="wordmark">nukkia</span></span
+        ><span class="eyebrow">Estudo de identidade · Saúde</span>
+      </div>
+      <h1>Duas formas de dar<br />presença ao cuidado.</h1>
+      <p class="lede">
+        Uma Nukkia sem roxo. Duas propostas de cor para uma plataforma de conteúdo voltada a
+        clínicas e profissionais de saúde — com o símbolo oficial e a mesma tipografia.
+      </p>
+      <nav aria-label="Direções de cor">
+        <a href="#atlantic">Explorar Atlantic ↘</a><a href="#eucalyptus">Explorar Eucalyptus ↘</a>
+      </nav>
+    </header>
+    <main>
+      <div class="directions">
+        <article class="direction" id="atlantic" data-palette="atlantic">
+          <div class="intro">
+            <span class="eyebrow">Clareza clínica · tecnologia tranquila</span>
+            <h2>Atlantic</h2>
+            <p>
+              Azul profundo e teal para uma plataforma precisa e contemporânea. Superfícies claras
+              dão espaço ao conteúdo; o contraste concentra a atenção nas decisões.
+            </p>
+          </div>
+          <div class="concept">
+            <span class="shape" aria-hidden="true"></span
+            ><strong>Comunicação clara.<br />Cuidado presente.</strong>
+          </div>
+          <div class="material">
+            <div class="texture">Vidro fosco · luz natural</div>
+            <div class="texture">Água · espaço · precisão</div>
+          </div>
+          <div class="swatches">
+            <div class="swatch">
+              <div class="chip" style="background: #122b3a"></div>
+              <span>Tinta</span><code>#122B3A</code>
+            </div>
+            <div class="swatch">
+              <div class="chip" style="background: #006c72"></div>
+              <span>Ação</span><code>#006C72</code>
+            </div>
+            <div class="swatch">
+              <div class="chip" style="background: #56c8c8"></div>
+              <span>Acento</span><code>#56C8C8</code>
+            </div>
+            <div class="swatch">
+              <div class="chip" style="background: #dff1ed"></div>
+              <span>Apoio</span><code>#DFF1ED</code>
+            </div>
+            <div class="swatch">
+              <div class="chip" style="background: #f5f9fa"></div>
+              <span>Fundo</span><code>#F5F9FA</code>
+            </div>
+          </div>
+          <div class="sample-wrap">
+            <div class="sample-label">
+              <h3>Aplicação no produto · exemplo visual</h3>
+              <button class="toggle" data-target="sample-atlantic" aria-pressed="false">
+                Ver tema escuro
+              </button>
+            </div>
+            <div class="sample" id="sample-atlantic">
+              <aside class="mini-nav">
+                <span class="brand"
+                  ><span class="mark"><img src="/nukkia-official.jpg" alt="" /></span
+                  ><span class="wordmark">nukkia</span></span
+                ><span>Meu painel</span><span>Minha trilha</span
+                ><span class="selected">Conteúdo</span><span>Cérebro</span><span>Identidade</span>
+              </aside>
+              <div class="mini-content">
+                <div class="mini-title"><span>Conteúdo</span><span>Clínica exemplo</span></div>
+                <h3>O que vamos comunicar?</h3>
+                <p>Escolha uma ideia e prepare o próximo conteúdo da sua clínica.</p>
+                <div class="mini-actions">
+                  <span class="cta">Criar conteúdo ↗</span><span class="secondary">Biblioteca</span>
+                </div>
+                <div class="draft">
+                  <div class="art">A sua<br />primeira<br />consulta.</div>
+                  <div>
+                    <b>Conheça nossa equipe</b>
+                    <p>Carrossel · versão 2</p>
+                    <span class="tag">Rascunho · exemplo fictício</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="notes">
+            <p>
+              <strong>Por que considerar.</strong> Minha recomendação para a Nukkia: mantém um
+              vínculo visual com tecnologia e saúde, sem depender do roxo. O teal deve ocupar as
+              ações; o ciano fica em pequenos detalhes.
+            </p>
+            <p>
+              <strong>Atenção na aplicação.</strong> Mais próximo da linguagem visual já familiar em
+              produtos de saúde. A diferenciação depende também da tipografia, do símbolo e da
+              composição.
+            </p>
+          </div>
+        </article>
+        <article class="direction" id="eucalyptus" data-palette="eucalyptus">
+          <div class="intro">
+            <span class="eyebrow">Proximidade · cuidado · presença editorial</span>
+            <h2>Eucalyptus</h2>
+            <p>
+              Verde profundo, marfim e argila para uma marca mais acolhedora. Uma direção editorial
+              para clínicas e profissionais que querem comunicar com seriedade e presença humana.
+            </p>
+          </div>
+          <div class="concept">
+            <span class="shape" aria-hidden="true"></span
+            ><strong>Sua prática.<br />Sua presença.</strong>
+          </div>
+          <div class="material">
+            <div class="texture">Papel mineral · calor suave</div>
+            <div class="texture">Folhagem · luz · matéria</div>
+          </div>
+          <div class="swatches">
+            <div class="swatch">
+              <div class="chip" style="background: #193c34"></div>
+              <span>Tinta</span><code>#193C34</code>
+            </div>
+            <div class="swatch">
+              <div class="chip" style="background: #336859"></div>
+              <span>Ação</span><code>#336859</code>
+            </div>
+            <div class="swatch">
+              <div class="chip" style="background: #b76646"></div>
+              <span>Acento</span><code>#B76646</code>
+            </div>
+            <div class="swatch">
+              <div class="chip" style="background: #e3eadb"></div>
+              <span>Apoio</span><code>#E3EADB</code>
+            </div>
+            <div class="swatch">
+              <div class="chip" style="background: #faf8f2"></div>
+              <span>Fundo</span><code>#FAF8F2</code>
+            </div>
+          </div>
+          <div class="sample-wrap">
+            <div class="sample-label">
+              <h3>Aplicação no produto · exemplo visual</h3>
+              <button class="toggle" data-target="sample-eucalyptus" aria-pressed="false">
+                Ver tema escuro
+              </button>
+            </div>
+            <div class="sample" id="sample-eucalyptus">
+              <aside class="mini-nav">
+                <span class="brand"
+                  ><span class="mark"><img src="/nukkia-official.jpg" alt="" /></span
+                  ><span class="wordmark">nukkia</span></span
+                ><span>Meu painel</span><span>Minha trilha</span
+                ><span class="selected">Conteúdo</span><span>Cérebro</span><span>Identidade</span>
+              </aside>
+              <div class="mini-content">
+                <div class="mini-title"><span>Conteúdo</span><span>Clínica exemplo</span></div>
+                <h3>O que vamos comunicar?</h3>
+                <p>Escolha uma ideia e prepare o próximo conteúdo da sua clínica.</p>
+                <div class="mini-actions">
+                  <span class="cta">Criar conteúdo ↗</span><span class="secondary">Biblioteca</span>
+                </div>
+                <div class="draft">
+                  <div class="art">A sua<br />primeira<br />consulta.</div>
+                  <div>
+                    <b>Conheça nossa equipe</b>
+                    <p>Carrossel · versão 2</p>
+                    <span class="tag">Rascunho · exemplo fictício</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="notes">
+            <p>
+              <strong>Por que considerar.</strong> Uma alternativa mais distinta: verde estrutural e
+              neutros quentes. A argila aparece em detalhes editoriais; ações principais continuam
+              verdes.
+            </p>
+            <p>
+              <strong>Atenção na aplicação.</strong> Pode se aproximar de bem-estar ou hotelaria se
+              houver excesso de tons naturais. Manter dados, hierarquia e controles precisos para
+              sustentar o contexto de saúde.
+            </p>
+          </div>
+        </article>
+      </div>
+      <section class="rules" aria-label="Regras compartilhadas">
+        <div>
+          <h3>Tipografia e símbolo</h3>
+          <p>
+            Sora nos títulos, Manrope na leitura. Símbolo oficial preservado em uma cor; sem cruzes
+            médicas genéricas, novos mascotes ou selos de autoridade.
+          </p>
+        </div>
+        <div>
+          <h3>Cor com uma função</h3>
+          <p>
+            Fundos neutros predominam. Uma cor de ação por direção. Erros, alertas e conclusão
+            mantêm ícone e texto próprios; cor de marca não significa aprovação clínica.
+          </p>
+        </div>
+        <div>
+          <h3>Conteúdo humano</h3>
+          <p>
+            Na fotografia futura: ambientes reais e profissionais autorizados, luz natural e
+            enquadramento respeitoso. Sem pacientes identificáveis, antes/depois ou promessas de
+            resultado.
+          </p>
+        </div>
+      </section>
+      <section class="comparison">
+        <strong>Contraste das ações:</strong> <span id="contrast"></span>
+        <p>
+          Atlantic aprovada e aplicada à interface da Nukkia. Os cartões acima são exemplos visuais;
+          somente os controles de tema e navegação desta página são interativos.
+        </p>
+      </section>
+    </main>
+    <footer>
+      <span>Nukkia · estudo local de identidade · outubro de 2026</span
+      ><a href="/demo">Voltar à demonstração →</a>
+    </footer>
+    <script>
+      document.querySelectorAll(".toggle").forEach((button) =>
+        button.addEventListener("click", () => {
+          const dark = document.getElementById(button.dataset.target).classList.toggle("dark");
+          button.setAttribute("aria-pressed", String(dark));
+          button.textContent = dark ? "Ver tema claro" : "Ver tema escuro";
+        }),
+      );
+      function luminance(hex) {
+        const c = hex
+          .match(/[0-9a-f]{2}/gi)
+          .map((x) => parseInt(x, 16) / 255)
+          .map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+        return c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722;
+      }
+      document.getElementById("contrast").textContent = ["Atlantic #006C72", "Eucalyptus #336859"]
+        .map((v) => {
+          const [n, h] = v.split(" ");
+          return n + " " + (1.05 / (luminance(h) + 0.05)).toFixed(2) + ":1 com texto branco";
+        })
+        .join(" · ");
+    </script>
+  </body>
+</html>

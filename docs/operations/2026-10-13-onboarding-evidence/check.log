@@ -1,0 +1,963 @@
+
+> check
+> npm run test:onboarding && npm run typecheck && npm run lint && npm run build
+
+
+> test:onboarding
+> node --test --experimental-strip-types tests/*.test.ts
+
+✔ export paginates all owned stores, includes current workspace and reports failed reads (0.845917ms)
+✔ failure to determine ownership stops child-table export (0.218584ms)
+✔ nested and paginated storage files are all purged before account removal (0.174417ms)
+✔ purge errors abort deletion and keep it retryable (0.108291ms)
+✔ generateImageBase64 identifies depleted credits without retrying or logging provider response secrets (330.206125ms)
+✔ startVideoGeneration identifies depleted credits without retrying or logging provider response secrets (14.868375ms)
+✔ image generation defaults to gemini-3.1-flash-image (2.5 shuts down 2026-10-02) (202.858583ms)
+✔ GEMINI_IMAGE_MODEL still overrides the default (24.485125ms)
+✔ the final image is returned, never an interim thought image (31.133375ms)
+✔ a 2.5-style single inlineData part still works (8.916417ms)
+✔ a text-only response is a user-safe error (17.566166ms)
+✔ app shell waits for initial data, preserves mounted content during refresh, and links calendar (40.235333ms)
+✔ Atlantic :root reading and action pairs meet normal-text contrast (0.574917ms)
+✔ Atlantic .dark reading and action pairs meet normal-text contrast (0.076583ms)
+✔ application theme layers contain no legacy purple brand literals (5.605208ms)
+✔ legacy onboarding fields cannot force a dark background over the chosen theme (0.876542ms)
+✔ authentication follows the selected theme and uses the shared primary action (0.306958ms)
+✔ recovery returns only to this origin and password confirmation is required (0.381875ms)
+✔ HTML download uses the preview document, safe filename, and releases its object URL (38.03075ms)
+✔ sitemap parsing is same-site, bounded, entity-aware and separates nested indexes (7.215917ms)
+✔ priority links deduplicate tracking and skip query actions, assets and utility paths (0.701542ms)
+✔ extraction strips bounded testimonial, comment, team and cookie sections but keeps service facts (4.366458ms)
+✔ initial crawl reads eight prioritized pages with concurrency <=3 and immutable evidence snapshots (72.857667ms)
+✔ robots-declared sitemap discovery stays one nested level and obeys path restrictions (16.641541ms)
+✔ the shared sitemap URL budget prevents reading past 100 candidates across children (10.173125ms)
+✔ deadline cancels pending pages and returns evidence collected so far (1502.713125ms)
+✔ caller abort returns already collected sources and stops issuing requests (3.576292ms)
+✔ a deeper pass preserves old sources, suggestions and logo while discovering new links (8.641125ms)
+✔ page caps cannot exceed sixteen even when more priority links are available (19.080459ms)
+✔ redirect aliases yield only one source and cannot cross hosts or bypass robots (8.827167ms)
+✔ a sparse landing page still discovers readable service pages (6.185958ms)
+✔ relative links resolve against the fetched directory, not its deduplication key (6.304209ms)
+✔ reaching the page cap does not wait for slow optional sitemap discovery (4.557959ms)
+✔ DNS resolution is included in the global deadline and canceled before any connection (21.67925ms)
+✔ robots denial, mixed DNS answers, content caps and unsafe redirects still fail closed (12.842791ms)
+✔ resolver infrastructure failures fall back to the OS lookup and stay DNS-pinned (25.342041ms)
+✔ authoritative negative DNS answers never fall back to another resolver (0.736167ms)
+✔ the lookup fallback still rejects private or mixed answers before connecting (0.473583ms)
+✔ a hanging lookup fallback is bounded by the global deadline (51.754041ms)
+✔ resolver error classification separates infrastructure failures from answers (0.15325ms)
+✔ finishing onboarding stores direction without generating content or claiming delivery (1.851291ms)
+✔ replaying onboarding preserves an edited draft and never silently recomposes it (0.559209ms)
+✔ style selection survives storage and photo requirements follow the actual style (1.439709ms)
+✔ reviewing a different style requires identity confirmation again (0.263625ms)
+✔ selected styles change exported art and approval fingerprint (0.856542ms)
+✔ a photo-led style cannot be approved without a photo even for an educational approach (0.32175ms)
+✔ website entry accepts bare and www domains and produces one HTTPS URL (0.680792ms)
+✔ website entry rejects credentials, local addresses and non-web schemes (0.172208ms)
+✔ business Instagram accepts handle or profile URL without accepting another site or content URL (0.266333ms)
+✔ patient name, age and cancer narrative never enter provider evidence after extraction (4.751ms)
+✔ a Pilates quotation cannot substantiate swimming lessons as a fact (5.457458ms)
+✔ a session duration cannot substantiate the same number as a discount (0.514667ms)
+✔ ambiguous personal names stay local: Maria Silva recomenda nossas aulas de pilates. (0.555042ms)
+✔ ambiguous personal names stay local: João da Silva conhece nossos serviços. (0.065333ms)
+✔ ambiguous personal names stay local: Érica Gonçalves frequenta aulas em grupo. (0.064875ms)
+✔ ambiguous personal names stay local: MARIA SILVA participa de aulas de pilates. (0.117208ms)
+✔ ambiguous personal names stay local: Clínica Maria Silva oferece serviços de fisioterapia. (0.18875ms)
+✔ clinical and person data stay local: Aos 42 anos, participa das aulas em grupo. (0.1115ms)
+✔ clinical and person data stay local: A criança de 18 meses faz fisioterapia. (0.099542ms)
+✔ clinical and person data stay local: Diagnóstico de câncer e plano de fisioterapia individual. (0.05125ms)
+✔ clinical and person data stay local: O prontuário registra sessões de fisioterapia. (0.042875ms)
+✔ clinical and person data stay local: Tenho depressão e faço aulas de pilates. (0.029667ms)
+✔ clinical and person data stay local: Minha recuperação começou com a fisioterapia. (0.034916ms)
+✔ clinical and person data stay local: Nome: maria silva, curso de pilates. (0.024333ms)
+✔ clinical and person data stay local: Responsável: ana, agendamento de fisioterapia. (0.031ms)
+✔ clinical and person data stay local: Data de nascimento: 1990, aulas de pilates. (0.021791ms)
+✔ personal sections stay local until an explicit corporate heading resumes the content (0.412625ms)
+✔ corporate headings, brand labels and literal business descriptions survive minimization (2.040291ms)
+✔ manual material remains local and removed sources do not shift provider source IDs (0.082208ms)
+✔ literal facts retain their original source and collection date (1.319291ms)
+✔ unsupported name facts are rejected even when a real quotation exists (0.162041ms)
+✔ unsupported segment facts are rejected even when a real quotation exists (0.109792ms)
+✔ unsupported detail facts are rejected even when a real quotation exists (0.086166ms)
+✔ unsupported faq facts are rejected even when a real quotation exists (0.082875ms)
+✔ offers cannot invent attributes by labeling them an opportunity (0.124125ms)
+✔ detail cannot invent attributes by labeling them an opportunity (0.091583ms)
+✔ audience inference is explicitly a low-confidence hypothesis, never a fact (0.316584ms)
+✔ inference without an explanation is rejected (0.0845ms)
+✔ inferences cannot reuse numeric tokens with new units: {"value":"Público interessado em 90% de desconto"} (0.106416ms)
+✔ inferences cannot reuse numeric tokens with new units: {"value":"Público para sessões de 9 minutos"} (0.070625ms)
+✔ inferences cannot reuse numeric tokens with new units: {"value":"Público para sessões de 90 horas"} (0.061916ms)
+✔ inferences cannot reuse numeric tokens with new units: {"value":"Público interessado em planos de R$ 90"} (0.062ms)
+✔ inferences cannot reuse numeric tokens with new units: {"value":"Público interessado em planos","rationale":"Pode atrair público com 90% de desconto."} (0.094375ms)
+✔ an opportunity can reuse an actual number-unit pair without claiming it is confirmed (0.115666ms)
+✔ literal discounts retain their units, historical date and unconfirmed validity (0.133708ms)
+✔ a literal substring cannot hide a different discount inside a larger number (0.083334ms)
+✔ first piece accepts the same complete answers as the diagnosis without truncation (2.3ms)
+✔ invalid brief fields name the missing or oversized answer (0.30525ms)
+✔ the explanatory carousel also preserves whole words in its cover and detail (0.419042ms)
+✔ unfinished copy survives refresh without losing the brand or allowing approval (0.997791ms)
+✔ late research cannot replace a newer reference or confirmed human answers (0.217459ms)
+✔ approval covers text, brief and visual, with a bounded fingerprint (2.254375ms)
+✔ only suggestions quoting a collected source survive grounding (0.178916ms)
+✔ collector fails closed for private, literal and credentialed addresses (3.213375ms)
+✔ robots rules and page extraction keep scope narrow (4.171084ms)
+✔ collection discovers clinic and service pages without following external or utility links (1.0075ms)
+✔ logo filename is a fallback when its alt and class are generic (0.395125ms)
+✔ template bios are excluded with their associated names, not turned into brand facts (0.838875ms)
+✔ editing a social handle preserves its platform and discards tracking parameters (1.266416ms)
+✔ replacing a reference invalidates confirmation without laundering old evidence (1.88925ms)
+✔ editing the official site clears old research and consent while preserving user-written answers (0.534417ms)
+✔ correcting the official hostname to www saves the URL and requires fresh authorization (0.424208ms)
+✔ replacing a site clears untouched autofill but preserves user edits for fresh synthesis (0.378584ms)
+✔ invalid edits and missing references leave the workspace unchanged (0.2505ms)
+✔ repeated manual edits replace the prior URL instead of consuming additional link slots (1.986166ms)
+✔ cross-platform manual replacement excludes the old legacy profile from Channels (0.534458ms)
+✔ manual replacement fills the last exclusion slot without dropping previous exclusions (0.554708ms)
+✔ manual replacement at exclusion capacity rejects the edit without mutating saved state (0.277125ms)
+✔ Confirmar minha marca is disabled until references are confirmed, including direct submission (60.890833ms)
+✔ unsaved reference edits cannot bypass confirmation and cancel preserves the original (24.6725ms)
+✔ leaving and revisiting context cancels pending edits instead of leaving an invisible blocker (18.092458ms)
+✔ a refreshed source list cannot leave an editor for a vanished reference blocking manual entry (47.839625ms)
+✔ saving an inline edit updates the visible identity and requires fresh confirmation (18.535042ms)
+✔ saving a replacement official site returns to authorization before any new analysis (21.639333ms)
+✔ manual onboarding without references does not require a nonexistent link confirmation (13.187667ms)
+✔ late identities invalidate reference confirmation and block content preparation (3.6905ms)
+✔ excluded references cannot suggest, autofill or directly mutate the brand (0.408875ms)
+✔ interrupted background work restores existing evidence instead of a perpetual spinner (0.45325ms)
+✔ revoking consent or changing reference aborts the active request (9.765458ms)
+✔ a signed-in reading sends the Supabase access token like other authenticated calls (0.879875ms)
+✔ the public demo without a session degrades to a clear manual-entry message (10.434542ms)
+✔ stream publishes real collection then grounded recommendations and complementary evidence (12.395833ms)
+✔ missing AI authorization never invokes the provider and failing provider preserves sources (1.229333ms)
+✔ canceling during collection never starts synthesis (1.765292ms)
+✔ production readings require a signed-in user and answer 401 in Portuguese otherwise (0.797625ms)
+✔ a signed-in same-origin user can read in production; cross-origin is refused first (3.683042ms)
+✔ local development on localhost still works without a session (0.393459ms)
+✔ the rate limit is per user: one account's burst does not block another (1.086125ms)
+✔ concurrent readings are capped per user and globally, and slots are released (21.851833ms)
+✔ synthesis runs for any provider-eligible evidence, not only when a URL was typed (0.693542ms)
+✔ hosted research rejects cross-origin callers and unauthenticated callers before fetching (0.163333ms)
+✔ authorized hosted research reads the normalized public site and keeps source evidence (0.260792ms)
+✔ onboarding shows compact clickable identities without page details or analysis claims (13.47075ms)
+✔ Brain retains full evidence on demand while post provenance excludes unread profiles (19.673667ms)
+✔ the verification note is present even when every website has real evidence (0.772458ms)
+✔ manual references share rows with existing identities and excluded keys hide whole groups (1.83775ms)
+✔ an added profile stays clickable without implying its contents were analyzed (1.245208ms)
+✔ real profile evidence remains eligible when discovered references are excluded (0.899208ms)
+✔ site and unsupported platform icons use a globe while supported networks use their own glyphs (8.559958ms)
+✔ remove controls call back with canonical group keys and never submit the onboarding form (2.699334ms)
+✔ editable references have accessible pencil controls without replacing their validation links (2.907917ms)
+✔ inline reference editor supports URL or handle, save on Enter and cancel on Escape without submitting (5.724708ms)
+✔ three internal pages render as one website without discarding original evidence (1.42075ms)
+✔ distinct profiles remain separate and discovered links never count as read pages (0.705875ms)
+✔ pasted material is not merged into a website and unsafe links are not displayed (0.104584ms)
+✔ associated sites found on multiple pages stay one site, while distinct domains remain separate (0.088959ms)
+✔ website grouping preserves working www links and case-sensitive channel IDs (0.137333ms)
+✔ Facebook numeric profiles preserve their identity instead of merging into profile.php (0.222041ms)
+✔ a website discovered through a subpage links to its root without query or fragment (0.122333ms)
+✔ Facebook page and numeric profile aliases share an identity with usable links and labels (0.18375ms)
+✔ incomplete Facebook pages and nonnumeric profile IDs are not brand identities (0.079625ms)
+✔ manual references merge with discovered and read identities without inventing evidence (0.208542ms)
+✔ discovers profile links before footer removal and deduplicates tracking variants (6.956375ms)
+✔ uses organization sameAs and rel=me without treating staff or arbitrary links as brand sites (1.003791ms)
+✔ discovery rejects unsafe, fake social hosts, login and sharing URLs (0.630625ms)
+✔ a malformed structured-data block does not hide subsequent profile links (0.317167ms)
+✔ discovery has a bounded result and old saved research remains compatible (1.066375ms)
+✔ read-only availability endpoint reports missing migration distinctly without AI or writes (16.854875ms)
+✔ manual story save validates input and writes only the company's story (5.837459ms)
+✔ invalid sessions, company IDs and inaccessible companies cannot read stories (1.400084ms)
+✔ saved story is returned intact and transient storage failures do not masquerade as missing data (3.617625ms)
+✔ story schema trims text and rejects incomplete, oversized or unexpected content (1.497834ms)
+✔ request schema accepts only scoped generation or validated saving (0.829292ms)
+✔ context uses selected owner answers and brand choices without inferred claims or logo tokens (0.267875ms)
+✔ BrandBook combines real company, diagnostic, story and saved identity (0.237958ms)
+✔ HTML text, attributes, colors and font presets cannot inject markup or CSS (0.4105ms)
+✔ unsafe logo URLs are omitted and absent data stays explicitly absent (0.131ms)
+✔ missing migration is distinguished from transient database errors (0.052833ms)
+✔ HTML download filenames cannot contain paths, controls or unsafe extensions (0.153417ms)
+✔ a grounded answer uses a 40s attempt budget and room for eight suggestions (8.942125ms)
+✔ one retry on overload/5xx/429/connection errors when it fits before the deadline (1012.745667ms)
+✔ no retry when the caller's deadline cannot fit another attempt, or for client errors (0.737208ms)
+✔ a max_tokens stop fails closed and logs only class, status and stop_reason (0.299208ms)
+✔ provider failures are logged without website text or provider messages (1001.868917ms)
+✔ a caller abort is not retried or logged as a provider failure (0.330834ms)
+✔ provider evidence excludes contacts, patient narratives and instructions, retains business facts (4.276167ms)
+✔ synthesis cannot invent a source or numeric offer; dated campaigns never become current facts (2.117709ms)
+✔ an editorial title can summarize the evidence without changing the full offer (0.406834ms)
+✔ duplicate candidates do not crowd out three distinct complete offer alternatives (8.846333ms)
+✔ a misleading numeric title is discarded without losing the supported offer (0.290417ms)
+✔ one oversized FAQ cannot discard the valid offer alternatives (0.73575ms)
+✔ selected excerpt IDs resolve to complete source text, not model paraphrases (0.5875ms)
+✔ late synthesis fills empty drafts only and preserves edits and confirmed context (0.4245ms)
+✔ a selected offer needs human validity confirmation before preparing a piece (0.35675ms)
+✔ brief identifies a detail that is too short and clears once the detail is concrete (0.239ms)
+✔ old drafts still parse while provenance and sixteen sources persist (0.125292ms)
+✔ using an offer records pending human review without replacing other answers (1.167959ms)
+✔ unsupported paraphrases can only fall back to the exact sourced excerpt, never the invented claim (0.640291ms)
+✔ extractive fallback preserves historical warnings and cannot produce a fabricated FAQ (0.311834ms)
+✔ Brain site edit aligns the reference, clears old research and approvals, and preserves answers and copy (2.374583ms)
+✔ repairing a legacy reference mismatch still invalidates approval for a normalized answer (0.435792ms)
+✔ clearing and reverting a website never revives old research or approval (0.625667ms)
+✔ unrelated answer edits preserve research and an existing longer reference (0.33375ms)
+✔ onboarding site input keeps both representations within the answer schema (95.307792ms)
+✔ Channels reads workspace links including blanks and opens the new Brain or onboarding (10.229708ms)
+✔ Channels displays every confirmed added profile without inventing authorization (20.541875ms)
+✔ Channels uses an edited manual profile instead of its stale legacy answer (22.556209ms)
+✔ Channels excludes removed references even when legacy answers still contain them (9.620417ms)
+✔ Channels keeps discovered references unconfirmed and preserves legacy-only profiles (10.33825ms)
+✔ adding a second website preserves the primary site when no research is saved (12.968625ms)
+✔ exclusions match a legacy handle without a manual reference (31.862292ms)
+✔ no-website path preserves human copy, revokes old approval and retains the Instagram step after reload (15.539041ms)
+✔ workspace diagnostic corrections stay protected when the website changes (3.205917ms)
+✔ legacy workspace preserves answers while new strategy preferences start empty (1.821333ms)
+✔ essential progress requires actual bottleneck and measurement choice, not onboarding alone (0.260875ms)
+✔ new account prioritizes diagnosis and brand materials before recommending channels (0.5355ms)
+✔ completed diagnosis turns channel choice into a Nukkia recommendation (0.256875ms)
+✔ channel recommendations use the diagnosis without claiming measured performance (0.265791ms)
+✔ configured account is not trapped on a nonexistent connection and can create content (0.625166ms)
+✔ a saved account kit still leads to applying identity before creating a piece (0.279167ms)
+✔ editor search only accepts internal return targets and known chapters (0.13275ms)
+✔ dashboard metrics retain provider and period and do not fill missing metrics with zero (7.144208ms)
+✔ original restrictions question is editable in the diagnostic chapters (0.080666ms)
+✔ earned XP survives editing without retaining approval or doubling on reload (1.473167ms)
+✔ piece instructions survive reload, drive the composition and leave brand facts intact (2.527125ms)
+✔ resuming a version restores its piece instructions without rolling back brand facts (4.717833ms)
+✔ planning retains an intended channel through saving a newer version and JSON recovery (1.021042ms)
+✔ Health examples use the supplied idea before selection and retain it on reload (0.685833ms)
+✔ uploaded inspiration retains pixels and source in immutable saved snapshots (3.886459ms)
+✔ scene material stays with its scene after reorder and undo (2.147792ms)
+✔ service material is retained by catalog parsing and explicit briefing application (2.87275ms)
+✔ Health briefing material reaches each first scene without granting output authority (0.6885ms)
+✔ creative validation follows the chosen format independently of message intention (0.422125ms)
+✔ context navigation retains a validated creation return view (2.192541ms)
+✔ a Health image remains editable through twenty edits without duplicating pixels in history (50.797083ms)
+✔ the reference limit rejects a twenty-first attachment before changing the workspace (0.555792ms)
+✔ Health material revisions with the same reference id remain distinct through undo and redo (0.664875ms)
+✔ opening an adjacent-month bubble selects its actual day, month and saved item (89.340375ms)
+✔ planning form persists native time input and cancel does not submit a plan (29.33175ms)
+✔ calendar aligns Monday through Sunday across leap years and year boundaries (3.345125ms)
+✔ planning preserves an exact snapshot, time and timezone across edits and reload (14.948459ms)
+✔ same-day bubbles sort by local clock, retain date-only legacy items and exclude archives (2.300041ms)
+✔ invalid clocks and zones cannot corrupt saved plans (0.934917ms)
+✔ six approaches preserve format and confirmed detail with distinct new editorial treatments (2.061459ms)
+✔ static art passes the saved caption's offer conditions to the image provider (60.26675ms)
+✔ generated JPEG (Gemini 3.x) art is stored with a matching extension and content type (22.907666ms)
+✔ generated PNG art is stored with a matching extension and content type (11.348125ms)
+✔ generated unknown bytes art is stored with a matching extension and content type (13.415334ms)
+✔ planning remains populated after viewing archived library items (113.410375ms)
+✔ planning displays the scheduled version even after inspecting an older library version (61.297834ms)
+✔ empty monthly planning retains the calendar instead of replacing it with another composition (25.313417ms)
+✔ inspecting an older version uses its title instead of the latest title (18.875625ms)
+✔ a copied version remains distinguishable without changing its snapshot title (18.817917ms)
+✔ saved-content chooser cancellation preserves unsaved draft and active version (12.752042ms)
+✔ saved-content chooser resumes the selected historical version without rolling back identity (17.389458ms)
+✔ library approval filter follows the inspected version, not the item's latest metadata (10.7065ms)
+✔ library inspection exposes the first page body as selectable text (45.723291ms)
+✔ planner channel control updates only the planned version (86.709625ms)
+✔ native time input updates the planned clock before focus leaves the field (32.035ms)
+✔ legacy workspace gains an empty library without losing the editor (4.473541ms)
+✔ saving versions preserves exact text through JSON reload and resumes without rolling back brand context (6.289625ms)
+✔ stale save cannot overwrite a newer saved version (0.564708ms)
+✔ duplicate has independent identity and archive is reversible (0.48775ms)
+✔ planned dates bind to an existing exact version and reject impossible dates (0.516292ms)
+✔ Health resume preserves selected option and advances revision, never confers review authority (0.719708ms)
+✔ empty editors and missing versions are refused without deleting current work (0.232625ms)
+✔ a new composition can be saved as an independent item even after archiving the active item (0.432917ms)
+✔ archive and restore preserve the intended date and exact saved version (1.101958ms)
+✔ plan uses the current confirmed workspace and never reads the stale diagnostic (69.559875ms)
+✔ legacy diagnostic fallback remains available only for an absent workspace row (27.392417ms)
+✔ workspace database errors cannot spend quota or silently select legacy context (33.9065ms)
+✔ existing invalid or unconfirmed workspace blocks plan generation instead of falling back (33.387125ms)
+✔ failed legacy lookup does not fabricate a context-free plan (17.587042ms)
+✔ plan provider and write failures do not log upstream data (26.484ms)
+✔ image and carousel completion requires a successfully updated media row (29.893875ms)
+✔ successful image and carousel requests preserve response contracts (47.996708ms)
+✔ a video start failure leaves the completed storyboard available (15.964709ms)
+✔ storyboard save failure stops before spending video-render quota or starting the provider (10.610917ms)
+✔ render quota denial preserves the storyboard and does not start a video (7.982125ms)
+✔ operation save failure is not reported as rendering success (8.930792ms)
+✔ media generation failures name their stage without echoing errors in responses or logs (10.779959ms)
+✔ video status only reports ready or failed after its media update succeeds (13.701417ms)
+✔ failed video results persist and return only a safe message (3.531666ms)
+✔ video polling exceptions are sanitized and leave the pending operation retryable (2.673666ms)
+✔ monthly plan generation requires current context, confirmed identity and a saved kit (1.715917ms)
+✔ entering the studio before identity confirmation cannot create a draft (48.551833ms)
+✔ identity-incomplete users can compare and save an approach before creating a draft (9.383041ms)
+✔ a personalized studio stays empty until an explicit create click (7.519417ms)
+✔ choosing a photo format without assets cannot generate a placeholder piece (7.702458ms)
+✔ a pending approach survives the round trip to identity without generating content (14.514458ms)
+✔ confirming a new piece clears the active saved item without changing its history (13.775084ms)
+✔ piece readiness names the unfinished identity and the exact next action (28.132125ms)
+✔ calendar readiness explains why identity work improves future suggestions (1.933917ms)
+✔ goal matching tolerates case and accents without inventing a different objective (2.169708ms)
+✔ removing a customer question cannot leak its old hidden answer into the caption (0.456583ms)
+✔ long valid photo-post copy keeps readable body text within the image bounds (0.577958ms)
+✔ recommendation follows the confirmed objective without inventing social metrics (3.3675ms)
+✔ a supplied buying question guides education but an unanswered one blocks approval (0.827833ms)
+✔ photo-led trust content requires a real supplied photo (0.250666ms)
+✔ all carousel pages and customer answers are covered by approval and staleness (0.427875ms)
+✔ carousel export includes every ordered PNG, not only its cover (2.93225ms)
+✔ coverage counts only collected web pages and retains their collection dates (0.232833ms)
+✔ education and photo-led layouts are genuinely different from the offer layout (0.287875ms)
+✔ legacy demo restores answers without fabricating approvals or publication (1.63975ms)
+✔ approval and export count once and require a nonempty reviewed version (1.483792ms)
+✔ editing approved content or context requires approval again and preserves human edits (1.115167ms)
+✔ refresh preserves delivery state, while a new demonstration starts without achievements (0.77ms)
+✔ an entered workspace remains editable while a required answer is temporarily cleared (0.263458ms)
+✔ restoration normalizes answer whitespace without invalidating an unchanged approved delivery (0.337541ms)
+✔ changing context and changing it back never resurrects approval or export (0.943667ms)
+✔ readiness defaults to offline checks and never exposes configured values (4.114333ms)
+✔ opt-in remote readiness makes only zero-row GETs and reports missing tables without raw errors (15.066709ms)
+✔ readiness refuses elevated credentials, mismatched projects, and the default worker deployment (0.2205ms)
+✔ table exposure is distinguished from signed-in access and ffmpeg availability is required (0.346625ms)
+✔ ffmpeg check reports the bundled ffmpeg-static source by label, never by path (2.751625ms)
+✔ expanded diagnostic passes through AI and persistence before advancing (13.748792ms)
+✔ AI failure never advances onboarding or persists a partial report (1.424875ms)
+✔ database failure never advances onboarding (0.845958ms)
+✔ invalid input, signed-out requests and inaccessible companies cannot write (9.299542ms)
+✔ report entry explains missing answers instead of opening the final chapter (13.789167ms)
+✔ complete answers expose one explicit analysis action (3.977708ms)
+✔ opening the demo Content destination and reloading enters Health directly (1.0105ms)
+✔ explicit legacy content views remain accessible and invalid views fall back to Health (0.305667ms)
+✔ the operator's existing context URL still edits context without resetting its return path (0.093959ms)
+✔ results continuation opens the generic piece rather than the previous Health tab (0.355208ms)
+✔ health empty state creates persistent synthetic options without granting release (114.509959ms)
+✔ duration editing accepts transient empty and partial values before committing (60.098834ms)
+✔ editing a scene and undo use the shared workspace state (48.131417ms)
+✔ undo can recover a template replacement and redo survives an empty studio (40.332125ms)
+✔ creation steps hide the editor until an option is chosen and back preserves drafts (22.304459ms)
+✔ scene thumbnails edit the selected scene and reload recovers saved options (44.888833ms)
+✔ moving the initially selected scene keeps its editor selected through undo and redo (13.723875ms)
+✔ the proposed catalog counts structures and presets separately (0.698875ms)
+✔ every measured scene must fit both dimensions before playback (0.07775ms)
+✔ three synthetic options differ and start with three editable scenes (2.968209ms)
+✔ scene editing preserves other options and rejects stale revisions (4.960459ms)
+✔ split, compatible merge, reorder and delete preserve timeline semantics (1.809916ms)
+✔ scene limits and reading time prevent impossible previews (19.890167ms)
+✔ undo and redo persist but do not roll the root revision backward (2.998209ms)
+✔ draft JSON never grants consent or enables health release (0.119791ms)
+✔ a warm educational draft always exposes a way to replace its missing photo (148.096792ms)
+✔ identity also requests the photo required by a pending photo format (73.745667ms)
+✔ authenticated identity mutations respect workspace loading (36.191541ms)
+✔ authenticated identity mutations respect workspace conflict (32.616292ms)
+✔ authenticated identity mutations respect workspace ready (17.551209ms)
+✔ an asset finishing after the identity screen unmounts cannot modify another workspace (68.611459ms)
+✔ demo identity confirmation returns to the chosen content view (23.561292ms)
+✔ identity shows one page heading and the saved logo before disclosed piece adjustments (216.145667ms)
+✔ IdentityForm returns one form root rather than fragment siblings (5.458416ms)
+✔ saved kit and piece settings have unique keys as rendered siblings (58.664459ms)
+✔ identity rerenders keep both kit regions and its single submit button inside one form (60.144875ms)
+✔ saved palette survives a tone-only save even when legacy kit has no options (41.435709ms)
+✔ custom saved tone stays selectable and brandbook is a secondary disclosure (49.565375ms)
+✔ explicit kit apply updates assets and revokes approval while preserving creative copy and photos (74.943042ms)
+✔ late logo application cannot overwrite a piece edited during preparation (63.387542ms)
+✔ unsupported saved SVG leaves current creative intact and explains the format limitation (51.967667ms)
+✔ story unavailability remains truthful without blocking saved kit or exposing a save form (40.131708ms)
+✔ conflicting workspace blocks applying the kit (35.555125ms)
+✔ piece color adjustment remains available inside disclosure and invalidates only the piece (50.263875ms)
+✔ saving tone preserves custom fonts instead of replacing them with a starter preset (34.286667ms)
+✔ piece style changes invalidate approval and missing required photo blocks confirmation (29.07775ms)
+✔ a pending piece upload cannot write after leaving identity (40.780292ms)
+✔ identity search accepts only workspace section IDs as optional return origins (27.59425ms)
+✔ confirming piece adjustments returns to painel (33.636209ms)
+✔ confirming piece adjustments returns to trilha (37.608667ms)
+✔ confirming piece adjustments returns to conteudo (26.317958ms)
+✔ confirming piece adjustments returns to the compatible default (24.034625ms)
+✔ confirming piece adjustments returns to https://example.com (28.175417ms)
+✔ saving the kit keeps an explicit return to painel without applying or confirming the piece (43.018625ms)
+✔ saving the kit keeps an explicit return to trilha without applying or confirming the piece (26.711958ms)
+✔ saving the kit keeps an explicit return to conteudo without applying or confirming the piece (22.967791ms)
+✔ identity returns to the originating piece briefing after confirmation (25.493916ms)
+✔ inspiration drafts survive reload with attribution and cannot imply clearance (3.390583ms)
+✔ invalid source cannot attach; editing attached reference invalidates generic approval and preserves human brief (0.674458ms)
+✔ remove and detach never erase written brief or other references (1.057667ms)
+✔ landing introduces the health studio under Nukkia with one clear main heading (1.722292ms)
+✔ the hero discovery CTA opens the demo and signup and login keep distinct destinations (0.989083ms)
+✔ product preview visibly identifies fictional illustrative content and editorial review (0.493333ms)
+✔ visible claims and page metadata do not promise publishing or integrated metrics (0.463541ms)
+✔ keyboard navigation has a working skip target and a labeled theme control (0.276542ms)
+✔ expired signed logo can recover its durable owned path without reusing tokens (0.358042ms)
+✔ journey does not promise a calendar when the host has no calendar destination (129.79825ms)
+✔ journey exposes existing planning when its host supplies a calendar destination (61.555042ms)
+✔ legacy company values cannot prevent the workspace from mounting (1.692792ms)
+✔ draft recovery keeps account and company scopes distinct and recovers interrupted research (0.530042ms)
+✔ first value needs observed start, matching approval and export; repeated clicks do not award events (16.169209ms)
+✔ next action follows actual delivery status and returns to review after a visual edit (0.706542ms)
+✔ GET returns an empty workspace or the complete saved draft, privately and without writes (21.13575ms)
+✔ GET and POST require a valid authenticated session before touching tables (4.214042ms)
+✔ even a caller able to see another owner's company cannot read or save its workspace (16.692667ms)
+✔ insert preserves answers, sources, images, creative approvals and delivery, and generates a UUID (9.113208ms)
+✔ matching revision updates exactly one company and rotates the revision (1.355833ms)
+✔ duplicate inserts, stale revisions and updates to absent rows conflict without overwrite (4.002542ms)
+✔ concurrent insert and update callers have one winner per base revision (1.938125ms)
+✔ missing table/schema reports WORKSPACE_UNAVAILABLE on GET, insert and update (4.095292ms)
+✔ other storage/authz failures and malformed stored data never appear as an empty workspace (3.631167ms)
+✔ malformed JSON, IDs, revisions and demo data are rejected before queries or writes (2.570958ms)
+✔ demoSchema supplies defaults for a partial draft (0.716083ms)
+✔ 5 MB is enforced by bytes even with missing or misleading Content-Length (12.660208ms)
+✔ streamed oversized requests are cancelled as soon as the byte limit is crossed (10.267959ms)
+✔ exactly 5 MB and the schema's three inline images are accepted intact (46.643416ms)
+✔ older writers cannot silently erase the extended library and inspiration document (19.00725ms)
+✔ version-two writers cannot strip new piece instructions, media or planning channels (0.803708ms)
+✔ a new authenticated tab restores this company's browser recovery without claiming a cloud save (72.89425ms)
+✔ matching recovery acknowledgements do not turn the first edit into a conflict (43.101125ms)
+✔ quota failure writing a logout marker cannot skip cleanup or let a delayed tab recreate recovery (41.356ms)
+✔ a recovered dirty draft cannot overwrite a newer remote revision without a choice (29.40675ms)
+✔ divergent tabs preserve both originals and require explicit local recovery resolution (24.662666ms)
+✔ choosing the other browser or cloud version preserves the current recovery original (32.623416ms)
+✔ logout removes only the active owner's recovery and prevents other tabs resurrecting it (48.995333ms)
+✔ legacy session recovery imports only the current scope and survives blocked durable storage honestly (21.406542ms)
+✔ an approved legacy tab remains authoritative when a new tab already saved an empty recovery (24.90925ms)
+✔ losing access to localStorage after an earlier logout still permits memory/session edits (12.820333ms)
+✔ a refreshed consumer still reads the mounted provider's memory-only draft (4.75425ms)
+✔ repeated provider module refreshes retain context for existing consumers and keep edits (7.237625ms)
+✔ provider exports remain a valid Vite Fast Refresh boundary after module evaluation (4.02225ms)
+✔ logout from a refreshed module still revokes the mounted save queue and pending responses (11.89925ms)
+✔ refresh effect replay preserves a memory-only draft through repeated failed reconciliation (12.173417ms)
+✔ refresh effect replay retains a debounced draft and leaves only one save timer (25.685917ms)
+✔ refresh during a save keeps newer memory edits and requires explicit conflict recovery (24.839125ms)
+✔ workspace setters retain earned XP on edits without retaining current content approval (11.77175ms)
+✔ save disclosure distinguishes checking, unsaved seed, queued edits and acknowledged saves (26.881833ms)
+✔ retry stays inside the disclosure and rereads before resuming writes (15.144833ms)
+✔ conflict actions stay inside the disclosure and preserve explicit version choice (45.017208ms)
+✔ memory-only loss warning remains visible outside collapsed details until cloud acknowledgement (15.330667ms)
+✔ safe response classifications explain recovery without exposing server messages or guessing a migration (87.5795ms)
+✔ save failures and timeouts expose safe reasons without losing queued edits (26.948833ms)
+✔ workspace without a company stays tab-only and offers no unusable retry (3.407834ms)
+✔ empty cloud starts ready but never claims a seed is cloud-saved (7.796667ms)
+✔ edits immediately leave saved status, debounce and preserve events and whitespace (10.00025ms)
+✔ a slow initial GET cannot replace local edits, and exposes a new-revision conflict (5.35775ms)
+✔ dirty local state at the same revision resumes saving instead of conflicting (5.587916ms)
+✔ save acknowledgements retain newer edits and queue one save using the returned revision (12.27625ms)
+✔ 409 rereads cloud while preserving edits made during both pending requests (6.981583ms)
+✔ deleted cloud snapshot can be explicitly accepted or recreated with a null base (13.59125ms)
+✔ failed saves retry through GET and recover a committed-but-unacknowledged snapshot (5.575375ms)
+✔ failed initial reads can retry without losing edits and resume the save queue (4.850333ms)
+✔ malformed GET or save envelopes cannot mark data saved or poison its revision (16.703458ms)
+✔ failed or malformed 409 reads cannot offer a destructive conflict resolution (6.652042ms)
+✔ a stalled request times out; a late result cannot overwrite a retried read (7.578459ms)
+✔ quota failure preserves memory, permits cloud saving and reports cloud success truthfully (5.129833ms)
+✔ owner/company switches isolate drafts and ignore old request completions (5.003ms)
+✔ a cached company belonging to another owner is never exposed or fetched (2.688041ms)
+✔ logout synchronously cancels queued saves and prevents cache resurrection (3.811125ms)
+✔ logout during a save ignores its 409 without starting a follow-up GET (5.408167ms)
+✔ unmount during a save ignores success and conflict responses (11.108375ms)
+✔ effect replay discards obsolete GET results and keeps one save queue (5.068125ms)
+✔ company refetch errors retain a mounted draft even when browser storage is unavailable (3.754166ms)
+✔ a 409 followed by the same base revision does not spin in an automatic save loop (7.181208ms)
+✔ interrupted research is recovered from both cloud and session storage without losing content (13.071917ms)
+✔ effect replay after logout cannot recreate even an empty session cache (4.02875ms)
+✔ onboarding waits for cloud readiness before recording started or redirecting a returning account (4.051084ms)
+✔ onboarding waits out conflicts and records entry only once when ready, including replay (4.184208ms)
+✔ new company draft is durable under its company key before the workspace POST resolves (3.262542ms)
+✔ cloud acknowledgement completes onboarding despite blocked browser storage (3.412416ms)
+✔ missing migration hands off a dirty draft that the real provider restores after remount (6.728209ms)
+✔ failure of both stores keeps the editor in memory and retry reuses the created company (3.281875ms)
+✔ duplicate completion in one render starts only one company mutation (2.772416ms)
+✔ logout or account switch during company creation cannot start a workspace save (7.593333ms)
+✔ logout during workspace save cannot recreate cleared storage or navigate (3.077167ms)
+✔ unmount during either write cancels all remaining continuations (5.221709ms)
+✔ logout during response JSON parsing or query invalidation suppresses later side effects (5.659083ms)
+✔ malformed cloud acknowledgement cannot discard a memory-only draft (2.988542ms)
+✔ same-owner auth refresh does not cancel an active completion (3.096833ms)
+✔ an onboarded local draft without a company remains in company onboarding (2.125833ms)
+✔ fullscreen onboarding resolves conflicts without showing save-status clutter (4.217709ms)
+✔ company insert and update use the canonical answer website, including explicit clearing (8.848875ms)
+✔ initial cloud loading exposes no form edits and restores the form when ready (2.27875ms)
+✔ returning-account transition cannot navigate after logout or an account change (4.731ms)
+✔ a conflict interrupts the returning-account transition without discarding either version (2.299917ms)
+✔ explicit onboarding replay keeps the questions for a configured account (2.038833ms)
+✔ media policy allows local composed previews and saved Supabase media only (0.367125ms)
+✔ draft API saves raw text separately from diagnostics and scopes every request to the owner (18.886583ms)
+✔ stale updates, duplicate creates and stale completion requests cannot overwrite cloud data (1.976833ms)
+✔ missing or inactive schema returns a recoverable local-fallback response (8.307334ms)
+✔ unauthenticated callers, another owner's company, invalid revisions and oversized answers cannot save (1.729958ms)
+✔ late GET cannot replace a new local edit (12.578ms)
+✔ late POST acknowledgement preserves and subsequently uploads newer edits (2.099334ms)
+✔ awaited completion drains pending writes before confirming cloud deletion (4.595375ms)
+✔ account switch and signout cleanup discard late reads without cloud deletion (8.190458ms)
+✔ missing schema and blocked storage keep safe, accurately reported local fallback (5.232584ms)
+✔ legacy v1 drafts keep answers and unknown age; malformed storage is safe (0.964834ms)
+✔ cloud restores an empty device and a clean previously synced device (0.536917ms)
+✔ normalization and acknowledgement retain in-progress whitespace (0.166416ms)
+✔ legacy data is uploaded only when cloud is absent or identical (0.181917ms)
+✔ disjoint edits merge, including explicit clearing and step changes (0.181042ms)
+✔ overlapping changes retain both snapshots without timestamp arbitration (0.151958ms)
+✔ a late acknowledgement preserves edits and completion made in flight (0.2165ms)
+✔ completion tombstones clear clean clients but never resurrect stale dirty data (0.133333ms)
+✔ context removes nonblocking extraction detail while a partial-reading warning stays visible (14.210625ms)
+✔ collection failures are not hidden with nonblocking details (1.80575ms)
+✔ brief uses compact suggestions for offer, detail and FAQ, directly after their fields (2.930791ms)
+✔ reference confirmation replaces the generic instruction below the editable links (7.810541ms)
+✔ website entry accepts domain text and offers a dedicated no-website path (1.789125ms)
+✔ brand direction shows an editable brand system instead of example posts (3.089458ms)
+✔ native palette input saves its value before blur (6.694667ms)
+✔ legacy answers remain intact while new fields default to empty (2.390333ms)
+✔ optional fields do not block and essential whitespace is not completion (0.435625ms)
+✔ visiting a page or having an onboarding step cannot grant artifact completion (0.124458ms)
+✔ complete foundation needs all essential answers and real saved outputs (0.105625ms)
+✔ expanded answers reach the diagnostic prompt and limits are enforced (1.889125ms)
+✔ unsent draft answers cannot claim a current generated report (0.299ms)
+✔ brief controls persist format and instructions, prepare options and preserve human text (52.173375ms)
+✔ material inspection and cancellation are read-only; explicit use and remove invoke their callbacks (13.22ms)
+✔ an invalid uploaded file leaves selected material intact and exposes a retryable error (32.617125ms)
+✔ material storage rejection retains the previous value and pending selection for retry (8.063291ms)
+✔ piece material refuses to exceed twenty attached references and preserves the draft (13.46125ms)
+✔ alternate editor recomposition starts an independent library item when requested (42.643166ms)
+✔ a late upload cannot replace a deliberately inspected library image (11.037209ms)
+✔ planner distinguishes loading and read failure from a genuinely empty plan (161.746625ms)
+✔ library can inspect saved account plan items without a generation action (34.723125ms)
+✔ refetched item cannot approve an older local caption using the new remote revision (39.491958ms)
+✔ a long offer keeps complete words in the art and the full offer in its caption (0.413708ms)
+✔ a single-page piece has no decorative page number (0.480125ms)
+✔ visual escapes user markup and does not embed remote images (0.101875ms)
+✔ download package contains the image bytes and reviewed caption, not a text-only promise (2.137541ms)
+✔ research endpoint needs local same-origin development or a signed-in same-origin user (2.042208ms)
+✔ manual source can be collected locally without any AI transfer or implied verification (2.234708ms)
+✔ oversized input and unsupported actions cannot start collection (0.636959ms)
+✔ video export requires an approved current piece before rendering or sending frames (2.220083ms)
+✔ video export sends the approved frame bytes and returns a playable-type result (0.963625ms)
+✔ an edit during video composition discards the old result instead of offering its download (2.805917ms)
+✔ an HTML response cannot be exposed as a successful MP4 (0.881875ms)
+✔ authenticated POST returns the MP4 attachment and identifies raster composition (207.83525ms)
+✔ authentication is verified before reading the request body or invoking composition (38.393125ms)
+✔ invalid JSON/envelopes and frame counts cannot start rendering (12.754292ms)
+✔ PNG validation rejects remote URLs, malformed base64, signatures, dimensions, truncation and animation (8.723459ms)
+✔ decoded PNG size is limited before subprocess work (18.824125ms)
+✔ body limit counts actual UTF-8 bytes with absent or false Content-Length (26.324458ms)
+✔ oversized streaming bodies are cancelled at the limit (9.520708ms)
+✔ renderer bounds concurrency, uses argument arrays without a shell, and removes only its directories (63.329166ms)
+✔ renderer kills at 60 seconds, waits for exit and cleans up on timeout (39.401917ms)
+✔ abort and spawn/encoder failure release resources without leaking filesystem details (40.527416ms)
+✔ ffmpeg resolves from FFMPEG_PATH, then PATH, then the ffmpeg-static package (43.916792ms)
+✔ endpoint returns actionable busy/unavailable/timeout responses (29.243333ms)
+✔ real tiny PNGs produce playable H264 MP4 with ordered frames, fades and faststart (873.339584ms)
+✔ the short journey retains three core diagnostic answers and defers the deeper diagnostic (0.920417ms)
+✔ each open onboarding prompt offers concrete, distinct starting suggestions (0.080541ms)
+✔ answering an entire chapter does not claim a marketing delivery (0.151916ms)
+✔ every diagnostic answer remains available and full completion is bounded (0.383584ms)
+✔ first plan reflects the goal, offer, audience and time constraint (0.231416ms)
+✔ an unknown audience is acknowledged without fabricating a customer profile (0.082917ms)
+✔ deferred answers improve the first draft without inventing missing facts (0.094ms)
+✔ the first delivery includes three usable directions grounded in the owner's offer (0.091583ms)
+✔ a skipped differentiator generates a question, never invented brand superiority (0.129333ms)
+✔ suggestions expose evidence, collection date and historical warning, never an invented confidence percentage (26.794167ms)
+✔ compact groups show one shared sparkle and direct choices without repeated source metadata (1.994334ms)
+✔ a compact subtitle stays short while selecting the complete verified offer (1.248292ms)
+✔ compact suggestions retain historical and inference warnings outside closed explanations (0.993334ms)
+✔ compact choice buttons fill the matching field without submitting or confirming an offer (2.368458ms)
+✔ empty compact groups render no decorative icon or empty choices (0.198ms)
+✔ a long FAQ remains selected after applying the question field limit (0.922666ms)
+✔ confirmed valid service returns correct mapping (3.232834ms)
+✔ draft service is refused (0.113417ms)
+✔ archived service is refused (0.080958ms)
+✔ unconfirmed conditions are refused (0.062125ms)
+✔ expired validUntil is refused (0.086458ms)
+✔ today as validUntil is accepted (0.050417ms)
+✔ future validUntil is accepted (0.049958ms)
+✔ empty validUntil is accepted (no expiry) (0.501ms)
+✔ invalid today format returns null (0.086583ms)
+✔ invalid service input returns null (0.102416ms)
+✔ conditions retained in detail when non-empty (0.071083ms)
+✔ empty conditions not appended to detail (0.051959ms)
+✔ whitespace trimmed from inputs (0.049375ms)
+✔ summary < 12 chars is refused (0.041416ms)
+✔ audience < 3 chars is refused (0.032209ms)
+✔ title < 3 chars is refused (0.030834ms)
+✔ detail over 600 chars is refused (0.045541ms)
+✔ detail exactly 599 chars is accepted (summary only) (0.039667ms)
+✔ detail exactly 600 chars is accepted (summary only) (0.033584ms)
+✔ detail exactly 601 chars is refused (summary only) (0.0375ms)
+✔ detail exactly 599 chars is accepted (summary + blank line + non-empty conditions) (0.033292ms)
+✔ detail exactly 600 chars is accepted (summary + blank line + non-empty conditions) (0.036292ms)
+✔ detail exactly 601 chars is refused (summary + blank line + non-empty conditions) (0.031834ms)
+✔ audience over 1000 chars is refused (0.030709ms)
+✔ title over 1000 chars is refused (0.028042ms)
+✔ conditions over 1000 chars is allowed (not truncated) (0.030583ms)
+✔ validateService throws for invalid input (0.082584ms)
+✔ blank validity permitted (empty string) (0.030709ms)
+✔ applying a catalog service keeps brand facts and written creative, but invalidates approval (12.35425ms)
+✔ owner, company and fictional demo namespaces stay isolated; account logout prefix matches (2.0885ms)
+✔ reload recovers a saved catalog and stale second-tab saves preserve the local draft (0.143709ms)
+✔ corrupt bytes survive reads and saves; reset requires an explicit unchanged snapshot (0.097167ms)
+✔ storage failures never erase the draft or report saved (0.093667ms)
+✔ logout marker changes or deletion revoke old snapshots before any write (0.084916ms)
+✔ logout during setItem revokes the write and removes only the writer's stale bytes (0.078125ms)
+✔ account reads reject catalogs belonging to an earlier logout epoch (0.078166ms)
+✔ service edits are separate from existing brand offers (1.808083ms)
+✔ archiving selected service clears selection and restoring creates a draft (0.228375ms)
+✔ catalog validates scope, version, fields, duplicates and selection (0.595667ms)
+✔ catalog limits item counts and refuses invalid user input (0.449667ms)
+✔ validateService accepts empty validUntil (1.670625ms)
+✔ validateService accepts 2028-02-29 (leap year) (2.900292ms)
+✔ validateService rejects 2026-02-29 (not a leap year) (0.282875ms)
+✔ validateService rejects 2026-02-30 (invalid date) (0.076333ms)
+✔ validateService rejects malformed date format (0.067125ms)
+✔ metadata-only draft acknowledgement preserves an explicit etapa in DiagnosticWizard (112.435708ms)
+✔ workspace diagnostic review ignores older onboarding drafts and returns edits to the workspace (41.04025ms)
+✔ full-screen layout hides private content, clears state and redirects on SIGNED_OUT (31.084375ms)
+✔ full-screen layout hides private content, clears state and redirects on an account change (34.2195ms)
+✔ MarketingProvider company retry never fetches diagnostics without a company id (90.1605ms)
+✔ MarketingProvider ignores cached disabled-diagnostic errors when the account has no company (63.400417ms)
+✔ only the sign-in welcome route uses branding; in-app pending destinations use layout skeletons (54.294459ms)
+✔ new accounts start with company setup (0.349917ms)
+✔ an unfinished diagnostic opens the guided questions (0.052917ms)
+✔ returning accounts land on their dashboard (0.046583ms)
+✔ explicit replay preserves a completed account and shows its questions (0.042ms)
+✔ the existing context-editor link exposes the Health studio without changing saved answers (51.936166ms)
+✔ opening Health preserves an unfinished edit to an existing reference link (16.417042ms)
+✔ opening Health preserves an unfinished new reference link (9.836792ms)
+✔ context editor populates existing answers and saves back without creating a new onboarding (9.198958ms)
+✔ reference confirmation cannot be bypassed by submitting the context form (9.265083ms)
+✔ corrected suggested fields survive replacing the researched website (12.260375ms)
+✔ removing references never silently revives an older excluded link (12.335708ms)
+✔ editing the full essential form keeps a persistable workspace (22.020042ms)
+✔ context steps preserve answers and prevent hiding an unfinished reference (7.387292ms)
+✔ demo channels use edited public references without reviving an excluded legacy handle (86.302417ms)
+✔ the brain lets a user create and revise a hypothesis without replacing brand facts (44.028917ms)
+✔ dashboard opens diagnosis directly and defers channel recommendations until it is complete (33.931208ms)
+✔ trail completed sections carry explicit completion state instead of decorative ordinals (27.953542ms)
+✔ home creation cards route video to scenes and image to a new piece brief (20.612583ms)
+✔ home resumes the newest saved item by its exact id and version (33.826292ms)
+✔ home carousel choice selects an educational approach without replacing the draft (19.658709ms)
+✔ home saved preview depicts the saved snapshot rather than unsaved editor changes (21.456417ms)
+✔ trail dots reveal explanations without navigating or changing saved progress (18.327375ms)
+✔ home no longer duplicates the section title and workspace brand (22.553167ms)
+✔ journey credits completed identity and onboarding without claiming an approved post (1.917ms)
+✔ historical onboarding credit never authorizes unconfirmed facts or a blank account (0.552333ms)
+✔ photo-dependent identity remains pending without a photo (1.261125ms)
+✔ approval and download milestones require matching current work (1.154ms)
+✔ personal hypotheses survive storage, can be edited and never change confirmed facts (0.630708ms)
+✔ notifications are derived from actual work, not example activity (0.437375ms)
+✔ account save status stays in main content when the account/sidebar menu is hidden (37.288417ms)
+✔ missing company disables catalog instead of displaying fictional data (93.58325ms)
+✔ empty demo identifies local fictional storage and create action (25.767416ms)
+✔ stored detail distinguishes draft and pending conditions, without importing material (17.188375ms)
+✔ corrupt persisted data is preserved at mount and reset is explicit (22.380208ms)
+✔ progress uses the supplied total and defaults to five stages (26.934125ms)
+✔ top bar follows every selected section and keeps the brand in the profile (37.873667ms)
+✔ workspace defaults to dark and offers named footer controls (3.901375ms)
+✔ a new browser opens in dark mode while an explicit light preference is preserved (0.565208ms)
+✔ notifications render only supplied notices inside a labelled, initially closed dialog (3.874833ms)
+✔ empty notifications have an honest empty state and no badge (3.579375ms)
+✔ navigation exposes the current page, mobile drawer relationship, and focusable skip target (3.628458ms)
+✔ logo uses the official image as a monochrome symbol with no JPG tile (5.475042ms)
+✔ calendar is explicit in desktop and mobile navigation, with one active destination per menu (4.047417ms)
+✔ loading placeholders expose one busy status without fake data, branding or interactive controls (5.040416ms)
+✔ destination skeleton distinguishes planning, saved content and editing layouts (0.076792ms)
+✔ logout action sits beside the theme control in desktop and mobile footers (7.533708ms)
+ℹ tests 640
+ℹ suites 0
+ℹ pass 640
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3067.034834
+
+> typecheck
+> tsc --noEmit
+
+
+> lint
+> eslint .
+
+
+/Users/nicolacaprirolo/Developer/nukkia/src/components/workspace-services.tsx
+  123:6   warning  React Hook useEffect has a missing dependency: 'scope.ownerId'. Either include it or remove the dependency array                          react-hooks/exhaustive-deps
+  123:35  warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+
+✖ 2 problems (0 errors, 2 warnings)
+
+
+> build
+> vite build
+
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+vite v8.1.5 building client environment for production...
+[2Ktransforming...✓ 2206 modules transformed.
+rendering chunks...
+computing gzip size...
+.output/public/assets/brand-loading-Dot7F-3t.css              0.36 kB │ gzip:   0.23 kB
+.output/public/assets/workspace-skeleton-DC5EAILp.css         1.73 kB │ gzip:   0.61 kB
+.output/public/assets/marketing-provider-D27eKfe4.css         2.71 kB │ gzip:   0.81 kB
+.output/public/assets/health-studio-DO4X-DGF.css              3.84 kB │ gzip:   1.11 kB
+.output/public/assets/atlantic-landing-CQGfvGTb.css          16.02 kB │ gzip:   3.81 kB
+.output/public/assets/marketing-workspace-DJ2hrzu0.css       36.02 kB │ gzip:   8.17 kB
+.output/public/assets/workspace-rfnwa5Lt.css                 41.05 kB │ gzip:   7.78 kB
+.output/public/assets/workspace-shell-2oMWq5Qb.css           41.71 kB │ gzip:   7.26 kB
+.output/public/assets/styles-DFpi9Isx.css                    91.69 kB │ gzip:  15.56 kB
+.output/public/assets/consent-MPhzJ_FL.js                     0.03 kB │ gzip:   0.05 kB
+.output/public/assets/check-CAjzqsDR.js                       0.12 kB │ gzip:   0.14 kB
+.output/public/assets/chevron-right-BTHmHG3p.js               0.13 kB │ gzip:   0.14 kB
+.output/public/assets/useRouter-BWuYVZyj.js                   0.15 kB │ gzip:   0.14 kB
+.output/public/assets/x-BWLTzwqD.js                           0.15 kB │ gzip:   0.15 kB
+.output/public/assets/arrow-right-CczGO6rn.js                 0.16 kB │ gzip:   0.16 kB
+.output/public/assets/arrow-up-right-olUZi4WM.js              0.16 kB │ gzip:   0.15 kB
+.output/public/assets/circle-check-Cio-Ez7v.js                0.17 kB │ gzip:   0.16 kB
+.output/public/assets/useNavigate-DMavMrLm.js                 0.22 kB │ gzip:   0.19 kB
+.output/public/assets/download-Dcm-PIVS.js                    0.23 kB │ gzip:   0.19 kB
+.output/public/assets/chart-column-DY9E5ZNO.js                0.25 kB │ gzip:   0.19 kB
+.output/public/assets/book-open-BEBeTA3U.js                   0.27 kB │ gzip:   0.20 kB
+.output/public/assets/shield-check-CYIDD2sb.js                0.32 kB │ gzip:   0.25 kB
+.output/public/assets/roles-Dywe0QfI.js                       0.36 kB │ gzip:   0.27 kB
+.output/public/assets/file-text-BsrP2OTl.js                   0.38 kB │ gzip:   0.25 kB
+.output/public/assets/brand-loading-DfMntYOB.js               0.39 kB │ gzip:   0.27 kB
+.output/public/assets/layers-BlizBqH_.js                      0.42 kB │ gzip:   0.24 kB
+.output/public/assets/theme-toggle-BLt5kdtQ.js                0.49 kB │ gzip:   0.30 kB
+.output/public/assets/calendar-days-BxB9MEft.js               0.49 kB │ gzip:   0.26 kB
+.output/public/assets/textarea-Dsn4_6S1.js                    0.51 kB │ gzip:   0.36 kB
+.output/public/assets/brain-CVA32H0b.js                       0.57 kB │ gzip:   0.31 kB
+.output/public/assets/input-CP9q9y_j.js                       0.61 kB │ gzip:   0.39 kB
+.output/public/assets/sun-vWC5Oabi.js                         0.63 kB │ gzip:   0.34 kB
+.output/public/assets/dist-lddqa7-2.js                        0.64 kB │ gzip:   0.39 kB
+.output/public/assets/dist-C9_0zlmn.js                        0.70 kB │ gzip:   0.48 kB
+.output/public/assets/label-BW4UonmM.js                       0.71 kB │ gzip:   0.46 kB
+.output/public/assets/badge-oM7Jc2Zq.js                       0.80 kB │ gzip:   0.42 kB
+.output/public/assets/nukkia-logo-BnhjvItF.js                 0.84 kB │ gzip:   0.50 kB
+.output/public/assets/linkedin-C3BUdOdN.js                    0.86 kB │ gzip:   0.47 kB
+.output/public/assets/workspace-B13_7cgp.js                   0.88 kB │ gzip:   0.49 kB
+.output/public/assets/card-BTNfeheA.js                        1.06 kB │ gzip:   0.40 kB
+.output/public/assets/createLucideIcon-C_LCJTxh.js            1.19 kB │ gzip:   0.69 kB
+.output/public/assets/workspace-skeleton-DnK_zxFN.js          1.20 kB │ gzip:   0.46 kB
+.output/public/assets/trophy-BLVqwOT4.js                      1.27 kB │ gzip:   0.55 kB
+.output/public/assets/channel-recommendations-By8HrSL0.js     1.58 kB │ gzip:   0.73 kB
+.output/public/assets/dist-BjJEvfsS.js                        1.76 kB │ gzip:   0.76 kB
+.output/public/assets/painel-CF74qHN8.js                      1.82 kB │ gzip:   1.01 kB
+.output/public/assets/use-brand-research-DTD8NwX_.js          2.48 kB │ gzip:   1.27 kB
+.output/public/assets/termos-CxLdHLTq.js                      3.17 kB │ gzip:   1.33 kB
+.output/public/assets/route-Bj-ZM2r6.js                       3.19 kB │ gzip:   1.49 kB
+.output/public/assets/privacidade-CTW_LbGz.js                 3.75 kB │ gzip:   1.55 kB
+.output/public/assets/button-BkbvCXB2.js                      4.19 kB │ gzip:   1.82 kB
+.output/public/assets/boas-vindas-BIBx_trn.js                 4.29 kB │ gzip:   2.00 kB
+.output/public/assets/admin-C7680hBp.js                       5.06 kB │ gzip:   1.85 kB
+.output/public/assets/dist-D49d3PC-.js                        5.73 kB │ gzip:   2.26 kB
+.output/public/assets/demo-DrWmozYM.js                        5.90 kB │ gzip:   2.40 kB
+.output/public/assets/preload-helper-Dq4MvkyI.js              6.22 kB │ gzip:   2.34 kB
+.output/public/assets/onboarding-draft-B6aaxKeJ.js            6.79 kB │ gzip:   2.54 kB
+.output/public/assets/trilha-BZkKzVCF.js                      7.60 kB │ gzip:   3.25 kB
+.output/public/assets/workspace-shell-CmheatSI.js             7.89 kB │ gzip:   2.79 kB
+.output/public/assets/dist-DSHiZdtG.js                        7.89 kB │ gzip:   2.86 kB
+.output/public/assets/useQuery-BML7-iRi.js                    7.96 kB │ gzip:   2.93 kB
+.output/public/assets/jsx-runtime-Dk72oS4N.js                 8.77 kB │ gzip:   3.33 kB
+.output/public/assets/workspace-context-editor-i2JKxyCD.js    9.10 kB │ gzip:   3.21 kB
+.output/public/assets/redes-BM9rmmsF.js                       9.37 kB │ gzip:   3.51 kB
+.output/public/assets/conteudo-Dn5frjuT.js                   11.69 kB │ gzip:   4.37 kB
+.output/public/assets/metricas-Al95ULIO.js                   12.26 kB │ gzip:   3.98 kB
+.output/public/assets/conta-Sg8DlC3i.js                      13.44 kB │ gzip:   4.57 kB
+.output/public/assets/marketing-provider-BEmVTed7.js         13.85 kB │ gzip:   4.83 kB
+.output/public/assets/routes-C65NtrNt.js                     15.91 kB │ gzip:   4.78 kB
+.output/public/assets/diagnostico-BhvgTq7m.js                20.70 kB │ gzip:   7.12 kB
+.output/public/assets/auth-B2NG14Wx.js                       20.99 kB │ gzip:   7.37 kB
+.output/public/assets/es2015-DIwGuNDN.js                     21.86 kB │ gzip:   7.83 kB
+.output/public/assets/inspiration-board-DCZvBe6Z.js          22.77 kB │ gzip:   9.63 kB
+.output/public/assets/link-CMJ1c9Km.js                       27.08 kB │ gzip:   9.88 kB
+.output/public/assets/utils-4jUIYOBc.js                      27.62 kB │ gzip:   8.74 kB
+.output/public/assets/brand-onboarding-BPHhhv8Y.js           29.88 kB │ gzip:   9.70 kB
+.output/public/assets/schemas-DDHw4nYG.js                    43.49 kB │ gzip:  11.89 kB
+.output/public/assets/route-Ds0v3hR5.js                      51.01 kB │ gzip:  16.86 kB
+.output/public/assets/marketing-views-CpbwRqwe.js            55.07 kB │ gzip:  15.94 kB
+.output/public/assets/types-Dx6t9wxQ.js                      56.62 kB │ gzip:  13.00 kB
+.output/public/assets/marketing-workspace-BA0n6tUR.js        63.46 kB │ gzip:  20.37 kB
+.output/public/assets/health-studio-Cg_6NtC9.js              66.49 kB │ gzip:  18.34 kB
+.output/public/assets/marca-D1ujGwS5.js                      85.89 kB │ gzip:  29.72 kB
+.output/public/assets/client-DIfv8aWa.js                    218.72 kB │ gzip:  56.45 kB
+.output/public/assets/index-BJ6ICRxb.js                     334.75 kB │ gzip: 102.77 kB
+
+✓ built in 543ms
+vite v8.1.5 building ssr environment for production...
+[2Ktransforming...✓ 208 modules transformed.
+rendering chunks...
+computing gzip size...
+node_modules/.nitro/vite/services/ssr/assets/brand-loading-Dot7F-3t.css                0.36 kB │ gzip:  0.23 kB
+node_modules/.nitro/vite/services/ssr/assets/workspace-skeleton-DC5EAILp.css           1.73 kB │ gzip:  0.61 kB
+node_modules/.nitro/vite/services/ssr/assets/marketing-provider-D27eKfe4.css           2.71 kB │ gzip:  0.81 kB
+node_modules/.nitro/vite/services/ssr/assets/health-studio-DO4X-DGF.css                3.84 kB │ gzip:  1.11 kB
+node_modules/.nitro/vite/services/ssr/assets/atlantic-landing-CQGfvGTb.css            16.02 kB │ gzip:  3.81 kB
+node_modules/.nitro/vite/services/ssr/assets/marketing-workspace-DJ2hrzu0.css         36.02 kB │ gzip:  8.17 kB
+node_modules/.nitro/vite/services/ssr/assets/workspace-rfnwa5Lt.css                   41.05 kB │ gzip:  7.78 kB
+node_modules/.nitro/vite/services/ssr/assets/workspace-shell-2oMWq5Qb.css             41.71 kB │ gzip:  7.26 kB
+node_modules/.nitro/vite/services/ssr/assets/styles-DFpi9Isx.css                      91.69 kB │ gzip: 15.56 kB
+node_modules/.nitro/vite/services/ssr/assets/utils-C_uf36nf.js                         0.18 kB │ gzip:  0.15 kB
+node_modules/.nitro/vite/services/ssr/assets/empty-plugin-adapters-D9UWiqvJ.js         0.22 kB │ gzip:  0.16 kB
+node_modules/.nitro/vite/services/ssr/assets/consent-D8zkVIBj.js                       0.36 kB │ gzip:  0.28 kB
+node_modules/.nitro/vite/services/ssr/assets/redes-BqA9gzOw.js                         0.51 kB │ gzip:  0.33 kB
+node_modules/.nitro/vite/services/ssr/assets/boas-vindas-BSfd1ccS.js                   0.59 kB │ gzip:  0.36 kB
+node_modules/.nitro/vite/services/ssr/assets/brand-loading-BNbJABEZ.js                 0.59 kB │ gzip:  0.35 kB
+node_modules/.nitro/vite/services/ssr/assets/label-DBD1bRRP.js                         0.64 kB │ gzip:  0.38 kB
+node_modules/.nitro/vite/services/ssr/assets/textarea-kko37XEX.js                      0.66 kB │ gzip:  0.42 kB
+node_modules/.nitro/vite/services/ssr/assets/theme-toggle-CcPb1dhl.js                  0.72 kB │ gzip:  0.39 kB
+node_modules/.nitro/vite/services/ssr/assets/input-B8Q2ztVi.js                         0.75 kB │ gzip:  0.45 kB
+node_modules/.nitro/vite/services/ssr/assets/roles-Dtgbz_3C.js                         0.85 kB │ gzip:  0.51 kB
+node_modules/.nitro/vite/services/ssr/assets/trilha-D8pN-rBS.js                        0.85 kB │ gzip:  0.45 kB
+node_modules/.nitro/vite/services/ssr/assets/diagnostico-DMYWTJU-.js                   0.95 kB │ gzip:  0.55 kB
+node_modules/.nitro/vite/services/ssr/assets/auth-BlbJdqQ_.js                          0.98 kB │ gzip:  0.51 kB
+node_modules/.nitro/vite/services/ssr/assets/badge-D1Dupn2y.js                         0.98 kB │ gzip:  0.50 kB
+node_modules/.nitro/vite/services/ssr/assets/nukkia-logo-CBqWX2JE.js                   1.15 kB │ gzip:  0.60 kB
+node_modules/.nitro/vite/services/ssr/assets/demo-fwfbyzg6.js                          1.19 kB │ gzip:  0.59 kB
+node_modules/.nitro/vite/services/ssr/assets/theme-provider-CpK0imgB.js                1.27 kB │ gzip:  0.56 kB
+node_modules/.nitro/vite/services/ssr/assets/workspace-pLh_U1SJ.js                     1.57 kB │ gzip:  0.67 kB
+node_modules/.nitro/vite/services/ssr/assets/card-BfBj_YIE.js                          1.59 kB │ gzip:  0.49 kB
+node_modules/.nitro/vite/services/ssr/assets/workspace-skeleton-CB7HYGHk.js            1.70 kB │ gzip:  0.57 kB
+node_modules/.nitro/vite/services/ssr/assets/conteudo-qwk8N2XR.js                      1.72 kB │ gzip:  0.93 kB
+node_modules/.nitro/vite/services/ssr/assets/client.server-KzwUIAkW.js                 1.73 kB │ gzip:  0.78 kB
+node_modules/.nitro/vite/services/ssr/assets/button-CfSTWQn6.js                        1.74 kB │ gzip:  0.79 kB
+node_modules/.nitro/vite/services/ssr/assets/route-CquE2SXV.js                         1.92 kB │ gzip:  0.87 kB
+node_modules/.nitro/vite/services/ssr/assets/start-JsCCiF6U.js                         2.00 kB │ gzip:  0.88 kB
+node_modules/.nitro/vite/services/ssr/assets/channel-recommendations-D3Q4Vi52.js       2.35 kB │ gzip:  0.89 kB
+node_modules/.nitro/vite/services/ssr/assets/painel-DqRTHEYA.js                        3.01 kB │ gzip:  1.31 kB
+node_modules/.nitro/vite/services/ssr/assets/createCsrfMiddleware-B2To0gPJ.js          3.19 kB │ gzip:  1.01 kB
+node_modules/.nitro/vite/services/ssr/assets/termos-DFZQpTBX.js                        4.08 kB │ gzip:  1.52 kB
+node_modules/.nitro/vite/services/ssr/assets/use-brand-research-arKlV8L5.js            4.16 kB │ gzip:  1.66 kB
+node_modules/.nitro/vite/services/ssr/assets/privacidade-CawH2Hm_.js                   4.73 kB │ gzip:  1.78 kB
+node_modules/.nitro/vite/services/ssr/assets/route-Bh6evCVY.js                         4.98 kB │ gzip:  1.70 kB
+node_modules/.nitro/vite/services/ssr/assets/client-C5CTgyps.js                        5.96 kB │ gzip:  2.13 kB
+node_modules/.nitro/vite/services/ssr/index.js                                         6.60 kB │ gzip:  2.81 kB
+node_modules/.nitro/vite/services/ssr/assets/boas-vindas-DeatnpYy.js                   7.44 kB │ gzip:  2.68 kB
+node_modules/.nitro/vite/services/ssr/assets/admin-BBsy5Slw.js                         7.66 kB │ gzip:  2.30 kB
+node_modules/.nitro/vite/services/ssr/assets/brand-story-vglHkpE1.js                   8.90 kB │ gzip:  3.69 kB
+node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-Da2QiIsc.js    9.51 kB │ gzip:  1.92 kB
+node_modules/.nitro/vite/services/ssr/assets/trilha-1e_XKl0-.js                       10.02 kB │ gzip:  3.29 kB
+node_modules/.nitro/vite/services/ssr/assets/conta-Dt9_f7Uu.js                        10.31 kB │ gzip:  3.05 kB
+node_modules/.nitro/vite/services/ssr/assets/demo-BWA9qz13.js                         10.50 kB │ gzip:  3.13 kB
+node_modules/.nitro/vite/services/ssr/assets/workspace-shell-YGGendIN.js              10.81 kB │ gzip:  2.80 kB
+node_modules/.nitro/vite/services/ssr/assets/onboarding-draft-Bq-CV5MN.js             12.45 kB │ gzip:  3.75 kB
+node_modules/.nitro/vite/services/ssr/assets/redes-BijIn799.js                        13.59 kB │ gzip:  4.09 kB
+node_modules/.nitro/vite/services/ssr/assets/brand-research-CIzWpTCE.js               14.58 kB │ gzip:  5.07 kB
+node_modules/.nitro/vite/services/ssr/assets/workspace-context-editor-h7fXbHGw.js     16.65 kB │ gzip:  4.29 kB
+node_modules/.nitro/vite/services/ssr/assets/metricas-B01tC3ud.js                     17.27 kB │ gzip:  4.57 kB
+node_modules/.nitro/vite/services/ssr/assets/auth-X4EZ-pxU.js                         17.50 kB │ gzip:  4.76 kB
+node_modules/.nitro/vite/services/ssr/assets/conteudo-Csg6Fmyo.js                     18.59 kB │ gzip:  5.51 kB
+node_modules/.nitro/vite/services/ssr/assets/inspiration-board-Bobfr6gS.js            21.56 kB │ gzip:  6.50 kB
+node_modules/.nitro/vite/services/ssr/assets/routes-DGC3Uroh.js                       23.53 kB │ gzip:  5.27 kB
+node_modules/.nitro/vite/services/ssr/assets/marketing-provider-DJGWxCRX.js           23.67 kB │ gzip:  6.26 kB
+node_modules/.nitro/vite/services/ssr/assets/diagnostico-2P-ep-LX.js                  30.78 kB │ gzip:  8.07 kB
+node_modules/.nitro/vite/services/ssr/assets/brand-onboarding-BMegQOxA.js             44.24 kB │ gzip: 10.75 kB
+node_modules/.nitro/vite/services/ssr/assets/marca-ryanHH2f.js                        54.62 kB │ gzip: 13.66 kB
+node_modules/.nitro/vite/services/ssr/assets/server-D5DOg6Zu.js                       56.40 kB │ gzip: 14.53 kB
+node_modules/.nitro/vite/services/ssr/assets/marketing-views-C9GmGElm.js              85.83 kB │ gzip: 19.56 kB
+node_modules/.nitro/vite/services/ssr/assets/marketing-workspace-rq1iX5VY.js          92.94 kB │ gzip: 25.22 kB
+node_modules/.nitro/vite/services/ssr/assets/health-studio-BoglXcAb.js               107.97 kB │ gzip: 23.90 kB
+node_modules/.nitro/vite/services/ssr/assets/router-DhduInt7.js                      135.09 kB │ gzip: 39.89 kB
+
+✓ built in 394ms
+
+[nitro] ◐ Building [Nitro] (preset: node-server, compatibility: 2026-10-08)
+[nitro] ✔ Generated public .output/public
+vite v8.1.5 building nitro environment for production...
+[2Ktransforming...✓ 2550 modules transformed.
+ℹ Tracing dependencies:
+- ffmpeg-static (5.3.0)
+- tslib (2.8.1)
+✔ Traced 2 dependencies (6 files) in 20ms.
+ℹ Ensure your production environment matches the builder OS and architecture (darwin-arm64) to avoid native module issues.
+rendering chunks...
+computing gzip size...
+.output/server/_ssr/empty-plugin-adapters-D9UWiqvJ.mjs           0.23 kB │ gzip:   0.16 kB
+.output/server/_ssr/utils-C_uf36nf.mjs                           0.29 kB │ gzip:   0.21 kB
+.output/server/_libs/radix-ui__number.mjs                        0.32 kB │ gzip:   0.24 kB
+.output/server/_libs/boolbase.mjs                                0.36 kB │ gzip:   0.23 kB
+.output/server/_ssr/consent-D8zkVIBj.mjs                         0.41 kB │ gzip:   0.31 kB
+.output/server/_ssr/redes-BqA9gzOw.mjs                           0.57 kB │ gzip:   0.38 kB
+.output/server/_chunks/ssr-renderer.mjs                          0.60 kB │ gzip:   0.36 kB
+.output/server/_ssr/boas-vindas-BSfd1ccS.mjs                     0.71 kB │ gzip:   0.43 kB
+.output/server/_libs/radix-ui__react-direction.mjs               0.76 kB │ gzip:   0.40 kB
+.output/server/_ssr/brand-loading-BNbJABEZ.mjs                   0.82 kB │ gzip:   0.43 kB
+.output/server/_ssr/trilha-D8pN-rBS.mjs                          0.91 kB │ gzip:   0.50 kB
+.output/server/_ssr/roles-Dtgbz_3C.mjs                           0.92 kB │ gzip:   0.55 kB
+.output/server/_ssr/theme-toggle-CcPb1dhl.mjs                    0.96 kB │ gzip:   0.47 kB
+.output/server/_ssr/label-DBD1bRRP.mjs                           0.96 kB │ gzip:   0.49 kB
+.output/server/_ssr/textarea-kko37XEX.mjs                        0.99 kB │ gzip:   0.54 kB
+.output/server/_libs/radix-ui__react-label.mjs                   1.00 kB │ gzip:   0.51 kB
+.output/server/_ssr/diagnostico-DMYWTJU-.mjs                     1.01 kB │ gzip:   0.60 kB
+.output/server/_ssr/input-B8Q2ztVi.mjs                           1.08 kB │ gzip:   0.57 kB
+.output/server/_ssr/auth-BlbJdqQ_.mjs                            1.10 kB │ gzip:   0.57 kB
+.output/server/_ssr/conteudo-qwk8N2XR.mjs                        1.15 kB │ gzip:   0.61 kB
+.output/server/_ssr/badge-D1Dupn2y.mjs                           1.20 kB │ gzip:   0.56 kB
+.output/server/_ssr/demo-fwfbyzg6.mjs                            1.35 kB │ gzip:   0.67 kB
+.output/server/_ssr/nukkia-logo-CBqWX2JE.mjs                     1.38 kB │ gzip:   0.68 kB
+.output/server/_ssr/theme-provider-CpK0imgB.mjs                  1.62 kB │ gzip:   0.69 kB
+.output/server/_ssr/client.server-KzwUIAkW.mjs                   1.77 kB │ gzip:   0.82 kB
+.output/server/_ssr/workspace-pLh_U1SJ.mjs                       1.78 kB │ gzip:   0.76 kB
+.output/server/_libs/radix-ui__primitive.mjs                     1.83 kB │ gzip:   0.72 kB
+.output/server/_ssr/start-JsCCiF6U.mjs                           1.90 kB │ gzip:   0.86 kB
+.output/server/_runtime.mjs                                      1.92 kB │ gzip:   0.87 kB
+.output/server/_ssr/button-CfSTWQn6.mjs                          2.05 kB │ gzip:   0.90 kB
+.output/server/_ssr/card-BfBj_YIE.mjs                            2.07 kB │ gzip:   0.61 kB
+.output/server/_ssr/route-CquE2SXV.mjs                           2.08 kB │ gzip:   0.95 kB
+.output/server/_ssr/workspace-skeleton-CB7HYGHk.mjs              2.11 kB │ gzip:   0.66 kB
+.output/server/_libs/ufo.mjs                                     2.21 kB │ gzip:   0.72 kB
+.output/server/_ssr/channel-recommendations-D3Q4Vi52.mjs         2.81 kB │ gzip:   0.97 kB
+.output/server/_ssr/createCsrfMiddleware-B2To0gPJ.mjs            3.11 kB │ gzip:   1.01 kB
+.output/server/_libs/class-variance-authority+clsx.mjs           3.17 kB │ gzip:   1.24 kB
+.output/server/_ssr/painel-DqRTHEYA.mjs                          3.19 kB │ gzip:   1.38 kB
+.output/server/_libs/radix-ui__react-progress.mjs                4.12 kB │ gzip:   1.36 kB
+.output/server/_ssr/use-brand-research-arKlV8L5.mjs              4.41 kB │ gzip:   1.78 kB
+.output/server/_ssr/termos-DFZQpTBX.mjs                          4.82 kB │ gzip:   1.60 kB
+.output/server/_ssr/privacidade-CawH2Hm_.mjs                     5.52 kB │ gzip:   1.86 kB
+.output/server/_ssr/route-Bh6evCVY.mjs                           5.75 kB │ gzip:   1.85 kB
+.output/server/_ssr/client-C5CTgyps.mjs                          5.94 kB │ gzip:   2.16 kB
+.output/server/_libs/radix-ui__react-tabs.mjs                    6.08 kB │ gzip:   1.76 kB
+.output/server/_ssr/ssr.mjs                                      6.49 kB │ gzip:   2.81 kB
+.output/server/_ssr/boas-vindas-DeatnpYy.mjs                     8.17 kB │ gzip:   2.79 kB
+.output/server/_libs/tanstack__react-query.mjs                   8.43 kB │ gzip:   2.63 kB
+.output/server/_ssr/brand-story-vglHkpE1.mjs                     8.99 kB │ gzip:   3.75 kB
+.output/server/_ssr/admin-BBsy5Slw.mjs                           9.04 kB │ gzip:   2.41 kB
+.output/server/_libs/radix-ui__react-popper.mjs                  9.47 kB │ gzip:   2.84 kB
+.output/server/_tanstack-start-manifest_v-Da2QiIsc.mjs           9.57 kB │ gzip:   1.95 kB
+.output/server/_libs/@radix-ui/react-checkbox+[...].mjs          9.74 kB │ gzip:   2.71 kB
+.output/server/_libs/@radix-ui/react-roving-focus+[...].mjs     10.17 kB │ gzip:   2.81 kB
+.output/server/_ssr/trilha-1e_XKl0-.mjs                         11.12 kB │ gzip:   3.39 kB
+.output/server/_ssr/demo-BWA9qz13.mjs                           11.54 kB │ gzip:   3.26 kB
+.output/server/_ssr/conta-Dt9_f7Uu.mjs                          11.56 kB │ gzip:   3.20 kB
+.output/server/_libs/tanstack__history.mjs                      12.09 kB │ gzip:   3.48 kB
+.output/server/_libs/supabase__functions-js.mjs                 12.49 kB │ gzip:   3.44 kB
+.output/server/_ssr/onboarding-draft-Bq-CV5MN.mjs               12.63 kB │ gzip:   3.84 kB
+.output/server/_ssr/workspace-shell-YGGendIN.mjs                12.94 kB │ gzip:   2.99 kB
+.output/server/_ssr/brand-research-CIzWpTCE.mjs                 14.66 kB │ gzip:   5.13 kB
+.output/server/_ssr/redes-BijIn799.mjs                          14.99 kB │ gzip:   4.17 kB
+.output/server/_libs/radix-ui__react-collection.mjs             16.58 kB │ gzip:   3.70 kB
+.output/server/_libs/fflate.mjs                                 16.62 kB │ gzip:   6.23 kB
+.output/server/_ssr/workspace-context-editor-h7fXbHGw.mjs       18.81 kB │ gzip:   4.47 kB
+.output/server/_ssr/auth-X4EZ-pxU.mjs                           19.43 kB │ gzip:   4.92 kB
+.output/server/_ssr/metricas-B01tC3ud.mjs                       19.45 kB │ gzip:   4.68 kB
+.output/server/_ssr/conteudo-Csg6Fmyo.mjs                       20.59 kB │ gzip:   5.68 kB
+.output/server/_ssr/inspiration-board-Bobfr6gS.mjs              23.13 kB │ gzip:   6.64 kB
+.output/server/_ssr/marketing-provider-DJGWxCRX.mjs             24.81 kB │ gzip:   6.43 kB
+.output/server/_libs/@floating-ui/dom+[...].mjs                 25.38 kB │ gzip:   6.57 kB
+.output/server/_libs/@floating-ui/core+[...].mjs                25.55 kB │ gzip:   6.32 kB
+.output/server/_libs/h3+rou3+srvx.mjs                           27.33 kB │ gzip:   7.19 kB
+.output/server/_ssr/routes-DGC3Uroh.mjs                         29.09 kB │ gzip:   5.48 kB
+.output/server/index.mjs                                        31.24 kB │ gzip:   8.30 kB
+.output/server/_libs/@floating-ui/react-dom+[...].mjs           32.62 kB │ gzip:   8.23 kB
+.output/server/_libs/lucide-react.mjs                           33.77 kB │ gzip:   6.68 kB
+.output/server/_ssr/diagnostico-2P-ep-LX.mjs                    34.36 kB │ gzip:   8.26 kB
+.output/server/_libs/supabase__supabase-js.mjs                  37.86 kB │ gzip:  11.17 kB
+.output/server/_libs/h3-v2+rou3+srvx.mjs                        41.61 kB │ gzip:  11.25 kB
+.output/server/_libs/@radix-ui/react-select+[...].mjs           45.92 kB │ gzip:   9.70 kB
+.output/server/_ssr/brand-onboarding-BMegQOxA.mjs               49.55 kB │ gzip:  10.99 kB
+.output/server/_libs/supabase__phoenix.mjs                      50.54 kB │ gzip:  12.76 kB
+.output/server/_libs/sonner.mjs                                 53.58 kB │ gzip:  12.11 kB
+.output/server/_ssr/server-D5DOg6Zu.mjs                         54.78 kB │ gzip:  14.39 kB
+.output/server/_ssr/marca-ryanHH2f.mjs                          60.56 kB │ gzip:  13.94 kB
+.output/server/_libs/supabase__realtime-js.mjs                  81.54 kB │ gzip:  20.80 kB
+.output/server/_libs/tailwind-merge.mjs                         88.92 kB │ gzip:  15.71 kB
+.output/server/_libs/@radix-ui/react-alert-dialog+[...].mjs     92.03 kB │ gzip:  20.51 kB
+.output/server/_ssr/marketing-workspace-rq1iX5VY.mjs            93.20 kB │ gzip:  25.28 kB
+.output/server/_ssr/marketing-views-C9GmGElm.mjs                97.37 kB │ gzip:  20.01 kB
+.output/server/_libs/tanstack__query-core.mjs                  105.13 kB │ gzip:  24.71 kB
+.output/server/_libs/supabase__postgrest-js.mjs                110.15 kB │ gzip:  23.14 kB
+.output/server/_ssr/health-studio-BoglXcAb.mjs                 122.54 kB │ gzip:  24.39 kB
+.output/server/_libs/@tanstack/router-core+[...].mjs           124.99 kB │ gzip:  26.40 kB
+.output/server/_libs/@supabase/storage-js+[...].mjs            126.25 kB │ gzip:  23.49 kB
+.output/server/_ssr/router-DhduInt7.mjs                        134.30 kB │ gzip:  39.83 kB
+.output/server/_libs/zod.mjs                                   182.55 kB │ gzip:  32.84 kB
+.output/server/_libs/supabase__auth-js.mjs                     318.99 kB │ gzip:  64.21 kB
+.output/server/_libs/@anthropic-ai/sdk+[...].mjs               623.15 kB │ gzip: 135.59 kB
+.output/server/_libs/@tanstack/react-router+[...].mjs          691.71 kB │ gzip: 144.61 kB
+.output/server/_libs/cheerio+[...].mjs                       1,798.41 kB │ gzip: 514.09 kB
+
+✓ built in 294ms
+ℹ Generated .output/nitro.json
+
+[nitro] ✔ You can preview this build using npx vite preview

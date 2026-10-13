@@ -399,4 +399,9 @@ test("no-website path preserves human copy, revokes old approval and retains the
   assert.equal(data.answers.instagram, "@aurora.qa");
   assert.ok(data.brand.extraLinks.includes("https://instagram.com/aurora.qa"));
   assert.equal(step, 1);
+  step = 0;
+  (render().find((n) => n.props.children === "Não tenho Instagram")!.props.onClick as () => void)();
+  assert.equal(data.answers.instagram, "");
+  assert.ok(!data.brand.extraLinks.some((link) => link.includes("instagram.com")));
+  assert.equal(step, 1);
 });

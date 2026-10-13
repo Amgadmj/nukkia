@@ -78,8 +78,9 @@ This README is the single entry point. Deeper dives:
 | Forms/validation | react-hook-form + Zod | zod ^3.25 | **Zod v3 API for request bodies, `zod/v4` for AI schemas** (§9) |
 | DB / Auth / Storage | Supabase | supabase-js ^2.116 | RLS is the authorization layer |
 | Text AI | Anthropic Claude | `@anthropic-ai/sdk` ^0.126 | default model `claude-sonnet-4-6` |
-| Image AI | Gemini `gemini-2.5-flash-image` | raw REST | "Nano Banana" |
-| Video AI | Veo `veo-3.1-generate-preview` | raw REST | async long-running op |
+| Image AI | Gemini `gemini-3.1-flash-image` | raw REST | "Nano Banana 2" (GA). `gemini-2.5-flash-image` shuts down 2026-10-02 |
+| Video AI | Veo `veo-3.1-generate-preview` | raw REST | async long-running op (no GA Veo id yet) |
+| Promo MP4 export | ffmpeg via `ffmpeg-static` | child process | `FFMPEG_PATH` → PATH → bundled binary; traced into the Vercel function |
 | Package manager | **npm** (`package-lock.json` is the lockfile of record) | Node 22 in CI, 24.x on Vercel | |
 
 ---
@@ -233,8 +234,9 @@ repo**; they live in the local `.env` of the outgoing owner and in Vercel (produ
 | `ANTHROPIC_API_KEY` | server | yes | all text generation |
 | `ANTHROPIC_TEXT_MODEL` | server | no | default `claude-sonnet-4-6` |
 | `GEMINI_API_KEY` | server | yes | images + Veo |
-| `GEMINI_IMAGE_MODEL` | server | no | default `gemini-2.5-flash-image` |
+| `GEMINI_IMAGE_MODEL` | server | no | default `gemini-3.1-flash-image` |
 | `GEMINI_VIDEO_MODEL` | server | no | default `veo-3.1-generate-preview` (preview model — verify availability) |
+| `FFMPEG_PATH` | server | no | override the ffmpeg binary for `/api/promo-video`; default resolves PATH, then the `ffmpeg-static` package |
 | `CRON_SECRET` / `CRON_SECRET_PREVIOUS` | server | not yet | future scheduled-publish endpoint (`cron-auth.ts`, rotation-friendly) |
 | `NITRO_PRESET` | build | no | force a deploy target |
 

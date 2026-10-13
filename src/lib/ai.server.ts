@@ -4,8 +4,9 @@
  *    diagnostic report, content plan, carousel outline, storyboard script,
  *    and onboarding research draft. Moved off Gemini per an explicit,
  *    scoped request ("all the text and diagnostic work").
- *  - Gemini stays for image generation (gemini-2.5-flash-image / "Nano
- *    Banana") and Veo video — those weren't in scope for this change.
+ *  - Gemini stays for image generation (gemini-3.1-flash-image / "Nano
+ *    Banana 2" — gemini-2.5-flash-image is shut down on 2026-10-02) and Veo
+ *    video — those weren't in scope for this change.
  *
  * The Gemini REST calls are confirmed against ai.google.dev's own docs
  * (generateContent, image output via inlineData/responseModalities, Veo via
@@ -26,7 +27,7 @@ import type { z } from "zod/v4";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 const TEXT_MODEL = process.env["ANTHROPIC_TEXT_MODEL"] || "claude-sonnet-4-6";
-const IMAGE_MODEL = process.env["GEMINI_IMAGE_MODEL"] || "gemini-2.5-flash-image";
+const IMAGE_MODEL = process.env["GEMINI_IMAGE_MODEL"] || "gemini-3.1-flash-image";
 const VIDEO_MODEL = process.env["GEMINI_VIDEO_MODEL"] || "veo-3.1-generate-preview";
 
 const DEFAULT_TIMEOUT_MS = 45_000;
@@ -175,13 +176,32 @@ async function callGemini(model: string, body: unknown, timeoutMs: number): Prom
   return response.json();
 }
 
-type GenerateContentResponse = {
-  candidates?: {
-    content?: { parts?: { text?: string; inlineData?: { data?: string; mimeType?: string } }[] };
-  }[];
+type GenerateContentPart = {
+  text?: string;
+  /** Gemini 3.x "thinking" parts (interim draft images/text) — never the final output. */
+  thought?: boolean;
+  thoughtSignature?: string;
+  inlineData?: { data?: string; mimeType?: string };
 };
 
-/** Gera uma imagem via Gemini (gemini-2.5-flash-image / "Nano Banana") e devolve os bytes em base64. */
+type GenerateContentResponse = {
+  candidates?: { content?: { parts?: GenerateContentPart[] } }[];
+};
+
+/**
+ * Picks the final rendered image from a generateContent response. Gemini 3.x
+ * image models can emit interim "thought" images (flagged `thought: true`)
+ * before the final one, so prefer the LAST non-thought image part; fall back
+ * to the last image part of any kind (Google documents the last thinking
+ * image as identical to the final render).
+ */
+export function pickFinalImagePart(parts: GenerateContentPart[]): string | undefined {
+  const images = parts.filter((p) => p.inlineData?.data);
+  const finals = images.filter((p) => !p.thought);
+  return (finals.at(-1) ?? images.at(-1))?.inlineData?.data;
+}
+
+/** Gera uma imagem via Gemini (gemini-3.1-flash-image / "Nano Banana 2") e devolve os bytes em base64. */
 export async function generateImageBase64(
   prompt: string,
   options?: { timeoutMs?: number },
@@ -197,10 +217,9 @@ export async function generateImageBase64(
     )) as GenerateContentResponse;
 
     const parts = json.candidates?.[0]?.content?.parts ?? [];
-    const imagePart = parts.find((p) => p.inlineData?.data);
-    if (!imagePart?.inlineData?.data)
-      throw new AiError("A IA não retornou imagem. Tente novamente.");
-    return imagePart.inlineData.data;
+    const data = pickFinalImagePart(parts);
+    if (!data) throw new AiError("A IA não retornou imagem. Tente novamente.");
+    return data;
   });
 }
 

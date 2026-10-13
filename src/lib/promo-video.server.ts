@@ -1,10 +1,13 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { access, constants, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 
 // Requires a Node server, writable temporary storage and ffmpeg with libx264.
-// Set FFMPEG_PATH in production, or provide ffmpeg on PATH. No remote inputs.
+// Binary resolution order: explicit option, FFMPEG_PATH, `ffmpeg` on PATH,
+// then the `ffmpeg-static` npm package (the only option on Vercel, whose
+// functions have no system ffmpeg — vite.config.ts traces it into the
+// server bundle). No remote inputs.
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_PNG_BYTES = 2_000_000;
 const MAX_DIMENSION = 4096;
@@ -134,6 +137,49 @@ export function decodePromoFrames(frames: unknown): Buffer[] {
     if (!ended) invalidFrames();
     return Buffer.concat(chunks);
   });
+}
+
+async function isExecutable(file: string) {
+  try {
+    await access(file, process.platform === "win32" ? constants.F_OK : constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function ffmpegOnPath() {
+  const dirs = (process.env["PATH"] || process.env["Path"] || "").split(delimiter).filter(Boolean);
+  const exts =
+    process.platform === "win32"
+      ? (process.env["PATHEXT"] || ".EXE;.CMD;.BAT;.COM").split(";").filter(Boolean)
+      : [""];
+  for (const dir of dirs)
+    for (const ext of exts) if (await isExecutable(join(dir, `ffmpeg${ext}`))) return true;
+  return false;
+}
+
+async function ffmpegStaticPath(): Promise<string | undefined> {
+  try {
+    const mod: unknown = await import("ffmpeg-static");
+    const binary =
+      typeof mod === "string" ? mod : (mod as { default?: unknown } | null | undefined)?.default;
+    // null on unsupported platforms; missing file if its install script was skipped.
+    if (typeof binary === "string" && binary && (await isExecutable(binary))) return binary;
+  } catch {
+    // Package absent or unloadable in this runtime; fall through.
+  }
+  return undefined;
+}
+
+let resolvedFallback: Promise<string> | undefined;
+/** Exported for scripts/tests. The fallback part is memoized per process. */
+export function resolveFfmpegCommand(explicit?: string): Promise<string> {
+  const configured = explicit || process.env["FFMPEG_PATH"];
+  if (configured) return Promise.resolve(configured);
+  resolvedFallback ??= (async () =>
+    (await ffmpegOnPath()) ? "ffmpeg" : ((await ffmpegStaticPath()) ?? "ffmpeg"))();
+  return resolvedFallback;
 }
 
 async function runFfmpeg(command: string, args: string[], signal?: AbortSignal) {
@@ -284,11 +330,7 @@ export async function renderPromoVideo(
       String(MAX_OUTPUT_BYTES),
       output,
     );
-    await runFfmpeg(
-      options.ffmpegPath || process.env["FFMPEG_PATH"] || "ffmpeg",
-      args,
-      options.signal,
-    );
+    await runFfmpeg(await resolveFfmpegCommand(options.ffmpegPath), args, options.signal);
     if (options.signal?.aborted) throw cancelled();
     const size = (await stat(output)).size;
     if (size < 16 || size >= MAX_OUTPUT_BYTES)

@@ -459,6 +459,12 @@ export function BrandOnboarding({
                   onData((current) => ({
                     ...current,
                     answers: { ...current.answers, instagram: "" },
+                    brand: updateBrand(current.brand, {
+                      extraLinks: current.brand.extraLinks.filter(
+                        (link) => sourceIdentity(link)?.kind !== "Instagram",
+                      ),
+                      referencesConfirmed: "",
+                    }),
                   }));
                   onStep(1);
                 }}

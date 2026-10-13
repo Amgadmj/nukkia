@@ -1,4 +1,4 @@
-import { Resolver } from "node:dns/promises";
+import { Resolver, lookup } from "node:dns/promises";
 import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
 import { load } from "cheerio";
@@ -39,6 +39,69 @@ export function isPublicIpv4(address: string): boolean {
 }
 const sameSite = (a: string, b: string) => a.replace(/^www\./, "") === b.replace(/^www\./, "");
 
+// c-ares (Resolver) talks to the configured DNS servers directly and ignores the
+// OS resolver. Some machines (e.g. Windows with IPv6-only or local DNS proxies)
+// expose servers c-ares cannot reach, so it fails with a transport error even
+// though the host resolves fine through getaddrinfo. Only these resolver
+// infrastructure failures fall back; a negative answer (ENOTFOUND/ENODATA) is
+// authoritative and never retried through another path.
+const RESOLVER_INFRASTRUCTURE_ERRORS = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEOUT",
+  "ETIMEDOUT",
+  "ESERVFAIL",
+  "EREFUSED",
+  "EBADRESP",
+  "EOF",
+  "EFILE",
+  "ENOTIMP",
+  "ENOTINITIALIZED",
+  "ELOADIPHLPAPI",
+  "EADDRGETNETWORKPARAMS",
+]);
+export function isResolverInfrastructureError(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === "string" && RESOLVER_INFRASTRUCTURE_ERRORS.has(code);
+}
+
+// Settles with the task's result, or rejects with the abort reason as soon as the
+// signal fires. `onAbort` lets cancellable work (c-ares) stop early; getaddrinfo
+// cannot be cancelled, so its late result is simply ignored.
+function abortable<T>(signal: AbortSignal, task: () => Promise<T>, onAbort?: () => void) {
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => {
+      onAbort?.();
+      reject(signal.reason);
+    };
+    if (signal.aborted) {
+      abort();
+      return;
+    }
+    signal.addEventListener("abort", abort, { once: true });
+    task()
+      .then(resolve, reject)
+      .finally(() => signal.removeEventListener("abort", abort));
+  });
+}
+
+// Returns every IPv4 answer for the host. The caller validates all of them and
+// connects to one of these exact addresses, so no later lookup can rebind.
+async function resolvePublicHost(hostname: string, signal: AbortSignal): Promise<string[]> {
+  const resolver = new Resolver({ timeout: 1500, tries: 1 });
+  try {
+    return await abortable(
+      signal,
+      () => resolver.resolve4(hostname),
+      () => resolver.cancel(),
+    );
+  } catch (error) {
+    if (signal.aborted || !isResolverInfrastructureError(error)) throw error;
+  }
+  const answers = await abortable(signal, () => lookup(hostname, { all: true, family: 4 }));
+  return answers.filter((answer) => answer.family === 4).map((answer) => answer.address);
+}
+
 // Resolve once, reject mixed private/public answers, then connect directly to that
 // address with the original TLS servername/Host. No second DNS lookup/rebinding.
 export async function fetchPublicResource(
@@ -59,21 +122,7 @@ export async function fetchPublicResource(
       throw new Error("O site redirecionou para outro domínio.");
     if (options.allowedPath && !options.allowedPath(url.pathname + url.search))
       throw new Error("O site limita a leitura automática deste conteúdo.");
-    const resolver = new Resolver({ timeout: 1500, tries: 1 });
-    const addresses = await new Promise<string[]>((resolve, reject) => {
-      const abort = () => {
-        resolver.cancel();
-        reject(options.signal.reason);
-      };
-      options.signal.addEventListener("abort", abort, { once: true });
-      resolver
-        .resolve4(url.hostname)
-        .then(resolve, reject)
-        .finally(() => {
-          options.signal.removeEventListener("abort", abort);
-        });
-      if (options.signal.aborted) abort();
-    });
+    const addresses = await resolvePublicHost(url.hostname, options.signal);
     options.signal.throwIfAborted();
     if (!addresses.length || addresses.some((address) => !isPublicIpv4(address)))
       throw new Error("Este endereço não é um site público permitido.");

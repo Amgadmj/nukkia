@@ -18,7 +18,7 @@ noted) · **BLOCKED** = needs the user's action, not more code, to finish.
 | Database | New Supabase project, user's own account (not self-hosted Docker — no Docker on this machine) |
 | AI provider | Gemini API direct, replacing the Lovable AI gateway entirely |
 | Text models | Mixed tier: `gemini-2.5-flash` for drafts (plan/carousel/storyboard/onboarding-research), `gemini-2.5-pro` for the diagnostic report — **superseded 2026-09-17, see below** |
-| Image model | `gemini-2.5-flash-image` ("Nano Banana") |
+| Image model | `gemini-3.1-flash-image` ("Nano Banana 2"; replaced `gemini-2.5-flash-image`, shut down 2026-10-02) |
 | Video | Veo (`veo-3.1-generate-preview`) wired in for real, async job + polling |
 | Google login | Dropped — email/password only |
 | Lovable exit scope | Full: Vite config, logo, error reporting, cron secret, all replaced |

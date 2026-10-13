@@ -33,6 +33,28 @@ function base64ToBytes(b64: string): Uint8Array {
  * should store the path and re-sign on read once the UI supports it — see
  * the note on content_items.image_path in the migration.
  */
+/**
+ * Gemini image models don't all return PNG (the 3.x family may return JPEG),
+ * so label the stored object by its magic bytes instead of assuming PNG.
+ * Unknown signatures keep the historical PNG default.
+ */
+function sniffImageType(bytes: Uint8Array): { ext: string; contentType: string } {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff)
+    return { ext: "jpg", contentType: "image/jpeg" };
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  )
+    return { ext: "webp", contentType: "image/webp" };
+  return { ext: "png", contentType: "image/png" };
+}
+
 async function uploadGeneratedImage(
   supabase: SupabaseClient<Database>,
   companyId: string,
@@ -40,10 +62,11 @@ async function uploadGeneratedImage(
   bytes: Uint8Array,
   slideIndex = 0,
 ): Promise<{ path: string }> {
-  const path = `${companyId}/${contentItemId}-${slideIndex}-${Date.now()}.png`;
+  const { ext, contentType } = sniffImageType(bytes);
+  const path = `${companyId}/${contentItemId}-${slideIndex}-${Date.now()}.${ext}`;
   const { error: uploadError } = await supabase.storage
     .from("content-media")
-    .upload(path, bytes, { contentType: "image/png", upsert: true });
+    .upload(path, bytes, { contentType, upsert: true });
   if (uploadError) throw new AiError("Falha ao salvar a arte gerada.");
   return { path };
 }

@@ -268,8 +268,15 @@ export async function handleBrandPreview(
               const profiling = dependencies.profile
                 ? Promise.resolve()
                     .then(() => dependencies.profile!(research, signal, { deadline }))
-                    .catch(() => null)
-                : Promise.resolve(null);
+                    .then((profile) => {
+                      // Publish as soon as it is ready: the client fills the form from it.
+                      if (profile.length) {
+                        research = { ...research, profile };
+                        emit(research);
+                      }
+                    })
+                    .catch(() => undefined)
+                : Promise.resolve();
               try {
                 const suggestions = await dependencies.synthesize(research, signal, { deadline });
                 research = { ...research, suggestions, synthesis: "ready" };
@@ -281,8 +288,7 @@ export async function handleBrandPreview(
                     "A síntese por IA não está disponível agora. As referências foram preservadas; você pode preencher ou revisar manualmente.",
                 };
               }
-              const profile = await profiling;
-              if (profile?.length) research = { ...research, profile };
+              await profiling;
             }
             emit({ ...research, phase: "deepening" });
             // Keep the request open while onboarding advances. This is a bounded
@@ -321,14 +327,17 @@ export async function handleBrandPreview(
                     const refreshed = dependencies.profile
                       ? Promise.resolve()
                           .then(() => dependencies.profile!(research, signal, { deadline }))
-                          .catch(() => null)
-                      : Promise.resolve(null);
-                    research = {
-                      ...research,
-                      suggestions: await dependencies.synthesize(research, signal, { deadline }),
-                    };
-                    const profile = await refreshed;
-                    if (profile?.length) research = { ...research, profile };
+                          .then((profile) => {
+                            if (profile.length) research = { ...research, profile };
+                          })
+                          .catch(() => undefined)
+                      : Promise.resolve();
+                    const [synthesis] = await Promise.allSettled([
+                      dependencies.synthesize(research, signal, { deadline }),
+                      refreshed,
+                    ]);
+                    if (synthesis.status === "fulfilled")
+                      research = { ...research, suggestions: synthesis.value };
                   } catch {
                     /* Keep the initial useful synthesis. */
                   }

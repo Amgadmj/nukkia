@@ -34,6 +34,7 @@ import {
 import { groupBrandSources, sourceIdentity } from "@/lib/brand-sources";
 
 const websiteMaxLength = answersSchema.shape.website.removeDefault().maxLength!;
+const READING_LIMIT_MS = 45_000;
 const exampleTextNotice =
   "Encontramos textos de exemplo no site e os excluímos da leitura. Confirme as informações da marca antes de usar.";
 
@@ -101,6 +102,8 @@ export function BrandOnboarding({
   const [addingLink, setAddingLink] = useState(false);
   const [editingLink, setEditingLink] = useState<{ key: string; value: string } | null>(null);
   const [longWait, setLongWait] = useState(false);
+  // Holds the first screen while the site is read, so the next screen opens filled in.
+  const [reading, setReading] = useState(false);
   const [choice, setChoice] = useState<VisualStyle | null>(data.brand.visualStyle ?? null);
   const selected = choice ?? recommendedVisualStyle(data);
   const title = useRef<HTMLHeadingElement>(null);
@@ -128,6 +131,28 @@ export function BrandOnboarding({
     const timer = window.setTimeout(() => setLongWait(true), 12000);
     return () => window.clearTimeout(timer);
   }, [brand.research.startedAt, researching]);
+  const readingDone =
+    brand.research.profile.length > 0 ||
+    brand.research.phase === "deepening" ||
+    brand.research.phase === "complete" ||
+    brand.research.status === "unavailable";
+  const onStepRef = useRef(onStep);
+  onStepRef.current = onStep;
+  useEffect(() => {
+    if (reading && (readingDone || step !== 0)) {
+      setReading(false);
+      if (step === 0) onStepRef.current(1);
+    }
+  }, [reading, readingDone, step]);
+  useEffect(() => {
+    if (!reading) return;
+    // Never trap the user: after this the form opens and the rest arrives live.
+    const timer = window.setTimeout(() => {
+      setReading(false);
+      onStepRef.current(1);
+    }, READING_LIMIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [reading]);
   const references = referenceFingerprint(data);
   const editingReferenceKey = editingLink?.key;
   useEffect(() => {
@@ -230,7 +255,9 @@ export function BrandOnboarding({
         return;
       }
       onResearch();
-      onStep(1);
+      // Without a site and AI consent there is nothing to wait for.
+      if (brand.referenceUrl.trim() && brand.aiAuthorized) setReading(true);
+      else onStep(1);
       return;
     }
     if (step === 1) {
@@ -474,7 +501,7 @@ export function BrandOnboarding({
               </button>
             </>
           )}
-          {step > 0 && step < 3 && (
+          {((step > 0 && step < 3) || reading) && (
             <>
               {!researching &&
                 brand.research.status === "ready" &&
@@ -532,9 +559,11 @@ export function BrandOnboarding({
                     </p>
                   )}
                   <small>
-                    {longWait
-                      ? "Está levando um pouco mais. Continue com seus dados; as sugestões chegarão aqui."
-                      : "Você pode preencher e continuar enquanto analisamos."}
+                    {reading
+                      ? "Estamos preenchendo as perguntas com o que encontramos. Leva cerca de 30 segundos."
+                      : longWait
+                        ? "Está levando um pouco mais. Continue com seus dados; as sugestões chegarão aqui."
+                        : "Você pode preencher e continuar enquanto analisamos."}
                   </small>
                 </div>
               )}
@@ -837,20 +866,36 @@ export function BrandOnboarding({
           <button
             className="quick-primary"
             type="submit"
-            disabled={busy || (step === 1 && (pendingReference || referencesNeedConfirmation))}
+            disabled={
+              busy || reading || (step === 1 && (pendingReference || referencesNeedConfirmation))
+            }
           >
             {busy
               ? "Preparando seu espaço…"
-              : step === 0
-                ? "Continuar"
-                : step === 1
-                  ? "Confirmar minha marca"
-                  : step === 2
-                    ? "Ver sistema da marca"
-                    : "Ir para meu painel"}
+              : reading
+                ? "Lendo seu site…"
+                : step === 0
+                  ? "Continuar"
+                  : step === 1
+                    ? "Confirmar minha marca"
+                    : step === 2
+                      ? "Ver sistema da marca"
+                      : "Ir para meu painel"}
             <ArrowRight size={16} />
           </button>
-          {step === 0 && !instagramStep && (
+          {reading && (
+            <button
+              className="quick-skip"
+              type="button"
+              onClick={() => {
+                setReading(false);
+                onStep(1);
+              }}
+            >
+              Preencher manualmente agora
+            </button>
+          )}
+          {step === 0 && !instagramStep && !reading && (
             <button
               className="quick-skip"
               type="button"

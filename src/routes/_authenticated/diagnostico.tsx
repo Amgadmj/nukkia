@@ -24,6 +24,7 @@ import {
   CHAPTERS,
   chapterMissing,
   diagnosticMatchesAnswers,
+  type AnswerKey,
 } from "@/lib/onboarding";
 
 export const Route = createFileRoute("/_authenticated/diagnostico")({
@@ -72,6 +73,16 @@ function Diagnostico() {
   const reportStale = Boolean(
     diagnostic?.report && !diagnosticMatchesAnswers(diagnostic.answers, workspace.data.answers),
   );
+  // Label only answers that still hold the AI draft; an edited one is the user's own.
+  const suggestedKeys = workspace.data.brand.research.profile
+    .filter(
+      (item) =>
+        item.key !== "name" &&
+        item.key !== "segment" &&
+        workspace.data.brand.profileApplied.includes(item.key) &&
+        workspace.data.answers[item.key] === item.value,
+    )
+    .map((item) => item.key as AnswerKey);
   const showReport = Boolean(search.relatorio);
   if (search.editar)
     return (
@@ -290,6 +301,7 @@ function Diagnostico() {
           key={company.id}
           company={company}
           previousAnswers={workspace.data.answers}
+          suggestedKeys={suggestedKeys}
           onAnswersChange={(answers) =>
             workspace.setData((current) => editWorkspaceAnswers(current, answers))
           }

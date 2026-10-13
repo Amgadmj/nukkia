@@ -300,16 +300,22 @@ function pagePriority(url: string): number {
   )
     return 0;
   const priorities = [
-    /servi|treatment|tratamento|especialidade|fisioterapia|condicionamento|simulador/,
-    /product|produto|producto|catalog/,
+    /servi|treatment|tratamento|especialidade|fisioterapia|condicionamento|simulador|solu[cç]|solution|capabilit|capacidade/,
+    /product|produto|producto|catalog|portfolio|ecossistema|ecosystem|plataforma|platform|tecnologia|technology|metodo|method|como-funciona|how-it-works/,
     /offer|oferta|promo|deal/,
-    /sobre|about|quem-somos|nosotros|clinica/,
+    /sobre|about|quem-somos|nosotros|clinica|empresa|company|historia|missao|mission/,
     /price|pricing|preco|precio|valor|plano|plan(?:s|es)?(?:\/|$)|pacote/,
     /faq|pergunta|duvida|question/,
     /contact|contato|fale-conosco/,
   ];
   const index = priorities.findIndex((pattern) => pattern.test(path));
-  return index < 0 ? 0 : priorities.length - index;
+  if (index >= 0) return priorities.length - index;
+  // /index.html is the home page under another name, which is already read.
+  if (/(?:^|\/)(?:index|home|inicio)(?:\.html?|\.php)?$/.test(path)) return 0;
+  // Brands name their pages in their own words (e.g. /ecossistema, /nossa-visao).
+  // A shallow page we have no keyword for is still worth reading, after the
+  // known ones; deep paths are usually articles or listings.
+  return path.split("/").filter(Boolean).length <= 2 ? 0.5 : 0;
 }
 
 export function prioritizePageLinks(
@@ -554,6 +560,7 @@ export async function collectBrandSite(
         sources: [],
         discoveredLinks: [],
         suggestions: [],
+        profile: [],
         message: "",
         logo: "",
         logoSource: "",

@@ -398,9 +398,10 @@ export function BrandOnboarding({
                     <summary>Como usamos seus dados</summary>
                     <p>
                       A IA é opcional. Se você autorizar, enviamos à Anthropic trechos públicos do
-                      site para sugerir o contexto e a comunicação da sua marca. Esse processamento
-                      pode ocorrer fora do Brasil. Você pode desmarcar a opção para interromper
-                      novos envios; isso não desfaz envios já realizados.
+                      site para sugerir o contexto e a comunicação da sua marca e pré-preencher as
+                      perguntas do diagnóstico. Esse processamento pode ocorrer fora do Brasil. Você
+                      pode desmarcar a opção para interromper novos envios; isso não desfaz envios
+                      já realizados.
                     </p>
                     <p>
                       Sem IA, você pode continuar com a leitura do site e o preenchimento manual,

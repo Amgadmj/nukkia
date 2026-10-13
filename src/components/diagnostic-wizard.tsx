@@ -38,6 +38,7 @@ export function DiagnosticWizard({
   onComplete,
   onChapterChange,
   onAnswersChange,
+  suggestedKeys,
 }: {
   company: Company;
   previousAnswers: unknown;
@@ -45,6 +46,8 @@ export function DiagnosticWizard({
   onComplete: () => void;
   onChapterChange?: (step: number) => void;
   onAnswersChange?: (answers: Answers) => void;
+  /** Answers prefilled from the brand research and not edited since. */
+  suggestedKeys?: AnswerKey[];
 }) {
   const workspaceMode = Boolean(onAnswersChange);
   const draft = useDraft(workspaceMode ? "" : company.owner_id, workspaceMode ? "" : company.id);
@@ -101,7 +104,9 @@ export function DiagnosticWizard({
     setSaved(true);
   }, [draft, initialStep, workspaceMode]);
   const [aiKeys, setAiKeys] = useState<AnswerKey[]>(() =>
-    !draft && !previousAnswers && research ? ["audience", "market", "differentials", "goals"] : [],
+    !draft && !previousAnswers && research
+      ? ["audience", "market", "differentials", "goals"]
+      : (suggestedKeys ?? []),
   );
   const chapter = CHAPTERS[step]!;
   const essentialDone = ESSENTIAL_QUESTIONS.filter((q) => hasAnswer(answers[q.key])).length;

@@ -2,6 +2,7 @@ import type { DemoData } from "./quick-start.ts";
 import { inspirationSchema } from "./inspiration-schema.ts";
 import { z } from "zod";
 import { brandReferencesFingerprint } from "./brand-sources.ts";
+import { PROFILE_KEYS } from "./brand-profile-keys.ts";
 
 const imageData = z
   .string()
@@ -27,6 +28,16 @@ export const suggestionSchema = z.object({
   confidence: z.enum(["high", "medium", "low"]).default("medium"),
   validity: z.literal("unconfirmed").default("unconfirmed"),
 });
+// One drafted answer to a diagnostic question. `site` means the evidence states
+// it; `inferred` is a hypothesis for the user to confirm.
+export const profileFieldSchema = z.object({
+  key: z.enum(PROFILE_KEYS),
+  value: z.string().max(1000),
+  basis: z.enum(["site", "inferred"]),
+  confidence: z.enum(["high", "medium", "low"]).default("medium"),
+  sourceUrl: z.string().max(2048).default(""),
+  rationale: z.string().max(300).default(""),
+});
 export const researchSchema = z.object({
   status: z.enum(["idle", "loading", "ready", "unavailable"]).default("idle"),
   sources: z.array(sourceSchema).max(16).default([]),
@@ -40,6 +51,7 @@ export const researchSchema = z.object({
     .max(12)
     .default([]),
   suggestions: z.array(suggestionSchema).max(18).default([]),
+  profile: z.array(profileFieldSchema).max(30).default([]),
   phase: z.enum(["collecting", "synthesizing", "deepening", "complete"]).optional(),
   startedAt: z.string().optional(),
   elapsedMs: z.number().nonnegative().optional(),
@@ -133,6 +145,8 @@ export const brandPreviewSchema = z.object({
   excludedReferences: z.array(z.string().max(2048)).max(24).default([]),
   referencesConfirmed: z.string().default(""),
   suggestedFields: z.array(z.string()).max(6).default([]),
+  // Diagnostic answers already prefilled from research; never refilled after the user clears them.
+  profileApplied: z.array(z.string()).max(30).default([]),
   editedFields: z.array(z.string()).max(6).default([]),
   offerReviewRequired: z.boolean().default(false),
   selectedOfferKind: z.enum(["fact", "past-campaign", "opportunity"]).nullable().default(null),
@@ -168,6 +182,7 @@ export function markBrandFieldsEdited(brand: BrandPreview, fields: string[]) {
     suggestedFields: brand.suggestedFields.filter((field) => !changed.includes(field)),
   };
 }
+export type ProfileField = z.infer<typeof profileFieldSchema>;
 export type BrandResearch = z.infer<typeof researchSchema>;
 export type BrandSuggestion = z.input<typeof suggestionSchema>;
 export type FirstPostBrief = z.infer<typeof briefSchema>;

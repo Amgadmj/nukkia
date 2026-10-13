@@ -19,8 +19,6 @@ import {
 // Ambiguous material stays local and can be entered manually instead.
 const excluded =
   /@|https?:|www\.|\b(?:cpf|rg|crm|cro|crefito|dr[a]?\.?|doutor[a]?|paciente|depoimento|testimonial|review|diagnosticado|cirurgia|meu filho|minha filha|nome completo|whatsapp|telefone|e-?mail|cookie|privacidade|política|consentimento)\b|\+?\d[\d\s().-]{7,}\d|ignore.{0,50}instru|system prompt|api.?key|chave secreta|<\/?(?:script|system)/i;
-const business =
-  /pilates|fisioterapia|servi[çc]o|produto|oferta|promo[çc]|desconto|pre[çc]o|aula|grupo|atendimento|especialidade|curso|consulta|agendamento|equipe|experi[êe]ncia|anos|cl[ií]nica|est[uú]dio|loja|marca|empresa|neg[oó]cio|solu[çc]|tecnologia|entrega|qualidade|plano|mensal|treinamento|pergunt|\?/i;
 const fold = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 const corporateHeading =
   /^(?:quem somos|sobre(?: nos| a (?:empresa|marca))?|nossa historia|(?:nossos? |nossas? )?(?:servicos|produtos|ofertas|especialidades|aulas|planos)|precos(?: e planos)?|perguntas frequentes|faq)[:.!?]?$/;
@@ -33,10 +31,35 @@ const personalContent =
 // Generic corporate title words are not person names. Unknown adjacent names
 // (including ambiguous company names) stay local rather than being guessed safe.
 const corporateWord =
-  /^(?:marca|empresa|clinica|estudio|loja|servicos?|produtos?|aulas?|pilates|fisioterapia|precos?|planos?|mensal|nossos?|nossas?|perguntas?|frequentes)$/;
-function hasPersonalData(text: string) {
+  /^(?:marca|empresa|clinica|estudio|loja|servicos?|produtos?|aulas?|pilates|fisioterapia|precos?|planos?|mensal|nossos?|nossas?|perguntas?|frequentes|tech|group|grupo|ltda|solutions?|solucoes|sistemas|systems|labs?|brasil|brazil|joint|venture|ecossistema|plataforma|tecnologia|inovacao)$/;
+// "mais de 7 anos de experiência" describes the company, not a person's age.
+const companyTenure =
+  /\b(?:(?:mais de|ha|com|over|more than)\s+)?\d{1,3}\s*(?:anos|years?)\s+(?:de\s+)?(?:experiencia|mercado|historia|atuacao|tradicao|trajetoria|existencia|experience|history|in business)\b/g;
+// Internal capitals (AgroSul, iFood) mark a brand or product name, not a person.
+const brandCase = /\p{Ll}\p{Lu}/u;
+export function brandTokens(sources: BrandResearch["sources"]) {
+  const tokens = new Set<string>();
+  for (const source of sources) {
+    try {
+      for (const label of new URL(source.url).hostname.split(".")) tokens.add(fold(label));
+    } catch {
+      /* Pseudo sources such as pasted material have no host. */
+    }
+    const first = (source.text.split(/\r?\n/)[0] ?? "").trim();
+    const words = first.split(/\s+/);
+    if (words.length <= 4) for (const word of words) tokens.add(fold(word));
+  }
+  tokens.delete("");
+  return tokens;
+}
+export function hasPersonalData(text: string, brand: ReadonlySet<string> = new Set()) {
   const folded = fold(text);
-  if (excluded.test(text) || personField.test(folded) || personalContent.test(folded)) return true;
+  if (
+    excluded.test(text) ||
+    personField.test(folded) ||
+    personalContent.test(folded.replace(companyTenure, " "))
+  )
+    return true;
   if (corporateHeading.test(folded)) return false;
   const names = text.matchAll(
     /(?<!\p{L})\p{Lu}[\p{L}\p{M}'’-]+(?:\s+(?:d[aeo]s?\s+)?\p{Lu}[\p{L}\p{M}'’-]+)+/gu,
@@ -44,12 +67,14 @@ function hasPersonalData(text: string) {
   return [...names].some(
     ([sequence]) =>
       (sequence.match(/\p{Lu}[\p{L}\p{M}'’-]+/gu) ?? []).filter(
-        (word) => !corporateWord.test(fold(word)),
+        (word) =>
+          !corporateWord.test(fold(word)) && !brandCase.test(word) && !brand.has(fold(word)),
       ).length >= 2,
   );
 }
 export function prepareEvidence(sources: BrandResearch["sources"]) {
-  let remaining = 18000;
+  let remaining = 24000;
+  const brand = brandTokens(sources);
   return sources.flatMap((source, index) => {
     if (source.url === "material:fornecido" || remaining <= 0) return [];
     const lines: string[] = [];
@@ -66,14 +91,14 @@ export function prepareEvidence(sources: BrandResearch["sources"]) {
       if (
         personalSection ||
         line.length > 700 ||
-        hasPersonalData(line) ||
-        (!heading && (line.length < 10 || !business.test(line)))
+        hasPersonalData(line, brand) ||
+        (!heading && line.length < 10)
       )
         continue;
       lines.push(line);
-      if (lines.length >= 12) break;
+      if (lines.length >= 20) break;
     }
-    const text = lines.join("\n").slice(0, Math.min(1800, remaining));
+    const text = lines.join("\n").slice(0, Math.min(2400, remaining));
     remaining -= text.length;
     return text ? [{ id: `s${index}`, text }] : [];
   });
@@ -288,8 +313,32 @@ export function applyResearchToData(
         next.brand.suggestedFields.push("audience");
       }
     }
+  applyProfile(next);
   next.brand.suggestedFields = [...new Set(next.brand.suggestedFields)];
   return next;
+}
+// Fields the user can see while onboarding stay frozen once they confirm the brand;
+// the rest only feed the diagnostic, so a late arrival is safe to prefill.
+const onboardingFields = new Set<string>(["name", "segment", "audience", "offers"]);
+function applyProfile(next: DemoData) {
+  const brand = next.brand;
+  const applied = new Set(brand.profileApplied);
+  for (const item of brand.research.profile) {
+    if (applied.has(item.key) || brand.editedFields.includes(item.key)) continue;
+    if (item.sourceUrl && !allowedSource(next, { ...item, field: "detail", quote: "" })) continue;
+    if (brand.confirmed && onboardingFields.has(item.key)) continue;
+    if (item.key === "name" || item.key === "segment") {
+      if (next[item.key].trim()) continue;
+      next[item.key] = item.value.slice(0, 120);
+      brand.suggestedFields.push(item.key);
+    } else {
+      if (next.answers[item.key].trim()) continue;
+      next.answers[item.key] = item.value;
+      if (item.key === "audience") brand.suggestedFields.push("audience");
+    }
+    applied.add(item.key);
+  }
+  brand.profileApplied = [...applied];
 }
 export function referenceFingerprint(data: DemoData) {
   return brandReferencesFingerprint(data.brand);

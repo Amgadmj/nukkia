@@ -2,6 +2,7 @@ import { z } from "zod";
 import { collectBrandSite } from "./public-site.server.ts";
 import { researchSchema, type BrandResearch } from "./brand-preview.ts";
 import { synthesizeBrand } from "./brand-synthesis.server.ts";
+import { generateBrandProfile } from "./brand-profile.server.ts";
 import { normalizeWebsite } from "./onboarding.ts";
 import { suggestionSchema } from "./brand-preview.ts";
 import { prepareSynthesisExcerpts, prepareEvidence } from "./brand-research.ts";
@@ -132,6 +133,8 @@ async function readBody(request: Request) {
 type Dependencies = {
   collect: typeof collectBrandSite;
   synthesize: typeof synthesizeBrand;
+  /** Drafts the diagnostic answers; optional so a custom pipeline may omit it. */
+  profile?: typeof generateBrandProfile;
   /** Resolves the signed-in user id for the request; defaults to Supabase. */
   verifyUser?: (request: Request) => Promise<string | null>;
 };
@@ -139,7 +142,11 @@ const STREAM_BUDGET_MS = 65_000;
 export async function handleBrandPreview(
   request: Request,
   development: boolean,
-  dependencies: Dependencies = { collect: collectBrandSite, synthesize: synthesizeBrand },
+  dependencies: Dependencies = {
+    collect: collectBrandSite,
+    synthesize: synthesizeBrand,
+    profile: generateBrandProfile,
+  },
 ) {
   // Local development on localhost keeps working without a session. Everywhere
   // else the reading costs crawler and model time, so it needs a signed-in user
@@ -257,6 +264,12 @@ export async function handleBrandPreview(
             emit(research);
             if (aiEligible) {
               signal.throwIfAborted();
+              // The profile draft runs beside the quote synthesis; each can fail alone.
+              const profiling = dependencies.profile
+                ? Promise.resolve()
+                    .then(() => dependencies.profile!(research, signal, { deadline }))
+                    .catch(() => null)
+                : Promise.resolve(null);
               try {
                 const suggestions = await dependencies.synthesize(research, signal, { deadline });
                 research = { ...research, suggestions, synthesis: "ready" };
@@ -268,6 +281,8 @@ export async function handleBrandPreview(
                     "A síntese por IA não está disponível agora. As referências foram preservadas; você pode preencher ou revisar manualmente.",
                 };
               }
+              const profile = await profiling;
+              if (profile?.length) research = { ...research, profile };
             }
             emit({ ...research, phase: "deepening" });
             // Keep the request open while onboarding advances. This is a bounded
@@ -284,6 +299,7 @@ export async function handleBrandPreview(
                     emit({
                       ...partial,
                       suggestions: previous.suggestions,
+                      profile: previous.profile,
                       synthesis: previous.synthesis,
                       phase: "deepening",
                     }),
@@ -291,6 +307,7 @@ export async function handleBrandPreview(
                 research = {
                   ...deeper,
                   suggestions: previous.suggestions,
+                  profile: previous.profile,
                   synthesis: previous.synthesis,
                   message: previous.message,
                 };
@@ -301,10 +318,17 @@ export async function handleBrandPreview(
                   emit({ ...research, phase: "deepening" });
                   try {
                     signal.throwIfAborted();
+                    const refreshed = dependencies.profile
+                      ? Promise.resolve()
+                          .then(() => dependencies.profile!(research, signal, { deadline }))
+                          .catch(() => null)
+                      : Promise.resolve(null);
                     research = {
                       ...research,
                       suggestions: await dependencies.synthesize(research, signal, { deadline }),
                     };
+                    const profile = await refreshed;
+                    if (profile?.length) research = { ...research, profile };
                   } catch {
                     /* Keep the initial useful synthesis. */
                   }

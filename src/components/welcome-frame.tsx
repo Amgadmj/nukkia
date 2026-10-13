@@ -45,10 +45,10 @@ export function WelcomeFrame({ children, progress }: { children: ReactNode; prog
       </div>
       <div className="nukkia-welcome-logo" role="img" aria-label="Nukkia">
         <img
-          src="/nukkia-official.jpg"
+          src="/nukkia-mark-white.png"
           alt=""
-          width={2000}
-          height={2000}
+          width={384}
+          height={446}
           fetchPriority="high"
           onLoad={() => setLoaded(true)}
           onError={() => setLoaded(true)}

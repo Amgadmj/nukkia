@@ -6,7 +6,7 @@ import type { Answers } from "@/lib/onboarding";
 export function OnboardingMark() {
   return (
     <span className="quick-mark" role="img" aria-label="Nukkia">
-      <img src="/nukkia-official.jpg" alt="" width="2000" height="2000" />
+      <img src="/nukkia-mark-white.png" alt="" width="384" height="446" />
     </span>
   );
 }

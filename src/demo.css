@@ -1186,13 +1186,10 @@
   flex-shrink: 0;
 }
 .quick-mark img {
-  position: absolute;
-  width: 275%;
-  height: auto;
-  max-width: none;
-  left: -87.5%;
-  top: -43.5%;
-  filter: grayscale(1) invert(1) brightness(2) contrast(1.4);
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 .quick-signup {
   width: min(100%, 470px);
@@ -1656,7 +1653,6 @@ textarea.quick-input.quick-autogrow {
 .quick-sidebar-brand .quick-mark {
   width: 30px;
   height: 35px;
-  mix-blend-mode: screen;
 }
 .quick-demo .quick-nav-label {
   margin: 0 12px 14px;

@@ -263,13 +263,10 @@
   pointer-events: none;
 }
 .nukkia-welcome-logo img {
-  position: absolute;
-  width: 550px;
-  max-width: none;
-  height: 550px;
-  left: -145px;
-  top: -90px;
-  filter: invert(1) hue-rotate(180deg);
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 .nukkia-welcome[data-docked="true"] .nukkia-welcome-logo {
   top: 22px;

@@ -87,7 +87,7 @@ export const briefSchema = z.object({
   offer: z.string().trim().min(3).max(1000),
   audience: z.string().trim().min(3).max(1000),
   goal: z.string().trim().min(3).max(1000),
-  detail: z.string().trim().min(12).max(600),
+  detail: z.string().trim().max(600),
   action: z.enum(["direct", "booking", "website"]),
   destination: z.string().trim().max(200),
 });
@@ -280,8 +280,6 @@ export function briefIssues(data: BrandData): string[] {
   ] as const) {
     if (brief[field].length > 1000) issues.push(`Reduza ${label} para até 1.000 caracteres.`);
   }
-  if (brief.detail.length < 12)
-    issues.push("Adicione um detalhe concreto com pelo menos 12 caracteres.");
   if (!issues.length && !briefSchema.safeParse(brief).success)
     issues.push("Revise as informações da peça antes de continuar.");
   if (!actionableDestination(brief))

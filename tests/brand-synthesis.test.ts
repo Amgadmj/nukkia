@@ -260,7 +260,7 @@ test("a selected offer needs human validity confirmation before preparing a piec
   assert.ok(briefIssues(data).some((x) => /vigência|condições/i.test(x)));
 });
 
-test("brief identifies a detail that is too short and clears once the detail is concrete", () => {
+test("a short or missing detail no longer blocks the brief", () => {
   const data = demoSchema.parse({
     name: "Movitta",
     segment: "Fisioterapia",
@@ -271,11 +271,8 @@ test("brief identifies a detail that is too short and clears once the detail is 
     },
     brand: { confirmed: true, detail: "la la la" },
   });
-  assert.deepEqual(briefIssues(data), [
-    "Adicione um detalhe concreto com pelo menos 12 caracteres.",
-  ]);
-
-  data.brand.detail = "Atendimento personalizado com tecnologia.";
+  assert.deepEqual(briefIssues(data), []);
+  data.brand.detail = "";
   assert.deepEqual(briefIssues(data), []);
 });
 test("old drafts still parse while provenance and sixteen sources persist", () => {

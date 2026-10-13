@@ -112,7 +112,7 @@ export const Route = createFileRoute("/api/plano")({
             `Oferta confirmada: ${brief.offer}`,
             `Público confirmado: ${brief.audience}`,
             `Objetivo confirmado: ${brief.goal}`,
-            `Detalhe confirmado: ${brief.detail}`,
+            ...(brief.detail ? [`Detalhe confirmado: ${brief.detail}`] : []),
             `Ação desejada: ${brief.action}`,
             `Destino da ação: ${brief.destination}`,
             ...(current.data.brand.customerQuestion.trim()

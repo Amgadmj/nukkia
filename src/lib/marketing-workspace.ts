@@ -507,12 +507,6 @@ export function workspaceGaps(data: DemoData, identity?: { logo?: boolean; tone?
       section: "cerebro" as const,
     },
     {
-      missing: data.brand.detail.trim().length < 12,
-      title: "Adicionar um detalhe concreto",
-      why: "Um detalhe real dá substância à peça e diferencia sua comunicação.",
-      section: "cerebro" as const,
-    },
-    {
       missing: !data.brand.logo && !identity?.logo,
       title: "Adicionar sua logomarca",
       why: "Sua próxima peça já pode carregar a identidade da empresa.",

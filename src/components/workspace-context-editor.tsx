@@ -249,7 +249,7 @@ export function WorkspaceContextEditor({
                 {field("audience", "Quem você quer alcançar?")}
                 <CompactAnswer
                   key={`detail:${contextStep}`}
-                  label="Um detalhe verdadeiro que vale destacar"
+                  label="Um detalhe verdadeiro que vale destacar (opcional)"
                   value={data.brand.detail}
                   maxLength={600}
                   onChange={(detail) =>

@@ -777,7 +777,7 @@ export function BrandOnboarding({
               />
               {suggestions(["offers"])}
               <CompactAnswer
-                label="Um detalhe verdadeiro que vale destacar"
+                label="Um detalhe verdadeiro que vale destacar (opcional)"
                 maxLength={600}
                 placeholder="Ex.: turmas de até quatro pessoas, com acompanhamento próximo"
                 value={brand.detail}
@@ -797,8 +797,8 @@ export function BrandOnboarding({
                   </span>
                 </label>
               )}
-              <details className="brand-source-details">
-                <summary>O que seus clientes perguntam antes de comprar? (opcional)</summary>
+              <fieldset className="brand-faq">
+                <legend>O que seus clientes perguntam antes de comprar? (opcional)</legend>
                 <CompactAnswer
                   label="Uma dúvida que você costuma ouvir"
                   maxLength={240}
@@ -816,7 +816,7 @@ export function BrandOnboarding({
                     placeholder="Use uma resposta real. Você pode completá-la depois."
                   />
                 )}
-              </details>
+              </fieldset>
               <label>
                 O que a pessoa deve fazer depois?
                 <select

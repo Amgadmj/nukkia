@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { NukkiaLogo } from "@/components/nukkia-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useHeroScatter } from "@/hooks/use-hero-scatter";
 
 const stages = [
   {
@@ -118,6 +119,8 @@ function DemoLink({
 export function AtlanticLanding() {
   const [active, setActive] = useState(0);
   const stage = stages[active]!;
+  const heroStageRef = useRef<HTMLElement>(null);
+  useHeroScatter(heroStageRef);
   return (
     <div className="atl-landing">
       <a className="atl-skip" href="#proposta-conteudo">
@@ -161,11 +164,12 @@ export function AtlanticLanding() {
             </div>
           </div>
           <figure
+            ref={heroStageRef}
             className="atl-hero-stage"
             aria-label="Exemplo ilustrativo de conteúdo conectado ao contexto da clínica"
           >
-            <div className="atl-orbit" aria-hidden="true" />
-            <div className="atl-context-float">
+            <div className="atl-orbit" data-scatter="orbit" aria-hidden="true" />
+            <div className="atl-context-float" data-scatter="context">
               <Brain size={19} />
               <div>
                 <span>Cérebro da marca</span>
@@ -173,12 +177,12 @@ export function AtlanticLanding() {
               </div>
               <Check size={16} />
             </div>
-            <div className="atl-art-card">
+            <div className="atl-art-card" data-scatter="art">
               <div className="atl-art-top">
                 <span>CLÍNICA HORIZONTE</span>
                 <ArrowUpRight size={18} />
               </div>
-              <div className="atl-arch" aria-hidden="true">
+              <div className="atl-arch" data-scatter="arch" aria-hidden="true">
                 <span />
                 <span />
                 <span />
@@ -199,7 +203,7 @@ export function AtlanticLanding() {
                 <span>1 / 3</span>
               </div>
             </div>
-            <div className="atl-version-float">
+            <div className="atl-version-float" data-scatter="version">
               <span className="atl-icon-tile">
                 <Layers size={18} />
               </span>
@@ -208,7 +212,7 @@ export function AtlanticLanding() {
                 <span>Versão 2 · Na biblioteca</span>
               </div>
             </div>
-            <div className="atl-plan-float">
+            <div className="atl-plan-float" data-scatter="plan">
               <span className="atl-date">
                 <small>OUT</small>20
               </span>
@@ -218,7 +222,7 @@ export function AtlanticLanding() {
               </div>
               <CalendarDays size={17} />
             </div>
-            <figcaption>Da sua ideia à próxima entrega · Exemplo ilustrativo</figcaption>
+            <figcaption data-scatter="caption">Da sua ideia à próxima entrega · Exemplo ilustrativo</figcaption>
           </figure>
         </section>
         <div className="atl-flow-strip">

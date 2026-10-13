@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -15,71 +15,10 @@ import {
   Play,
 } from "lucide-react";
 import { NukkiaLogo } from "@/components/nukkia-logo";
+import { AtlanticJourney } from "@/components/atlantic-journey";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useHeroScatter } from "@/hooks/use-hero-scatter";
 
-const stages = [
-  {
-    id: "contexto",
-    label: "Contexto",
-    icon: Brain,
-    title: "Começa com o que torna sua clínica única.",
-    description:
-      "Reúna público, serviços e identidade. Um ponto de partida que acompanha cada conteúdo.",
-    detail: "Clínica Horizonte",
-    tag: "Contexto da marca",
-    lines: [
-      "Público · Pessoas conhecendo a clínica",
-      "Mensagem · Atendimento e equipe",
-      "Tom · Claro, próximo e informativo",
-    ],
-  },
-  {
-    id: "editor",
-    label: "Criação",
-    icon: PenLine,
-    title: "Uma ideia. Diferentes formas de contar.",
-    description:
-      "Compare abordagens e ajuste a arte, as páginas e a legenda. A palavra final continua com você.",
-    detail: "Conheça nossa equipe",
-    tag: "Carrossel · 3 páginas",
-    lines: [
-      "Abertura · Apresente a equipe",
-      "Conteúdo · Explique como funciona",
-      "Encerramento · Oriente o próximo passo",
-    ],
-  },
-  {
-    id: "biblioteca",
-    label: "Biblioteca",
-    icon: Library,
-    title: "Seu trabalho continua de onde parou.",
-    description:
-      "Guarde versões, retome uma peça e crie uma cópia. O que você salvou continua disponível para comparar.",
-    detail: "Apresentação da clínica",
-    tag: "Biblioteca · Exemplo fictício",
-    lines: [
-      "Versão 2 · Texto revisado",
-      "Versão 1 · Primeira proposta",
-      "Cópia · Uma nova direção",
-    ],
-  },
-  {
-    id: "planejamento",
-    label: "Planejamento",
-    icon: CalendarDays,
-    title: "Dê ao mês uma visão de conjunto.",
-    description:
-      "Escolha a versão, a data e o canal pretendidos. Organize a próxima entrega com clareza.",
-    detail: "Seu próximo conteúdo",
-    tag: "Outubro · Planejamento ilustrativo",
-    lines: [
-      "20 out · Conheça nossa equipe",
-      "Instagram · Versão 2",
-      "Data de intenção · Publicação manual",
-    ],
-  },
-];
 const faqs = [
   [
     "O que posso experimentar agora?",
@@ -117,8 +56,6 @@ function DemoLink({
   );
 }
 export function AtlanticLanding() {
-  const [active, setActive] = useState(0);
-  const stage = stages[active]!;
   const heroStageRef = useRef<HTMLElement>(null);
   useHeroScatter(heroStageRef);
   return (
@@ -222,7 +159,9 @@ export function AtlanticLanding() {
               </div>
               <CalendarDays size={17} />
             </div>
-            <figcaption data-scatter="caption">Da sua ideia à próxima entrega · Exemplo ilustrativo</figcaption>
+            <figcaption data-scatter="caption">
+              Da sua ideia à próxima entrega · Exemplo ilustrativo
+            </figcaption>
           </figure>
         </section>
         <div className="atl-flow-strip">
@@ -263,80 +202,7 @@ export function AtlanticLanding() {
             </h2>
             <p>Explore um exemplo do caminho que seu conteúdo percorre na Nukkia.</p>
           </div>
-          <div className="atl-demo">
-            <div className="atl-demo-tabs" role="tablist" aria-label="Explore a jornada">
-              {stages.map((item, i) => (
-                <button
-                  key={item.id}
-                  id={`atl-tab-${item.id}`}
-                  role="tab"
-                  aria-selected={active === i}
-                  aria-controls="atl-stage-panel"
-                  tabIndex={active === i ? 0 : -1}
-                  onClick={() => setActive(i)}
-                  onKeyDown={(event) => {
-                    const next =
-                      event.key === "ArrowRight"
-                        ? (active + 1) % stages.length
-                        : event.key === "ArrowLeft"
-                          ? (active + stages.length - 1) % stages.length
-                          : event.key === "Home"
-                            ? 0
-                            : event.key === "End"
-                              ? stages.length - 1
-                              : null;
-                    if (next !== null) {
-                      event.preventDefault();
-                      setActive(next);
-                      document.getElementById(`atl-tab-${stages[next]!.id}`)?.focus();
-                    }
-                  }}
-                >
-                  <item.icon size={18} />
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            <div
-              className="atl-demo-panel"
-              id="atl-stage-panel"
-              role="tabpanel"
-              aria-labelledby={`atl-tab-${stage.id}`}
-              tabIndex={0}
-            >
-              <div className="atl-demo-copy">
-                <h3>{stage.title}</h3>
-                <p>{stage.description}</p>
-                <DemoLink className="atl-text-link">Experimentar o fluxo</DemoLink>
-              </div>
-              <div className="atl-demo-window">
-                <div className="atl-window-bar">
-                  <span>
-                    <NukkiaLogo compact /> {stage.label}
-                  </span>
-                  <small>CLÍNICA FICTÍCIA</small>
-                </div>
-                <div className="atl-window-content">
-                  <span className="atl-eyebrow">{stage.tag}</span>
-                  <h4>{stage.detail}</h4>
-                  {stage.lines.map((line, i) => (
-                    <div key={line} className="atl-preview-row">
-                      <span className="atl-preview-mark">
-                        {active === 3 ? (
-                          <CalendarDays size={16} />
-                        ) : i === 0 ? (
-                          <Check size={16} />
-                        ) : (
-                          <FileText size={16} />
-                        )}
-                      </span>
-                      <span>{line}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <AtlanticJourney />
         </section>
         <section
           className="atl-section atl-health"

@@ -29,6 +29,7 @@ import {
   referenceFingerprint,
   applyResearchSuggestion,
   allowedSuggestions,
+  prepareFreshReading,
   replaceBrandReference,
 } from "@/lib/brand-research";
 import { groupBrandSources, sourceIdentity } from "@/lib/brand-sources";
@@ -254,6 +255,8 @@ export function BrandOnboarding({
         setError("Confirme o site e a autorização de análise para continuar.");
         return;
       }
+      // A new reading may refill fields that were filled, then cleared, before.
+      onData(prepareFreshReading);
       onResearch();
       // Without a site and AI consent there is nothing to wait for.
       if (brand.referenceUrl.trim() && brand.aiAuthorized) setReading(true);

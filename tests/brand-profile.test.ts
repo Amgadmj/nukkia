@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { prepareEvidence, applyResearchToData } from "../src/lib/brand-research.ts";
+import {
+  prepareEvidence,
+  applyResearchToData,
+  prepareFreshReading,
+} from "../src/lib/brand-research.ts";
 import { sanitizeProfile } from "../src/lib/brand-profile.ts";
 import { prioritizePageLinks } from "../src/lib/public-site.server.ts";
 import { generateBrandProfile } from "../src/lib/brand-profile.server.ts";
@@ -256,4 +260,29 @@ test("research prefills empty diagnostic answers once and never overwrites the u
     researchSchema.parse({ status: "ready", sources, profile: [profileField], phase: "complete" }),
   );
   assert.equal(typed.answers.offers, "Meu texto");
+});
+
+test("a new reading refills fields that were filled and then cleared, and keeps typed ones", () => {
+  const filled = withProfile([
+    profileField,
+    { ...profileField, key: "differentials", value: "Equipe certificada" },
+  ]);
+  // The user clears offers, keeps differentials, and had confirmed the brand.
+  const returning = {
+    ...filled,
+    answers: { ...filled.answers, offers: "" },
+    brand: { ...filled.brand, confirmed: true, editedFields: ["segment", "name"] },
+  };
+  // Without a fresh reading the cleared field is never offered again.
+  assert.equal(
+    applyResearchToData(returning, { url: origin, material: "" }, returning.brand.research).answers
+      .offers,
+    "",
+  );
+  const next = prepareFreshReading(returning);
+  assert.equal(next.brand.confirmed, false);
+  assert.deepEqual(next.brand.profileApplied, ["differentials"]);
+  const again = applyResearchToData(next, { url: origin, material: "" }, next.brand.research);
+  assert.equal(again.answers.offers, "Mapeamento por drones");
+  assert.equal(again.answers.differentials, "Equipe certificada");
 });

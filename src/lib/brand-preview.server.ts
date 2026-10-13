@@ -290,6 +290,18 @@ export async function handleBrandPreview(
                 };
               }
               await profiling;
+              // Say so instead of silently leaving every field empty.
+              if (dependencies.profile && !research.profile.length)
+                research = {
+                  ...research,
+                  message: [
+                    research.message,
+                    "Não conseguimos preencher as perguntas automaticamente agora. Preencha manualmente ou use Analisar novamente.",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .slice(0, 500),
+                };
             }
             emit({ ...research, phase: "deepening" });
             // Keep the request open while onboarding advances. This is a bounded

@@ -317,6 +317,29 @@ export function applyResearchToData(
   next.brand.suggestedFields = [...new Set(next.brand.suggestedFields)];
   return next;
 }
+/**
+ * Called when the user asks for a fresh reading. Autofill only ever writes into
+ * empty fields, so everything a previous reading marked as "already offered" or
+ * "edited" for a field that is empty now must be offered again, and the brand
+ * must be reviewed again.
+ */
+export function prepareFreshReading(data: DemoData): DemoData {
+  const current: Record<string, string> = {
+    name: data.name,
+    segment: data.segment,
+    ...data.answers,
+  };
+  const empty = (key: string) => !(current[key] ?? "").trim();
+  return {
+    ...data,
+    brand: {
+      ...data.brand,
+      confirmed: false,
+      profileApplied: data.brand.profileApplied.filter((key) => !empty(key)),
+      editedFields: data.brand.editedFields.filter((key) => !empty(key)),
+    },
+  };
+}
 // Fields the user can see while onboarding stay frozen once they confirm the brand;
 // the rest only feed the diagnostic, so a late arrival is safe to prefill.
 const onboardingFields = new Set<string>(["name", "segment", "audience", "offers"]);

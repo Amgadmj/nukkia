@@ -56,6 +56,10 @@ export default defineConfig({
       // set explicitly (e.g. to force a specific target locally).
       preset:
         process.env["NITRO_PRESET"] || (process.env["VERCEL"] ? "vercel" : "cloudflare-module"),
+      // The site reading (crawl + two model calls) streams for ~25 s. Vercel's
+      // default function limit can be as low as 10 s, which cuts the stream and
+      // leaves the onboarding fields empty. 60 s is within the Hobby limit.
+      vercel: { functions: { maxDuration: 60 } },
       // Promo MP4 export (src/lib/promo-video.server.ts) falls back to the
       // ffmpeg-static binary, since Vercel functions have no system ffmpeg.
       // Nitro bundles dependencies by default, which would break the

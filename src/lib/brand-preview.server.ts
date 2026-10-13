@@ -138,7 +138,8 @@ type Dependencies = {
   /** Resolves the signed-in user id for the request; defaults to Supabase. */
   verifyUser?: (request: Request) => Promise<string | null>;
 };
-const STREAM_BUDGET_MS = 65_000;
+// Must stay below the function's maxDuration (vite.config.ts) so the stream ends cleanly.
+const STREAM_BUDGET_MS = 55_000;
 export async function handleBrandPreview(
   request: Request,
   development: boolean,

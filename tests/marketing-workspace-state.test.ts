@@ -5,6 +5,7 @@ import { createContext as createVmContext, runInContext, runInNewContext } from 
 import ts from "typescript";
 import { webcrypto } from "node:crypto";
 import * as zod from "zod";
+import * as onboarding from "../src/lib/onboarding.ts";
 import * as quickStart from "../src/lib/quick-start.ts";
 import * as workspace from "../src/lib/marketing-workspace.ts";
 import type { DemoData } from "../src/lib/quick-start.ts";
@@ -1523,6 +1524,7 @@ function onboardingHarness(
     "@/demo.css": {},
     "@/workspace.css": {},
     "./workspace-save-status.css": {},
+    "@/lib/onboarding": onboarding,
     "@/lib/use-brand-research": { useBrandResearch: () => ({ research() {}, cancel() {} }) },
     "@/lib/api": {
       apiFetch: (path: string, body: unknown) => {
@@ -1947,7 +1949,10 @@ test("company insert and update use the canonical answer website, including expl
       h.complete();
       const request = h.companyRequests[0]!;
       assert.equal(request.operation, existing ? "update" : "insert");
-      assert.equal((request.values as { website: string | null }).website, website || null);
+      assert.equal(
+        (request.values as { website: string | null }).website,
+        website ? onboarding.normalizeWebsite(website) : null,
+      );
     }
   }
 });

@@ -2,6 +2,9 @@ import { z } from "zod";
 import { collectBrandSite } from "./public-site.server.ts";
 import { researchSchema, type BrandResearch } from "./brand-preview.ts";
 import { synthesizeBrand } from "./brand-synthesis.server.ts";
+import { normalizeWebsite } from "./onboarding.ts";
+import { prepareSynthesisExcerpts } from "./brand-research.ts";
+import { suggestionSchema } from "./brand-preview.ts";
 
 const inputSchema = z.object({
   action: z.literal("research"),
@@ -45,16 +48,29 @@ async function readBody(request: Request) {
     reader.releaseLock();
   }
 }
-type Dependencies = { collect: typeof collectBrandSite; synthesize: typeof synthesizeBrand };
+type Dependencies = {
+  collect: typeof collectBrandSite;
+  synthesize: typeof synthesizeBrand;
+  authorize?: (request: Request) => Promise<boolean>;
+};
 export async function handleBrandPreview(
   request: Request,
   development: boolean,
   dependencies: Dependencies = { collect: collectBrandSite, synthesize: synthesizeBrand },
 ) {
-  // This demo is intentionally local-only until tenant authorization, retention
-  // and durable worker deployment have been validated for production.
-  if (!localPreviewAllowed(request, development))
-    return json({ message: "Leitura disponível apenas no ambiente local." }, 403);
+  if (!localPreviewAllowed(request, development)) {
+    if (!dependencies.authorize || request.headers.get("origin") !== new URL(request.url).origin)
+      return json({ message: "Esta leitura exige uma sessão da Nukkia." }, 403);
+    try {
+      if (!(await dependencies.authorize(request)))
+        return json(
+          { message: "Entre na sua conta para analisar o site. Suas respostas continuam aqui." },
+          401,
+        );
+    } catch {
+      return json({ message: "Não foi possível verificar sua sessão. Tente novamente." }, 503);
+    }
+  }
   if (!request.headers.get("content-type")?.startsWith("application/json"))
     return json({ message: "Envie JSON." }, 415);
   if (Date.now() - windowStart > 60000) {
@@ -71,11 +87,16 @@ export async function handleBrandPreview(
   }
   const parsed = inputSchema.safeParse(raw);
   if (!parsed.success) return json({ message: "Confira os dados enviados." }, 400);
-  if (parsed.data.stream && parsed.data.url.trim() && !parsed.data.siteAuthorized)
+  if (parsed.data.url.trim() && !parsed.data.siteAuthorized)
     return json(
       { message: "Confirme que este é o site da marca e que você pode solicitar sua análise." },
       400,
     );
+  try {
+    if (parsed.data.url.trim()) parsed.data.url = normalizeWebsite(parsed.data.url);
+  } catch {
+    return json({ message: "Informe um site público como suamarca.com.br." }, 400);
+  }
   active++;
   requests++;
   if (parsed.data.stream) {
@@ -121,6 +142,20 @@ export async function handleBrandPreview(
               phase: "synthesizing",
               synthesis: aiAuthorized ? "pending" : "local",
             };
+            // Source-linked excerpts are useful even with no paid AI provider.
+            const excerpts = prepareSynthesisExcerpts(research.sources).slice(0, 6);
+            const extracted = excerpts.map((excerpt, index) => {
+              const source = research.sources[Number(excerpt.sourceId.slice(1))]!;
+              return suggestionSchema.parse({
+                field: index < 3 ? "offers" : "detail",
+                value: excerpt.text,
+                quote: excerpt.text,
+                sourceUrl: source.url,
+                origin: "extracted",
+                confidence: "medium",
+              });
+            });
+            research.suggestions = [...research.suggestions, ...extracted].slice(0, 18);
             emit(research);
             if (aiAuthorized && url.trim() && research.sources.length) {
               signal.throwIfAborted();

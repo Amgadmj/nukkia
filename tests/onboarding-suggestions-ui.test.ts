@@ -141,3 +141,47 @@ test("reference confirmation replaces the generic instruction below the editable
     "Conferi os links e confirmo que pertencem à minha marca.",
   );
 });
+
+test("website entry accepts domain text and offers a dedicated no-website path", () => {
+  const $ = render(0);
+  assert.equal($('input[placeholder="suamarca.com.br"]').attr("type"), "text");
+  assert.equal($('input[placeholder="suamarca.com.br"]').attr("inputmode"), "url");
+  assert.equal($("button").filter((_, el) => $(el).text() === "Não tenho site").length, 1);
+});
+test("brand direction shows an editable brand system instead of example posts", () => {
+  const $ = render(3);
+  assert.match($.text(), /Sistema da marca/);
+  assert.match($.text(), /Paleta/);
+  assert.match($.text(), /Tipografia/);
+  assert.equal($(".direction-art").length, 0);
+  assert.equal($('input[type="color"]').length, 1);
+});
+
+test("native palette input saves its value before blur", () => {
+  type Node = { type: unknown; props: Record<string, unknown> };
+  const find = (value: unknown): Node[] => {
+    if (Array.isArray(value)) return value.flatMap(find);
+    if (!value || typeof value !== "object" || !("props" in value)) return [];
+    const node = value as Node;
+    return [node, ...find(node.props.children)];
+  };
+  const direction = componentModule("brand-direction").BrandDirection as (
+    props: Record<string, unknown>,
+  ) => unknown;
+  let saved = "";
+  const tree = direction({
+    data: quick.demoSchema.parse({ name: "QA", answers: {} }),
+    selected: "dynamic",
+    onSelect() {},
+    onCorrect() {},
+    onAccent(value: string) {
+      saved = value;
+    },
+  });
+  const input = find(tree).find((node) => node.type === "input" && node.props.type === "color")!;
+  assert.equal(typeof input.props.onInput, "function");
+  (input.props.onInput as (event: { currentTarget: { value: string } }) => void)({
+    currentTarget: { value: "#006c72" },
+  });
+  assert.equal(saved, "#006c72");
+});

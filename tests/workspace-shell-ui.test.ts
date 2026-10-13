@@ -188,3 +188,17 @@ test("destination skeleton distinguishes planning, saved content and editing lay
   assert.equal(workspaceLoadingLayout("/painel"), "dashboard");
   assert.equal(workspaceLoadingLayout("/redes"), "list");
 });
+
+test("logout action sits beside the theme control in desktop and mobile footers", () => {
+  const $ = shell({ onSignOut() {} });
+  for (const menu of [".workspace-sidebar", ".workspace-mobile-nav"]) {
+    assert.equal(
+      $(`${menu} .workspace-footer-controls button[aria-label="Sair da conta"]`).length,
+      1,
+    );
+    assert.equal(
+      $(`${menu} .workspace-footer-controls button[aria-label="Ativar tema claro"]`).length,
+      1,
+    );
+  }
+});

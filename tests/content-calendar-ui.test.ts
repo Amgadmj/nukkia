@@ -8,10 +8,20 @@ import { demoSchema } from "../src/lib/quick-start.ts";
 import { composeContent } from "../src/lib/brand-preview.ts";
 import { saveLibraryVersion, planLibraryVersion } from "../src/lib/content-library.ts";
 
-type Node = { type: string; props: Record<string, any> };
-function nodes(value: any): Node[] {
+type Node = {
+  type: string;
+  props: Record<string, unknown> & {
+    onClick: () => void;
+    onChange: (event: { target: { value: string } }) => void;
+    onInput: (event: { currentTarget: { value: string } }) => void;
+    onSubmit: (event: { preventDefault: () => void }) => void;
+  };
+};
+function nodes(value: unknown): Node[] {
   if (Array.isArray(value)) return value.flatMap(nodes);
-  return value?.props ? [value, ...nodes(value.props.children)] : [];
+  if (!value || typeof value !== "object" || !("props" in value)) return [];
+  const node = value as Node;
+  return [node, ...nodes(node.props.children)];
 }
 function harness() {
   let data = demoSchema.parse({ name: "Clínica QA", answers: {} });

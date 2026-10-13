@@ -2,35 +2,32 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master, codex/nukkia-onboarding]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
-
       - run: npm ci
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Build (Cloudflare Worker target)
-        run: npm run build
+      - name: Regressions, types, lint and production build
+        run: npm run check
         env:
-          # A real value isn't needed for the build to succeed (Gemini is
-          # only ever called at runtime, not at build time) — this just
-          # documents which vars a real deploy needs. Set the real ones as
-          # repository/environment secrets before deploying for real.
+          NITRO_PRESET: node-server
           SUPABASE_URL: https://placeholder.supabase.co
           SUPABASE_PUBLISHABLE_KEY: placeholder
           VITE_SUPABASE_URL: https://placeholder.supabase.co

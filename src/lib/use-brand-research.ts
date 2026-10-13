@@ -2,6 +2,7 @@ import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import { recoverResearch, researchSchema } from "./brand-preview";
 import { applyResearchToData } from "./brand-research";
 import type { DemoData } from "./quick-start";
+import { apiFetch } from "./api";
 
 export function useBrandResearch(data: DemoData, setData: Dispatch<SetStateAction<DemoData>>) {
   const request = useRef<AbortController | null>(null);
@@ -33,21 +34,27 @@ export function useBrandResearch(data: DemoData, setData: Dispatch<SetStateActio
       ...current,
       brand: { ...current.brand, research: researchSchema.parse({ status: "loading" }) },
     }));
-    void fetch("/api/brand-preview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    void apiFetch(
+      "/api/brand-preview",
+      {
         action: "research",
         url,
         material,
         stream: true,
         siteAuthorized: data.brand.siteAuthorized,
         aiAuthorized: data.brand.aiAuthorized,
-      }),
-      signal: controller.signal,
-    })
+      },
+      { signal: controller.signal },
+    )
       .then(async (response) => {
-        if (!response.ok) throw new Error("unavailable");
+        if (!response.ok) {
+          const body = await response.json().catch(() => null);
+          throw new Error(
+            typeof body?.message === "string"
+              ? body.message.slice(0, 500)
+              : "A leitura não está disponível agora.",
+          );
+        }
         if (!response.body) throw new Error("unavailable");
         const reader = response.body.getReader(),
           decoder = new TextDecoder();
@@ -75,7 +82,7 @@ export function useBrandResearch(data: DemoData, setData: Dispatch<SetStateActio
           reader.releaseLock();
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!controller.signal.aborted)
           setData((current) =>
             applyResearchToData(
@@ -86,7 +93,12 @@ export function useBrandResearch(data: DemoData, setData: Dispatch<SetStateActio
                 status: current.brand.research.sources.length ? "ready" : "unavailable",
                 phase: "complete",
                 message:
-                  "A leitura da referência não está disponível agora. Continue com suas respostas ou cole o material da marca.",
+                  error instanceof Error &&
+                  !["unavailable", "interrupted research", "oversized research"].includes(
+                    error.message,
+                  )
+                    ? error.message.slice(0, 500)
+                    : "A leitura da referência não está disponível agora. Continue com suas respostas ou cole o material da marca.",
               }),
             ),
           );

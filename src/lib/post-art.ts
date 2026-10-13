@@ -7,6 +7,7 @@ import {
   type ContentApproach,
   creativeFingerprint,
   creativeStatus,
+  visualStyleTokens,
 } from "./brand-preview.ts";
 import type { DemoData } from "./quick-start.ts";
 
@@ -77,15 +78,14 @@ export function postSvg(
     total: 1,
   },
 ) {
-  const accent = /^#[a-fA-F0-9]{6}$/.test(brand.accent) ? brand.accent : "#395D51";
+  const { accent, background, ink, secondary, font } = visualStyleTokens(
+    brand.visualStyle,
+    brand.accent,
+  );
   const photo = raster(brand.photo),
     logo = raster(brand.logo);
   const style = brand.visualStyle;
   const dynamic = style === "dynamic";
-  const background = dynamic ? "#111318" : style === "warm" ? "#f2e6dc" : "#f5f3ed";
-  const ink = dynamic ? "#f7f6f2" : "#1c2822";
-  const secondary = dynamic ? "#c4cad2" : "#53615a";
-  const font = style === "warm" ? "Georgia,serif" : "Arial,sans-serif";
   const photoLed = layout.approach === "trust" || style === "warm";
   const title = wrapCopy(copy.title.slice(0, 78), 24);
   const body = wrapCopy(copy.body.slice(0, 180), photoLed ? 40 : 48);

@@ -98,6 +98,12 @@ test("revoking consent or changing reference aborts the active request", () => {
       },
       "./brand-preview": preview,
       "./brand-research": research,
+      "./api": {
+        apiFetch: (_url: string, _body: unknown, options: { signal: AbortSignal }) => {
+          signal = options.signal;
+          return new Promise(() => {});
+        },
+      },
     };
     const exports = {} as {
       useBrandResearch: (

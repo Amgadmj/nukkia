@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Menu,
   Moon,
+  LogOut,
   Palette,
   Share2,
   Sun,
@@ -44,6 +45,7 @@ export function WorkspaceShell({
   notifications = [],
   children,
   accountActions,
+  onSignOut,
 }: {
   name: string;
   section?: WorkspaceSection | undefined;
@@ -56,6 +58,7 @@ export function WorkspaceShell({
   notifications?: { id: string; title: string; description: string; section: WorkspaceSection }[];
   children: ReactNode;
   accountActions?: ReactNode;
+  onSignOut?: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -162,6 +165,17 @@ export function WorkspaceShell({
             )}
           </div>
           <div className="workspace-footer-controls">
+            {onSignOut && (
+              <button
+                type="button"
+                className="workspace-icon-button"
+                aria-label="Sair da conta"
+                title="Sair da conta"
+                onClick={onSignOut}
+              >
+                <LogOut size={18} aria-hidden="true" />
+              </button>
+            )}
             <button
               type="button"
               className="workspace-icon-button"

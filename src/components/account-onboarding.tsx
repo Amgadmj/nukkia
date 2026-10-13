@@ -10,6 +10,7 @@ import { useBrandResearch } from "@/lib/use-brand-research";
 import { recordWorkspaceEvent, workspaceKey } from "@/lib/marketing-workspace";
 import { demoSchema, type DemoData } from "@/lib/quick-start";
 import { apiFetch } from "@/lib/api";
+import { normalizeWebsite } from "@/lib/onboarding";
 
 const acknowledgementSchema = z.object({
   data: demoSchema,
@@ -98,7 +99,8 @@ export function AccountOnboarding({
       const values = {
         name: document.name,
         segment: document.segment,
-        website: document.answers.website || null,
+        website: document.answers.website ? normalizeWebsite(document.answers.website) : null,
+        instagram_handle: document.answers.instagram || null,
       };
       const target =
         company?.id || (created.current?.ownerId === ownerId ? created.current.id : null);

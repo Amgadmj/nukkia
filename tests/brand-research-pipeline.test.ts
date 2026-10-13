@@ -85,3 +85,67 @@ test("canceling during collection never starts synthesis", async () => {
   await response.text();
   assert.equal(calls, 0);
 });
+
+test("authorized hosted research reads the normalized public site and keeps source evidence", async () => {
+  let seen = "";
+  const hosted = new Request("https://nukkia.example/api/brand-preview", {
+    method: "POST",
+    headers: { Origin: "https://nukkia.example", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "research",
+      url: "www.marca.com",
+      material: "",
+      siteAuthorized: true,
+      aiAuthorized: false,
+      stream: true,
+    }),
+  });
+  const response = await handleBrandPreview(hosted, false, {
+    authorize: async () => true,
+    collect: async (url) => {
+      seen = url;
+      return researchSchema.parse({ status: "ready", sources: [source] });
+    },
+    synthesize: async () => {
+      throw Error("AI must not run");
+    },
+  });
+  assert.equal(response.status, 200);
+  const events = (await response.text())
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line).research);
+  assert.equal(seen, "https://www.marca.com/");
+  assert.equal(events.at(-1).sources[0].text, source.text);
+  assert.equal(events.at(-1).phase, "complete");
+});
+test("hosted research rejects cross-origin callers and unauthenticated callers before fetching", async () => {
+  let calls = 0;
+  const deps = {
+    authorize: async () => false,
+    collect: async () => {
+      calls++;
+      return researchSchema.parse({});
+    },
+    synthesize: async () => [],
+  };
+  const response = await handleBrandPreview(
+    new Request("https://nukkia.example/api/brand-preview", {
+      method: "POST",
+      headers: { origin: "https://nukkia.example" },
+    }),
+    false,
+    deps,
+  );
+  assert.equal(response.status, 401);
+  const cross = await handleBrandPreview(
+    new Request("https://nukkia.example/api/brand-preview", {
+      method: "POST",
+      headers: { origin: "https://evil.example" },
+    }),
+    false,
+    { ...deps, authorize: async () => true },
+  );
+  assert.equal(cross.status, 403);
+  assert.equal(calls, 0);
+});

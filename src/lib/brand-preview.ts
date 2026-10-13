@@ -123,6 +123,7 @@ export const brandPreviewSchema = z.object({
     .default(null),
   inspirationBrief: z.array(inspirationSchema).max(20).default([]),
   referenceUrl: z.string().max(2048).default(""),
+  entrySource: z.enum(["website", "instagram"]).default("website"),
   material: z.string().max(8000).default(""),
   research: researchSchema.default({}),
   confirmed: z.boolean().default(false),
@@ -369,6 +370,16 @@ export const VISUAL_STYLES = [
   },
 ] as const;
 export type VisualStyle = (typeof VISUAL_STYLES)[number]["id"];
+export function visualStyleTokens(style: VisualStyle | null | undefined, accent: string) {
+  const dynamic = style === "dynamic";
+  return {
+    accent: /^#[a-f\d]{6}$/i.test(accent) ? accent : "#395D51",
+    background: dynamic ? "#111318" : style === "warm" ? "#f2e6dc" : "#f5f3ed",
+    ink: dynamic ? "#f7f6f2" : "#1c2822",
+    secondary: dynamic ? "#c4cad2" : "#53615a",
+    font: style === "warm" ? "Georgia,serif" : "Arial,sans-serif",
+  };
+}
 export function recommendedVisualStyle(data: BrandData): VisualStyle {
   const approach = recommendContent(data).approach;
   return approach === "trust" ? "warm" : approach === "invite" ? "dynamic" : "essential";

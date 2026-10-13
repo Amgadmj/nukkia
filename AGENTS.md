@@ -12,3 +12,10 @@
 ## Nukkia interface and copy
 
 For UI, onboarding, landing pages, and product copy, read the user-approved design skill at `/Users/nicolacaprirolo/.codex/skills/nukkia-design/SKILL.md` before editing. Preserve these preferences: no decorative padded section numbers, no vague motivational filler, consistent official logo, real progress and notification states, and editable hypotheses kept separate from facts.
+
+## Automated verification and GitHub
+
+For Nukkia implementation verification, CI qualification and release handoffs, use
+[skills/nukkia-release-checks/SKILL.md](skills/nukkia-release-checks/SKILL.md).
+Run the full `npm run check` gate. A GitHub pass must belong to the exact pushed commit;
+local tests and a successful push alone do not establish it.

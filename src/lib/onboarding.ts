@@ -1,5 +1,44 @@
 import { z } from "zod";
 
+/** Accept familiar domain entry; collection still validates DNS and redirects. */
+export function normalizeWebsite(value: string): string {
+  const raw = value.trim();
+  if (!raw || /\s|\\/.test(raw)) throw new Error("Informe um site como suamarca.com.br.");
+  const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  const labels = url.hostname.split(".");
+  if (
+    !["http:", "https:"].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    (url.port && url.port !== "443" && !(url.protocol === "http:" && url.port === "80")) ||
+    labels.length < 2 ||
+    labels.some((label) => !/^[a-z\d](?:[a-z\d-]*[a-z\d])?$/i.test(label)) ||
+    !/^[a-z]{2,}$/i.test(labels.at(-1)!) ||
+    /\.(localhost|local|internal|test|invalid)$/i.test(url.hostname)
+  )
+    throw new Error("Informe um domínio público, como suamarca.com.br.");
+  url.protocol = "https:";
+  url.port = "";
+  url.hash = "";
+  return url.href;
+}
+
+export function normalizeInstagram(value: string): string {
+  let handle = value.trim();
+  if (/^(?:https?:\/\/)?(?:www\.)?instagram\.com(?:\/|$)/i.test(handle)) {
+    const url = new URL(/^https?:\/\//i.test(handle) ? handle : `https://${handle}`);
+    if (url.username || url.password || url.port) throw new Error("Use o @perfil da empresa.");
+    handle = url.pathname.replace(/^\/|\/$/g, "");
+  } else handle = handle.replace(/^@/, "");
+  if (
+    !/^[a-z\d_](?:[a-z\d_.]{0,28}[a-z\d_])?$/i.test(handle) ||
+    handle.includes("..") ||
+    /^(accounts|explore|reels?|p|stories|direct|about|legal)$/i.test(handle)
+  )
+    throw new Error("Informe o @perfil da empresa, como @suaclinica.");
+  return `@${handle.toLowerCase()}`;
+}
+
 const text = z.string().trim().max(1000).default("");
 export const answersSchema = z.object({
   city: z.string().trim().max(120).default(""),

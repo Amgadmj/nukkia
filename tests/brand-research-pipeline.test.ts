@@ -64,6 +64,13 @@ test("missing AI authorization never invokes the provider and failing provider p
   const a = await local.text();
   assert.equal(calls, 0);
   assert.match(a, /local/);
+  const localResearch = JSON.parse(a.trim().split("\n").at(-1)!).research;
+  assert.ok(
+    localResearch.suggestions.some(
+      (item: { origin: string; sourceUrl: string; quote: string }) =>
+        item.origin === "extracted" && item.sourceUrl === source.url && item.quote === source.text,
+    ),
+  );
   const external = await handleBrandPreview(request(), true, deps);
   const b = await external.text();
   assert.equal(calls, 1);
@@ -277,4 +284,71 @@ test("synthesis runs for any provider-eligible evidence, not only when a URL was
   assert.equal(materialOnly.at(-1).sources[0].url, "material:fornecido");
   assert.equal(synthesized.length, 1, "material-only input never calls the provider");
   assert.equal(collects, 2, "initial + deepening pass for the URL reading only");
+});
+
+test("hosted research rejects cross-origin callers and unauthenticated callers before fetching", async () => {
+  resetBrandPreviewLimits();
+  let calls = 0;
+  const deps = {
+    verifyUser: async () => null,
+    collect: async () => {
+      calls++;
+      return researchSchema.parse({});
+    },
+    synthesize: async () => [],
+  };
+  const response = await handleBrandPreview(
+    new Request("https://nukkia.example/api/brand-preview", {
+      method: "POST",
+      headers: { origin: "https://nukkia.example" },
+    }),
+    false,
+    deps,
+  );
+  assert.equal(response.status, 401);
+  const cross = await handleBrandPreview(
+    new Request("https://nukkia.example/api/brand-preview", {
+      method: "POST",
+      headers: { origin: "https://evil.example" },
+    }),
+    false,
+    { ...deps, verifyUser: async () => "normalization-qa" },
+  );
+  assert.equal(cross.status, 403);
+  assert.equal(calls, 0);
+});
+
+test("authorized hosted research reads the normalized public site and keeps source evidence", async () => {
+  resetBrandPreviewLimits();
+  let seen = "";
+  const hosted = new Request("https://nukkia.example/api/brand-preview", {
+    method: "POST",
+    headers: { Origin: "https://nukkia.example", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "research",
+      url: "www.marca.com",
+      material: "",
+      siteAuthorized: true,
+      aiAuthorized: false,
+      stream: true,
+    }),
+  });
+  const response = await handleBrandPreview(hosted, false, {
+    verifyUser: async () => "normalization-qa",
+    collect: async (url) => {
+      seen = url;
+      return researchSchema.parse({ status: "ready", sources: [source] });
+    },
+    synthesize: async () => {
+      throw Error("AI must not run");
+    },
+  });
+  assert.equal(response.status, 200);
+  const events = (await response.text())
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line).research);
+  assert.equal(seen, "https://www.marca.com/");
+  assert.equal(events.at(-1).sources[0].text, source.text);
+  assert.equal(events.at(-1).phase, "complete");
 });

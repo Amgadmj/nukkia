@@ -16,7 +16,7 @@ import {
   researchSchema,
   type BrandSuggestion,
 } from "@/lib/brand-preview";
-import { answersSchema } from "@/lib/onboarding";
+import { answersSchema, normalizeWebsite, normalizeInstagram } from "@/lib/onboarding";
 import {
   completeBrandOnboarding,
   recommendedVisualStyle,
@@ -115,8 +115,9 @@ export function BrandOnboarding({
     setError("");
     if (revealed) title.current?.focus({ preventScroll: true });
     window.scrollTo({ top: 0 });
-  }, [step, revealed]);
+  }, [step, revealed, data.brand.entrySource]);
   const brand = data.brand;
+  const instagramStep = step === 0 && brand.entrySource === "instagram";
   const researchMessage = brand.research.message.replaceAll(exampleTextNotice, "").trim();
   const researching = brand.research.phase
     ? brand.research.phase !== "complete"
@@ -184,6 +185,46 @@ export function BrandOnboarding({
   }
   function next() {
     if (step === 0) {
+      if (instagramStep) {
+        try {
+          const instagram = data.answers.instagram.trim()
+            ? normalizeInstagram(data.answers.instagram)
+            : "";
+          if (
+            instagram &&
+            brand.extraLinks.filter((link) => sourceIdentity(link)?.kind !== "Instagram").length >=
+              12
+          ) {
+            setError(
+              "Você já tem 12 referências. Remova uma em Contexto antes de adicionar o Instagram.",
+            );
+            return;
+          }
+          onData((current) => ({
+            ...current,
+            answers: { ...current.answers, instagram },
+            brand: updateBrand(current.brand, {
+              extraLinks: [
+                ...current.brand.extraLinks.filter(
+                  (link) => sourceIdentity(link)?.kind !== "Instagram",
+                ),
+                ...(instagram ? [`https://instagram.com/${instagram.slice(1)}`] : []),
+              ],
+              referencesConfirmed: "",
+            }),
+          }));
+        } catch {
+          setError("Informe o @perfil da empresa, como @suaclinica.");
+          return;
+        }
+      } else {
+        try {
+          normalizeWebsite(brand.referenceUrl);
+        } catch {
+          setError("Informe um site como suamarca.com.br ou escolha Não tenho site.");
+          return;
+        }
+      }
       if (brand.referenceUrl.trim() && !brand.siteAuthorized) {
         setError("Confirme o site e a autorização de análise para continuar.");
         return;
@@ -244,7 +285,10 @@ export function BrandOnboarding({
       >
         <div className="quick-progress-row">
           <div className="quick-question-meta">
-            <button className="quick-back" onClick={() => onStep(step - 1)}>
+            <button
+              className="quick-back"
+              onClick={() => (instagramStep ? patch({ entrySource: "website" }) : onStep(step - 1))}
+            >
               <ArrowLeft size={14} />
               Voltar
             </button>
@@ -266,24 +310,25 @@ export function BrandOnboarding({
           </div>
         </div>
         <h1 ref={title} tabIndex={-1}>
-          {
-            [
-              "Onde podemos conhecer sua marca?",
-              "Vamos dar contexto à sua marca.",
-              "O que vamos comunicar primeiro?",
-              "Sua marca, com direção.",
-            ][step]
-          }
+          {instagramStep
+            ? "Qual é o Instagram da sua empresa?"
+            : [
+                "Onde podemos conhecer sua marca?",
+                "Vamos dar contexto à sua marca.",
+                "O que vamos comunicar primeiro?",
+                "Sistema da marca",
+              ][step]}
         </h1>
         {step === 0 && (
           <p className="quick-hint">
-            Português do Brasil. Comece pelo site ou informe o contexto manualmente; suas respostas
-            continuam editáveis.
+            {instagramStep
+              ? "Guarde o perfil e conte um pouco sobre sua empresa."
+              : "Informe seu site para reunir referências no Cérebro. Português do Brasil."}
           </p>
         )}
         {step === 3 && (
           <p className="quick-hint">
-            Seu ponto de partida está definido. Agora vamos dar forma ao primeiro conteúdo.
+            Revise a paleta, a tipografia e o uso do logo antes de criar conteúdo.
           </p>
         )}
         <form
@@ -293,14 +338,17 @@ export function BrandOnboarding({
             next();
           }}
         >
-          {step === 0 && (
+          {step === 0 && !instagramStep && (
             <>
               <label>
                 Site da sua marca
                 <input
                   className="quick-input"
-                  type="url"
-                  placeholder="https://suamarca.com.br"
+                  type="text"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  placeholder="suamarca.com.br"
                   maxLength={websiteMaxLength}
                   value={brand.referenceUrl}
                   onChange={(event) => {
@@ -327,19 +375,6 @@ export function BrandOnboarding({
                   }}
                 />
               </label>
-              <details className="brand-source-details">
-                <summary>Não tenho site / prefiro colar um texto</summary>
-                <CompactAnswer
-                  label="Apresentação ou texto da marca"
-                  maxLength={8000}
-                  placeholder="Cole a bio, serviços ou uma apresentação…"
-                  value={brand.material}
-                  onChange={(material) => patch({ material, confirmed: false })}
-                />
-                <p className="brand-microcopy">
-                  Não inclua dados pessoais, de pacientes ou depoimentos.
-                </p>
-              </details>
               {brand.referenceUrl.trim() && (
                 <>
                   <label className="research-check">
@@ -386,8 +421,80 @@ export function BrandOnboarding({
               )}
             </>
           )}
+          {instagramStep && (
+            <>
+              <label>
+                Instagram da empresa
+                <input
+                  className="quick-input"
+                  type="text"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  placeholder="@suaclinica"
+                  maxLength={100}
+                  value={data.answers.instagram}
+                  onChange={(event) =>
+                    onData((current) => ({
+                      ...current,
+                      answers: { ...current.answers, instagram: event.target.value },
+                    }))
+                  }
+                />
+              </label>
+              <CompactAnswer
+                label="Bio ou apresentação da empresa"
+                maxLength={8000}
+                placeholder="Cole a bio e descreva seus serviços…"
+                value={brand.material}
+                onChange={(material) => patch({ material, confirmed: false })}
+              />
+              <p className="brand-microcopy">
+                O perfil fica salvo como referência; não lemos as publicações do Instagram. Cole a
+                bio para completar o contexto. Não inclua dados de pacientes.
+              </p>
+              <button
+                className="quick-secondary"
+                type="button"
+                onClick={() => {
+                  onData((current) => ({
+                    ...current,
+                    answers: { ...current.answers, instagram: "" },
+                    brand: updateBrand(current.brand, {
+                      extraLinks: current.brand.extraLinks.filter(
+                        (link) => sourceIdentity(link)?.kind !== "Instagram",
+                      ),
+                      referencesConfirmed: "",
+                    }),
+                  }));
+                  onStep(1);
+                }}
+              >
+                Não tenho Instagram
+              </button>
+            </>
+          )}
           {step > 0 && step < 3 && (
             <>
+              {!researching &&
+                brand.research.status === "ready" &&
+                brand.research.sources.some((source) => source.url !== "material:fornecido") && (
+                  <div className="research-progress" role="status">
+                    <p className="brand-research-status">
+                      <Check size={15} /> Leitura concluída ·{" "}
+                      {
+                        brand.research.sources.filter(
+                          (source) => source.url !== "material:fornecido",
+                        ).length
+                      }{" "}
+                      {brand.research.sources.filter(
+                        (source) => source.url !== "material:fornecido",
+                      ).length === 1
+                        ? "página no Cérebro"
+                        : "páginas no Cérebro"}
+                    </p>
+                    <p>Revise as referências e as sugestões antes de confirmar sua marca.</p>
+                  </div>
+                )}
               {researching && (
                 <div className="research-progress" role="status" aria-live="polite">
                   <p className="brand-research-status">
@@ -713,7 +820,11 @@ export function BrandOnboarding({
             <BrandDirection
               data={data}
               selected={selected}
-              onSelect={setChoice}
+              onSelect={(style) => {
+                setChoice(style);
+                patch({ visualStyle: style });
+              }}
+              onAccent={(accent) => patch({ accent })}
               onCorrect={() => onStep(1)}
             />
           )}
@@ -734,13 +845,30 @@ export function BrandOnboarding({
                 : step === 1
                   ? "Confirmar minha marca"
                   : step === 2
-                    ? "Ver minha recomendação"
+                    ? "Ver sistema da marca"
                     : "Ir para meu painel"}
             <ArrowRight size={16} />
           </button>
-          {step === 0 && (
-            <button className="quick-skip" type="button" onClick={() => onStep(1)}>
-              Prefiro preencher por conta própria
+          {step === 0 && !instagramStep && (
+            <button
+              className="quick-skip"
+              type="button"
+              onClick={() => {
+                setError("");
+                onData((current) => ({
+                  ...changeDemoContext(current, { answers: { ...current.answers, website: "" } }),
+                  brand: updateBrand(current.brand, {
+                    entrySource: "instagram",
+                    referenceUrl: "",
+                    siteAuthorized: false,
+                    aiAuthorized: false,
+                    research: researchSchema.parse({}),
+                    referencesConfirmed: "",
+                  }),
+                }));
+              }}
+            >
+              Não tenho site
             </button>
           )}
         </form>

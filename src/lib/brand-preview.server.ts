@@ -2,7 +2,9 @@ import { z } from "zod";
 import { collectBrandSite } from "./public-site.server.ts";
 import { researchSchema, type BrandResearch } from "./brand-preview.ts";
 import { synthesizeBrand } from "./brand-synthesis.server.ts";
-import { prepareEvidence } from "./brand-research.ts";
+import { normalizeWebsite } from "./onboarding.ts";
+import { suggestionSchema } from "./brand-preview.ts";
+import { prepareSynthesisExcerpts, prepareEvidence } from "./brand-research.ts";
 import { userClientFromRequest } from "./supabase-request.server.ts";
 
 const inputSchema = z.object({
@@ -168,11 +170,16 @@ export async function handleBrandPreview(
   }
   const parsed = inputSchema.safeParse(raw);
   if (!parsed.success) return json({ message: "Confira os dados enviados." }, 400);
-  if (parsed.data.stream && parsed.data.url.trim() && !parsed.data.siteAuthorized)
+  if (parsed.data.url.trim() && !parsed.data.siteAuthorized)
     return json(
       { message: "Confirme que este é o site da marca e que você pode solicitar sua análise." },
       400,
     );
+  try {
+    if (parsed.data.url.trim()) parsed.data.url = normalizeWebsite(parsed.data.url);
+  } catch {
+    return json({ message: "Informe um site público como suamarca.com.br." }, 400);
+  }
   const release = acquireSlot(userKey);
   if (!release)
     return json(
@@ -233,6 +240,20 @@ export async function handleBrandPreview(
               phase: "synthesizing",
               synthesis: aiEligible ? "pending" : "local",
             };
+            // Source-linked excerpts are useful even with no paid AI provider.
+            const excerpts = prepareSynthesisExcerpts(research.sources).slice(0, 6);
+            const extracted = excerpts.map((excerpt, index) => {
+              const source = research.sources[Number(excerpt.sourceId.slice(1))]!;
+              return suggestionSchema.parse({
+                field: index < 3 ? "offers" : "detail",
+                value: excerpt.text,
+                quote: excerpt.text,
+                sourceUrl: source.url,
+                origin: "extracted",
+                confidence: "medium",
+              });
+            });
+            research.suggestions = [...research.suggestions, ...extracted].slice(0, 18);
             emit(research);
             if (aiEligible) {
               signal.throwIfAborted();

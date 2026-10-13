@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Settings, ShieldCheck } from "lucide-react";
+import { Settings, ShieldCheck } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { WorkspaceShell } from "./workspace-shell";
 import { WorkspaceSkeleton } from "./workspace-skeleton";
@@ -58,6 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       completed={progress.completed}
       total={progress.total}
       notifications={workspaceNotifications(data)}
+      onSignOut={() => void signOut()}
       accountActions={
         <>
           {isAdmin && (
@@ -70,10 +71,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Settings size={17} />
             <span className="workspace-action-label">Configurações</span>
           </Link>
-          <button onClick={() => void signOut()} aria-label="Sair da conta">
-            <LogOut size={17} />
-            <span className="workspace-action-label">Sair da conta</span>
-          </button>
         </>
       }
     >

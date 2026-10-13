@@ -168,7 +168,9 @@ test("onboarding site input keeps both representations within the answer schema"
     onStep() {},
     onResearch() {},
   });
-  const input = nodes(tree).find((node) => node.type === "input" && node.props.type === "url")!;
+  const input = nodes(tree).find(
+    (node) => node.type === "input" && node.props.inputMode === "url",
+  )!;
   assert.equal(input.props.maxLength, 200);
   const website = "https://example.com/" + "a".repeat(240);
   (input.props.onChange as (event: unknown) => void)({ target: { value: website } });
@@ -343,4 +345,63 @@ test("exclusions match a legacy handle without a manual reference", () => {
   data.answers.instagram = "@AURORA";
   data.brand.excludedReferences = ["https://instagram.com/aurora"];
   assert.ok(!publicLinks(channelView(data)).some((href) => String(href).includes("instagram.com")));
+});
+
+test("no-website path preserves human copy, revokes old approval and retains the Instagram step after reload", () => {
+  let data = fixture();
+  let step = 0;
+  const component = load("../src/components/brand-onboarding.tsx", {
+    react: {
+      useState: (value: unknown) => [value, () => {}],
+      useRef: () => ({ current: null }),
+      useEffect() {},
+      useLayoutEffect() {},
+    },
+    "lucide-react": {},
+    "./quick-start-flow": {},
+    "./brand-direction": {},
+    "./brand-sources": {},
+    "./research-suggestions": {},
+    "@/lib/brand-research": research,
+    "@/lib/brand-sources": sources,
+    "@/lib/quick-start": quick,
+    "@/lib/brand-preview": preview,
+    "@/lib/onboarding": onboarding,
+  }).BrandOnboarding as (props: Record<string, unknown>) => Element;
+  const render = () =>
+    nodes(
+      component({
+        step,
+        data,
+        onData: (update: (value: quick.DemoData) => quick.DemoData) => {
+          data = update(data);
+        },
+        onStep: (value: number) => {
+          step = value;
+        },
+        onResearch() {},
+      }),
+    );
+  (render().find((n) => n.props.children === "Não tenho site")!.props.onClick as () => void)();
+  assert.equal(data.brand.creative?.approved, null);
+  assert.deepEqual(data.brand.creative?.copy, fixture().brand.creative?.copy);
+  assert.equal(data.answers.website, "");
+  assert.equal(data.brand.referenceUrl, "");
+  data = quick.demoSchema.parse(JSON.parse(JSON.stringify(data)));
+  const input = render().find((n) => n.props.placeholder === "@suaclinica")!;
+  assert.ok(input);
+  (input.props.onChange as (event: unknown) => void)({
+    target: { value: "instagram.com/aurora.qa/" },
+  });
+  (render().find((n) => n.type === "form")!.props.onSubmit as (event: unknown) => void)({
+    preventDefault() {},
+  });
+  assert.equal(data.answers.instagram, "@aurora.qa");
+  assert.ok(data.brand.extraLinks.includes("https://instagram.com/aurora.qa"));
+  assert.equal(step, 1);
+  step = 0;
+  (render().find((n) => n.props.children === "Não tenho Instagram")!.props.onClick as () => void)();
+  assert.equal(data.answers.instagram, "");
+  assert.ok(!data.brand.extraLinks.some((link) => link.includes("instagram.com")));
+  assert.equal(step, 1);
 });

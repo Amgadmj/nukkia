@@ -29,7 +29,7 @@ export function useHeroScatter(ref: RefObject<HTMLElement | null>, intensity = 1
 
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const items = Array.from(stage.querySelectorAll<HTMLElement>("[data-scatter]"))
-      .map((el) => ({ el, v: VECTORS[el.dataset.scatter ?? ""] }))
+      .map((el) => ({ el, v: VECTORS[el.dataset["scatter"] ?? ""] }))
       .filter((item): item is { el: HTMLElement; v: Vector } => Boolean(item.v));
 
     let startTop = stage.getBoundingClientRect().top + window.scrollY;

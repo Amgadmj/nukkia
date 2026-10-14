@@ -1989,7 +1989,6 @@
   position: fixed;
   left: 50%;
   bottom: 22px;
-  opacity: calc(1 - var(--cue-p, 0));
   z-index: 4;
   display: grid;
   place-items: center;
@@ -2026,6 +2025,8 @@
 .atl-cue-progress {
   stroke: var(--nukkia-accent);
   stroke-linecap: round;
+  /* Lags behind the scroll so the ring fills slowly and smoothly. */
+  transition: stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .atl-cue-arrow {
   position: relative;
@@ -2077,9 +2078,11 @@
 .atl-cue:active {
   transform: translateX(-50%) translateY(-1px) scale(0.94);
 }
-.atl-cue[data-gone="true"] {
-  visibility: hidden;
-  pointer-events: none;
+.atl-cue-arrow {
+  transition: rotate 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.atl-cue[data-end="true"] .atl-cue-arrow {
+  rotate: 180deg;
 }
 @keyframes atl-cue-bob {
   0%,
@@ -2107,5 +2110,8 @@
   }
   .atl-cue-arrow {
     animation: none;
+  }
+  .atl-cue-progress {
+    transition: none;
   }
 }

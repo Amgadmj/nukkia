@@ -2121,3 +2121,114 @@
 .nukkia-workspace .home-format-card.format-carousel {
   background: color-mix(in srgb, #3e718b 12%, var(--nukkia-surface));
 }
+
+/* Desktop sidebar: one row size and one icon column for every item, no visible
+   scrollbar. Spacing scales with viewport height so the whole menu fits. */
+.nukkia-workspace .workspace-sidebar {
+  --side-row: clamp(28px, 4.3svh, 38px);
+  --side-gap: clamp(0px, 0.3svh, 3px);
+  --side-group-gap: clamp(2px, 1svh, 12px);
+  --side-pad: 12px;
+  overflow: hidden;
+  padding: clamp(8px, 1.8svh, 20px) 10px clamp(6px, 1.4svh, 14px);
+}
+.nukkia-workspace .workspace-brand-button {
+  height: clamp(28px, 4.2svh, 38px);
+  margin: 0 var(--side-pad) clamp(2px, 0.8svh, 10px);
+}
+.nukkia-workspace .workspace-nav-label {
+  margin: 0 var(--side-pad) clamp(4px, 1.1svh, 14px);
+}
+.nukkia-workspace .workspace-sidebar nav {
+  gap: var(--side-group-gap);
+  overflow: visible;
+  flex: 0 0 auto;
+}
+.nukkia-workspace .workspace-sidebar .workspace-nav-group {
+  gap: var(--side-gap);
+}
+.nukkia-workspace .workspace-sidebar .workspace-nav-group > p {
+  margin: 0 var(--side-pad) 1px;
+  line-height: 1.2;
+}
+.nukkia-workspace .workspace-sidebar nav button,
+.nukkia-workspace .workspace-sidebar .workspace-account-actions a {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--side-row);
+  min-height: 0;
+  padding: 0 var(--side-pad);
+  gap: 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+}
+.nukkia-workspace .workspace-sidebar nav button > span,
+.nukkia-workspace .workspace-sidebar .workspace-account-actions a > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nukkia-workspace .workspace-sidebar nav svg,
+.nukkia-workspace .workspace-sidebar .workspace-account-actions svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.nukkia-workspace .workspace-sidebar-bottom {
+  padding-top: clamp(2px, 0.8svh, 14px);
+}
+.nukkia-workspace .workspace-sidebar .workspace-level-card {
+  box-sizing: border-box;
+  align-items: center;
+  padding: clamp(4px, 1svh, 10px) var(--side-pad);
+  gap: 12px;
+}
+.nukkia-workspace .workspace-sidebar .workspace-level-card small {
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.nukkia-workspace .workspace-sidebar .workspace-account-actions {
+  margin-top: clamp(3px, 0.9svh, 10px);
+  padding-top: clamp(3px, 0.9svh, 10px);
+  gap: var(--side-gap);
+}
+.nukkia-workspace .workspace-sidebar .workspace-company {
+  margin-top: clamp(3px, 0.9svh, 10px);
+  padding: clamp(4px, 1svh, 12px) var(--side-pad) 0;
+}
+.nukkia-workspace .workspace-sidebar .workspace-footer-controls {
+  justify-content: space-between;
+  margin-top: clamp(4px, 1svh, 10px);
+  padding: 0 var(--side-pad);
+}
+.nukkia-workspace .workspace-sidebar .workspace-icon-button {
+  width: clamp(28px, 4.2svh, 36px);
+  height: clamp(28px, 4.2svh, 36px);
+}
+.nukkia-workspace.is-collapsed .workspace-sidebar nav button,
+.nukkia-workspace.is-collapsed .workspace-sidebar .workspace-account-actions a {
+  justify-content: center;
+  padding: 0;
+}
+.nukkia-workspace.is-collapsed .workspace-sidebar .workspace-company {
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: center;
+}
+.nukkia-workspace.is-collapsed .workspace-sidebar .workspace-footer-controls {
+  padding: 0;
+  justify-content: center;
+}
+/* Very short screens: last resort, scroll without drawing a scrollbar. */
+@media (max-height: 600px) {
+  .nukkia-workspace .workspace-sidebar {
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .nukkia-workspace .workspace-sidebar::-webkit-scrollbar {
+    display: none;
+  }
+}

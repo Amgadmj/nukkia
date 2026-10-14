@@ -114,7 +114,9 @@ test("visible claims and page metadata do not promise publishing or integrated m
     /publica(?:ção|ções|r)? autom[aá]tic|agendad[oa]s? automaticamente|publica no Instagram|alcance, engajamento|\d+\s*%/i,
   );
   assert.match(head.meta.find((item) => item.name === "description")!.content!, /contexto/);
-  assert.match($("header").text(), /nukkia/);
+  // The header shows the logo mark only (no wordmark); the brand stays in the accessible name.
+  assert.match($("header a").first().attr("aria-label") ?? "", /nukkia/i);
+  assert.doesNotMatch($("header").text(), /nukkia/i);
   assert.doesNotMatch($("header").text(), /nukkia\s+health/i);
 });
 

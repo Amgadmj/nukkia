@@ -4,7 +4,9 @@
   --atl-ink: var(--nukkia-text);
   --atl-muted: var(--nukkia-muted);
   --atl-surface: var(--nukkia-surface);
-  --atl-line: var(--nukkia-border);
+  --atl-line-fade: 20%; /* border strength: lower = fainter */
+  --atl-line: color-mix(in srgb, var(--nukkia-border) var(--atl-line-fade), transparent);
+  --atl-line: color-mix(in srgb, var(--nukkia-border) var(--atl-line-fade), transparent);
   --atl-action: var(--nukkia-action);
   color: var(--atl-ink);
   background: var(--atl-bg);
@@ -1271,7 +1273,7 @@
   inset: -1px;
   border-radius: 7px;
   background: var(--nukkia-subtle);
-  border: 1px solid var(--nukkia-accent);
+  border: 1px solid var(--atl-line);
   opacity: 0;
 }
 .atl-j-list {
@@ -1596,7 +1598,7 @@
 .atl-j-field > span:last-child {
   display: block;
   padding: 6px 8px;
-  border: 1px solid #c9dcdf;
+  border: 1px solid var(--atl-line);
   border-radius: 6px;
   background: #fff;
   font-size: 9px;
@@ -1609,7 +1611,7 @@
   padding: 6px 8px;
   border-radius: 6px;
   background: #fff;
-  border: 1px solid #c9dcdf;
+  border: 1px solid var(--atl-line);
 }
 .atl-j-scene > span:first-child {
   display: grid;
@@ -1636,7 +1638,7 @@
 }
 .atl-j-scene.is-active {
   background: #dff1ed;
-  border-color: #006c72;
+  border-color: var(--atl-line);
 }
 .atl-j-scene.is-active > span:first-child {
   background: #006c72;
@@ -1781,4 +1783,20 @@
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Soft shadow under the faded outlines so boxes stay readable (light + dark). */
+.atl-landing {
+  --atl-edge-shadow: 0 1px 2px #0617200f, 0 8px 22px #06172017;
+}
+.dark .atl-landing {
+  --atl-edge-shadow: 0 1px 2px #00000059, 0 10px 26px #00000073;
+}
+.atl-demo,
+.atl-demo-window,
+.atl-plan-float,
+.atl-j-row,
+.atl-j-scene,
+.atl-j-plan {
+  box-shadow: var(--atl-edge-shadow);
 }

@@ -151,7 +151,8 @@ test("navigation exposes the current page, mobile drawer relationship, and focus
 test("logo uses the official image as a monochrome symbol with no JPG tile", () => {
   const $ = shell();
   const logo = $(".workspace-sidebar .workspace-brand-button");
-  assert.equal(logo.find('img[src="/nukkia-official.jpg"]').length, 1);
+  assert.equal(logo.find('img[src="/nukkia-mark.png"]').length, 1);
+  assert.equal(logo.find('img[src="/nukkia-official.jpg"]').length, 0);
   assert.equal(logo.find(".nukkia-logo-mark").length, 1);
   assert.equal(logo.find(".bg-white, .rounded-lg, .text-primary").length, 0);
   assert.match(logo.text(), /nukkia/);

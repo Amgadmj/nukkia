@@ -35,16 +35,13 @@ export function NukkiaLogo({
             className="block h-full w-full object-contain dark:hidden"
           />
         ) : (
-          <span className="block h-full w-full overflow-hidden mix-blend-multiply dark:hidden">
-            <img
-              src="/nukkia-official.jpg"
-              alt=""
-              width="2000"
-              height="2000"
-              className="absolute max-w-none [filter:grayscale(1)_invert(1)_brightness(2)_contrast(1.4)_invert(1)]"
-              style={{ width: "275%", height: "auto", left: "-87.5%", top: "-43.5%" }}
-            />
-          </span>
+          <img
+            src="/nukkia-mark.png"
+            alt=""
+            width="407"
+            height="447"
+            className="block h-full w-full object-contain [filter:grayscale(1)_contrast(1.4)] dark:hidden"
+          />
         )}
       </span>
       {!compact && !markOnly && (

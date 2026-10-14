@@ -37,9 +37,15 @@ export function useCompany() {
   return useQuery({
     queryKey: ["company"],
     queryFn: async (): Promise<Company | null> => {
+      // RLS lets admins read every company, so scope to the signed-in owner;
+      // otherwise an admin's "first company" belongs to someone else.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const ownerId = sessionData.session?.user.id;
+      if (!ownerId) return null;
       const { data, error } = await supabase
         .from("companies")
         .select("*")
+        .eq("owner_id", ownerId)
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();

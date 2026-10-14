@@ -79,13 +79,12 @@ test("missing AI authorization never invokes the provider and failing provider p
 });
 
 test("canceling during collection never starts synthesis", async () => {
-  const abort = new AbortController();
-  const original = request();
-  const canceledRequest = new Request(original, { signal: abort.signal });
+  // A client that leaves cancels the response stream; that, not request.signal, stops the work.
   let calls = 0;
-  const response = await handleBrandPreview(canceledRequest, true, {
+  const stream: { reader?: ReadableStreamDefaultReader<Uint8Array> } = {};
+  const response = await handleBrandPreview(request(), true, {
     collect: async () => {
-      abort.abort();
+      await stream.reader!.cancel();
       return researchSchema.parse({ status: "ready", sources: [source] });
     },
     synthesize: async () => {
@@ -93,7 +92,9 @@ test("canceling during collection never starts synthesis", async () => {
       return [];
     },
   });
-  await response.text();
+  stream.reader = response.body!.getReader();
+  await stream.reader.read().catch(() => undefined);
+  await new Promise((resolve) => setTimeout(resolve, 50));
   assert.equal(calls, 0);
 });
 
@@ -351,4 +352,34 @@ test("authorized hosted research reads the normalized public site and keeps sour
   assert.equal(seen, "https://www.marca.com/");
   assert.equal(events.at(-1).sources[0].text, source.text);
   assert.equal(events.at(-1).phase, "complete");
+});
+
+test("a host that aborts request.signal early does not drop the reading", async () => {
+  // Some runtimes fire the request signal once the body is read. The stream must
+  // still deliver progress and a complete result; only the stream's own cancel stops it.
+  const controller = new AbortController();
+  controller.abort();
+  const aborted = new Request("http://localhost:8081/api/brand-preview", {
+    method: "POST",
+    headers: { Origin: "http://localhost:8081", "Content-Type": "application/json" },
+    signal: controller.signal,
+    body: JSON.stringify({
+      action: "research",
+      url: "https://marca.com",
+      material: "",
+      stream: true,
+      siteAuthorized: true,
+      aiAuthorized: false,
+    }),
+  });
+  const response = await handleBrandPreview(aborted, true, {
+    collect: async () => researchSchema.parse({ status: "ready", sources: [source] }),
+    synthesize: async () => [],
+  });
+  const events = (await response.text())
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line).research);
+  assert.equal(events.at(-1).phase, "complete");
+  assert.equal(events.at(-1).sources.length, 1);
 });

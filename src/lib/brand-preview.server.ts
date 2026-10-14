@@ -204,11 +204,10 @@ export async function handleBrandPreview(
     );
   if (parsed.data.stream) {
     const cancel = new AbortController();
-    const signal = AbortSignal.any([
-      request.signal,
-      cancel.signal,
-      AbortSignal.timeout(STREAM_BUDGET_MS),
-    ]);
+    // request.signal is deliberately not used: some hosts fire it as soon as the
+    // body is read, which silently drops every progress line and fails the whole
+    // reading. A client that leaves cancels the stream below, which aborts this.
+    const signal = AbortSignal.any([cancel.signal, AbortSignal.timeout(STREAM_BUDGET_MS)]);
     const started = Date.now();
     const deadline = started + STREAM_BUDGET_MS;
     const startedAt = new Date(started).toISOString();
@@ -371,12 +370,16 @@ export async function handleBrandPreview(
           } catch (error) {
             const failure = describeReadFailure(error);
             // Only the host and a short code: site text and provider bodies stay out of logs.
-            console.error("[brand-preview] reading failed", {
-              host: safeHost(parsed.data.url),
-              code: failure.code,
-              sources: research.sources.length,
-              aborted: signal.aborted,
-            });
+            const clientLeft =
+              signal.aborted && (signal.reason as Error | undefined)?.name === "AbortError";
+            if (!clientLeft)
+              console.error("[brand-preview] reading failed", {
+                host: safeHost(parsed.data.url),
+                code: failure.code,
+                sources: research.sources.length,
+                aborted: signal.aborted,
+                reason: signal.aborted ? String((signal.reason as Error | undefined)?.name) : null,
+              });
             emit({
               ...research,
               status: research.sources.length ? "ready" : "unavailable",

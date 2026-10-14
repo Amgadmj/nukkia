@@ -58,6 +58,8 @@ type Options = {
   emptyWrite?: number;
   failProvider?: string;
   renderQuota?: boolean;
+  /** Finished videos the company has left. Defaults to 2. */
+  videoBalance?: number;
   poll?: { status: string; videoPath?: string; error?: string };
 };
 
@@ -166,6 +168,17 @@ function harness(routeName: "plano" | "arte" | "video-status", options: Options 
         return kind !== "video_render" || options.renderQuota !== false;
       },
       quotaExceededResponse: () => new Response("Limite atingido", { status: 429 }),
+    },
+    "@/lib/video-units.server": {
+      ensureVideoGrant: async () => {
+        calls.push("video-grant");
+        return 0;
+      },
+      videoUnitsBalance: async () => options.videoBalance ?? 2,
+      consumeVideoUnit: async (_db: unknown, _company: string, ref: string) => {
+        calls.push(`video-consume:${ref}`);
+        return true;
+      },
     },
     "@/lib/ai.server": {
       AiError: class extends Error {},
@@ -363,6 +376,29 @@ test("render quota denial preserves the storyboard and does not start a video", 
   assert.equal((await h.post()).status, 429);
   assert.deepEqual(h.item.storyboard, storyboard);
   assert.ok(!h.calls.includes("video-start"));
+});
+
+test("a company with no finished videos left is refused before any render quota or provider call", async () => {
+  const h = harness("arte", { format: "reels", videoBalance: 0 });
+  const response = await h.post();
+  assert.equal(response.status, 402);
+  assert.match(await response.text(), /Sem vídeos restantes/);
+  assert.deepEqual(h.item.storyboard, storyboard, "the storyboard is kept");
+  assert.ok(h.calls.includes("video-grant"));
+  assert.ok(!h.calls.includes("quota:video_render"));
+  assert.ok(!h.calls.includes("video-start"));
+});
+
+test("a finished render uses one video unit, once per render, and a failed render uses none", async () => {
+  const ready = harness("video-status");
+  assert.equal((await ready.post()).status, 200);
+  assert.deepEqual(
+    ready.calls.filter((call) => call.startsWith("video-consume")),
+    ["video-consume:render:operations/test"],
+  );
+  const failed = harness("video-status", { poll: { status: "failed", error: privateError } });
+  await failed.post();
+  assert.ok(!failed.calls.some((call) => call.startsWith("video-consume")));
 });
 
 test("operation save failure is not reported as rendering success", async () => {

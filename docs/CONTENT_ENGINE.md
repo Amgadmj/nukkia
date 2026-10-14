@@ -53,3 +53,24 @@ Every entry point (`/api/arte`) checks `checkAiQuota()` before calling any
 model, once per request regardless of how many images that format produces
 internally (a 6-slide carousel is one quota unit, not six) — see
 `src/lib/quota.server.ts` for the actual per-format caps.
+
+## Video provider: Higgsfield (opt-in)
+
+`VIDEO_PROVIDER=higgsfield` routes reels rendering through
+`src/lib/higgsfield.server.ts` (Seedance 2.0 text-to-video, public API). Veo stays the default.
+
+- **One generation per reel.** Seedance renders 4 to 15 s per request, so the storyboard's
+  blocks are scaled onto one 15 s clip as timed, hard-cut segments.
+- **Cost guard.** `planVideoRender` estimates credits (draft 3, standard 4.5, premium 9 credits
+  per second) and refuses a plan above `HIGGSFIELD_MAX_CREDITS_PER_RENDER` (default 70) before
+  any request is made. The per-company `video_render` quota still applies.
+- **Safe retries.** Each render sends an `Idempotency-Key` that is reused across the transient
+  retries inside that call, so a timeout after acceptance cannot create or charge a second job.
+- **Operation id.** Stored as `higgsfield:<request_id>` in `content_items.video_operation`;
+  `checkVideoRender` dispatches on that prefix, so Veo jobs already in flight keep working.
+- **Storage.** The output URL expires after at least 7 days, so the mp4 is copied into
+  `content-media` on completion. That bucket caps files at 50 MB; a 1080p 15 s render may need
+  the limit raised before `premium` is enabled.
+- **Not yet built:** multi-clip films with stitching, character sheets and storyboard boards,
+  image-to-video from a brand reference, a webhook receiver (polling is used today), and a
+  persisted per-render credit ledger.

@@ -17,6 +17,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as PropostaRouteImport } from './routes/proposta'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAssinaturaRouteImport } from './routes/_authenticated/assinatura'
 import { Route as AuthenticatedBoasVindasRouteImport } from './routes/_authenticated/boas-vindas'
 import { Route as AuthenticatedContaRouteImport } from './routes/_authenticated/conta'
 import { Route as AuthenticatedConteudoRouteImport } from './routes/_authenticated/conteudo'
@@ -39,6 +40,16 @@ import { Route as ApiPesquisaEmpresaRouteImport } from './routes/api/pesquisa-em
 import { Route as ApiPlanoRouteImport } from './routes/api/plano'
 import { Route as ApiPromoVideoRouteImport } from './routes/api/promo-video'
 import { Route as ApiVideoStatusRouteImport } from './routes/api/video-status'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
+import { Route as AuthenticatedAdminCobrancasRouteImport } from './routes/_authenticated/admin.cobrancas'
+import { Route as AuthenticatedAdminDadosRouteImport } from './routes/_authenticated/admin.dados'
+import { Route as AuthenticatedAdminPrecosRouteImport } from './routes/_authenticated/admin.precos'
+import { Route as AuthenticatedAdminReceitaRouteImport } from './routes/_authenticated/admin.receita'
+import { Route as AuthenticatedAdminUsoRouteImport } from './routes/_authenticated/admin.uso'
+import { Route as ApiAdminBillingRouteImport } from './routes/api/admin/billing'
+import { Route as ApiBillingCheckoutRouteImport } from './routes/api/billing/checkout'
+import { Route as ApiBillingWebhookRouteImport } from './routes/api/billing/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -77,6 +88,11 @@ const TermosRoute = TermosRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAssinaturaRoute = AuthenticatedAssinaturaRouteImport.update({
+  id: '/assinatura',
+  path: '/assinatura',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBoasVindasRoute = AuthenticatedBoasVindasRouteImport.update({
@@ -190,6 +206,60 @@ const ApiVideoStatusRoute = ApiVideoStatusRouteImport.update({
   path: '/api/video-status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminClientesRoute =
+  AuthenticatedAdminClientesRouteImport.update({
+    id: '/clientes',
+    path: '/clientes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCobrancasRoute =
+  AuthenticatedAdminCobrancasRouteImport.update({
+    id: '/cobrancas',
+    path: '/cobrancas',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminDadosRoute = AuthenticatedAdminDadosRouteImport.update({
+  id: '/dados',
+  path: '/dados',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminPrecosRoute =
+  AuthenticatedAdminPrecosRouteImport.update({
+    id: '/precos',
+    path: '/precos',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminReceitaRoute =
+  AuthenticatedAdminReceitaRouteImport.update({
+    id: '/receita',
+    path: '/receita',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminUsoRoute = AuthenticatedAdminUsoRouteImport.update({
+  id: '/uso',
+  path: '/uso',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const ApiAdminBillingRoute = ApiAdminBillingRouteImport.update({
+  id: '/api/admin/billing',
+  path: '/api/admin/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBillingCheckoutRoute = ApiBillingCheckoutRouteImport.update({
+  id: '/api/billing/checkout',
+  path: '/api/billing/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBillingWebhookRoute = ApiBillingWebhookRouteImport.update({
+  id: '/api/billing/webhook',
+  path: '/api/billing/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -198,7 +268,8 @@ export interface FileRoutesByFullPath {
   '/privacidade': typeof PrivacidadeRoute
   '/proposta': typeof PropostaRoute
   '/termos': typeof TermosRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/assinatura': typeof AuthenticatedAssinaturaRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/conta': typeof AuthenticatedContaRoute
   '/conteudo': typeof AuthenticatedConteudoRoute
@@ -221,6 +292,16 @@ export interface FileRoutesByFullPath {
   '/api/plano': typeof ApiPlanoRoute
   '/api/promo-video': typeof ApiPromoVideoRoute
   '/api/video-status': typeof ApiVideoStatusRoute
+  '/admin/clientes': typeof AuthenticatedAdminClientesRoute
+  '/admin/cobrancas': typeof AuthenticatedAdminCobrancasRoute
+  '/admin/dados': typeof AuthenticatedAdminDadosRoute
+  '/admin/precos': typeof AuthenticatedAdminPrecosRoute
+  '/admin/receita': typeof AuthenticatedAdminReceitaRoute
+  '/admin/uso': typeof AuthenticatedAdminUsoRoute
+  '/api/admin/billing': typeof ApiAdminBillingRoute
+  '/api/billing/checkout': typeof ApiBillingCheckoutRoute
+  '/api/billing/webhook': typeof ApiBillingWebhookRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -229,7 +310,7 @@ export interface FileRoutesByTo {
   '/privacidade': typeof PrivacidadeRoute
   '/proposta': typeof PropostaRoute
   '/termos': typeof TermosRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/assinatura': typeof AuthenticatedAssinaturaRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/conta': typeof AuthenticatedContaRoute
   '/conteudo': typeof AuthenticatedConteudoRoute
@@ -252,6 +333,16 @@ export interface FileRoutesByTo {
   '/api/plano': typeof ApiPlanoRoute
   '/api/promo-video': typeof ApiPromoVideoRoute
   '/api/video-status': typeof ApiVideoStatusRoute
+  '/admin/clientes': typeof AuthenticatedAdminClientesRoute
+  '/admin/cobrancas': typeof AuthenticatedAdminCobrancasRoute
+  '/admin/dados': typeof AuthenticatedAdminDadosRoute
+  '/admin/precos': typeof AuthenticatedAdminPrecosRoute
+  '/admin/receita': typeof AuthenticatedAdminReceitaRoute
+  '/admin/uso': typeof AuthenticatedAdminUsoRoute
+  '/api/admin/billing': typeof ApiAdminBillingRoute
+  '/api/billing/checkout': typeof ApiBillingCheckoutRoute
+  '/api/billing/webhook': typeof ApiBillingWebhookRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -262,7 +353,8 @@ export interface FileRoutesById {
   '/privacidade': typeof PrivacidadeRoute
   '/proposta': typeof PropostaRoute
   '/termos': typeof TermosRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/assinatura': typeof AuthenticatedAssinaturaRoute
   '/_authenticated/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/_authenticated/conta': typeof AuthenticatedContaRoute
   '/_authenticated/conteudo': typeof AuthenticatedConteudoRoute
@@ -285,6 +377,16 @@ export interface FileRoutesById {
   '/api/plano': typeof ApiPlanoRoute
   '/api/promo-video': typeof ApiPromoVideoRoute
   '/api/video-status': typeof ApiVideoStatusRoute
+  '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
+  '/_authenticated/admin/cobrancas': typeof AuthenticatedAdminCobrancasRoute
+  '/_authenticated/admin/dados': typeof AuthenticatedAdminDadosRoute
+  '/_authenticated/admin/precos': typeof AuthenticatedAdminPrecosRoute
+  '/_authenticated/admin/receita': typeof AuthenticatedAdminReceitaRoute
+  '/_authenticated/admin/uso': typeof AuthenticatedAdminUsoRoute
+  '/api/admin/billing': typeof ApiAdminBillingRoute
+  '/api/billing/checkout': typeof ApiBillingCheckoutRoute
+  '/api/billing/webhook': typeof ApiBillingWebhookRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -296,6 +398,7 @@ export interface FileRouteTypes {
     | '/proposta'
     | '/termos'
     | '/admin'
+    | '/assinatura'
     | '/boas-vindas'
     | '/conta'
     | '/conteudo'
@@ -318,6 +421,16 @@ export interface FileRouteTypes {
     | '/api/plano'
     | '/api/promo-video'
     | '/api/video-status'
+    | '/admin/clientes'
+    | '/admin/cobrancas'
+    | '/admin/dados'
+    | '/admin/precos'
+    | '/admin/receita'
+    | '/admin/uso'
+    | '/api/admin/billing'
+    | '/api/billing/checkout'
+    | '/api/billing/webhook'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -326,7 +439,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/proposta'
     | '/termos'
-    | '/admin'
+    | '/assinatura'
     | '/boas-vindas'
     | '/conta'
     | '/conteudo'
@@ -349,6 +462,16 @@ export interface FileRouteTypes {
     | '/api/plano'
     | '/api/promo-video'
     | '/api/video-status'
+    | '/admin/clientes'
+    | '/admin/cobrancas'
+    | '/admin/dados'
+    | '/admin/precos'
+    | '/admin/receita'
+    | '/admin/uso'
+    | '/api/admin/billing'
+    | '/api/billing/checkout'
+    | '/api/billing/webhook'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -359,6 +482,7 @@ export interface FileRouteTypes {
     | '/proposta'
     | '/termos'
     | '/_authenticated/admin'
+    | '/_authenticated/assinatura'
     | '/_authenticated/boas-vindas'
     | '/_authenticated/conta'
     | '/_authenticated/conteudo'
@@ -381,6 +505,16 @@ export interface FileRouteTypes {
     | '/api/plano'
     | '/api/promo-video'
     | '/api/video-status'
+    | '/_authenticated/admin/clientes'
+    | '/_authenticated/admin/cobrancas'
+    | '/_authenticated/admin/dados'
+    | '/_authenticated/admin/precos'
+    | '/_authenticated/admin/receita'
+    | '/_authenticated/admin/uso'
+    | '/api/admin/billing'
+    | '/api/billing/checkout'
+    | '/api/billing/webhook'
+    | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -404,6 +538,9 @@ export interface RootRouteChildren {
   ApiPlanoRoute: typeof ApiPlanoRoute
   ApiPromoVideoRoute: typeof ApiPromoVideoRoute
   ApiVideoStatusRoute: typeof ApiVideoStatusRoute
+  ApiAdminBillingRoute: typeof ApiAdminBillingRoute
+  ApiBillingCheckoutRoute: typeof ApiBillingCheckoutRoute
+  ApiBillingWebhookRoute: typeof ApiBillingWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -462,6 +599,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assinatura': {
+      id: '/_authenticated/assinatura'
+      path: '/assinatura'
+      fullPath: '/assinatura'
+      preLoaderRoute: typeof AuthenticatedAssinaturaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/boas-vindas': {
@@ -618,11 +762,105 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVideoStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/clientes': {
+      id: '/_authenticated/admin/clientes'
+      path: '/clientes'
+      fullPath: '/admin/clientes'
+      preLoaderRoute: typeof AuthenticatedAdminClientesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/cobrancas': {
+      id: '/_authenticated/admin/cobrancas'
+      path: '/cobrancas'
+      fullPath: '/admin/cobrancas'
+      preLoaderRoute: typeof AuthenticatedAdminCobrancasRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/dados': {
+      id: '/_authenticated/admin/dados'
+      path: '/dados'
+      fullPath: '/admin/dados'
+      preLoaderRoute: typeof AuthenticatedAdminDadosRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/precos': {
+      id: '/_authenticated/admin/precos'
+      path: '/precos'
+      fullPath: '/admin/precos'
+      preLoaderRoute: typeof AuthenticatedAdminPrecosRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/receita': {
+      id: '/_authenticated/admin/receita'
+      path: '/receita'
+      fullPath: '/admin/receita'
+      preLoaderRoute: typeof AuthenticatedAdminReceitaRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/uso': {
+      id: '/_authenticated/admin/uso'
+      path: '/uso'
+      fullPath: '/admin/uso'
+      preLoaderRoute: typeof AuthenticatedAdminUsoRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/api/admin/billing': {
+      id: '/api/admin/billing'
+      path: '/api/admin/billing'
+      fullPath: '/api/admin/billing'
+      preLoaderRoute: typeof ApiAdminBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/billing/checkout': {
+      id: '/api/billing/checkout'
+      path: '/api/billing/checkout'
+      fullPath: '/api/billing/checkout'
+      preLoaderRoute: typeof ApiBillingCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/billing/webhook': {
+      id: '/api/billing/webhook'
+      path: '/api/billing/webhook'
+      fullPath: '/api/billing/webhook'
+      preLoaderRoute: typeof ApiBillingWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
+  AuthenticatedAdminCobrancasRoute: typeof AuthenticatedAdminCobrancasRoute
+  AuthenticatedAdminDadosRoute: typeof AuthenticatedAdminDadosRoute
+  AuthenticatedAdminPrecosRoute: typeof AuthenticatedAdminPrecosRoute
+  AuthenticatedAdminReceitaRoute: typeof AuthenticatedAdminReceitaRoute
+  AuthenticatedAdminUsoRoute: typeof AuthenticatedAdminUsoRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
+  AuthenticatedAdminCobrancasRoute: AuthenticatedAdminCobrancasRoute,
+  AuthenticatedAdminDadosRoute: AuthenticatedAdminDadosRoute,
+  AuthenticatedAdminPrecosRoute: AuthenticatedAdminPrecosRoute,
+  AuthenticatedAdminReceitaRoute: AuthenticatedAdminReceitaRoute,
+  AuthenticatedAdminUsoRoute: AuthenticatedAdminUsoRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedAssinaturaRoute: typeof AuthenticatedAssinaturaRoute
   AuthenticatedBoasVindasRoute: typeof AuthenticatedBoasVindasRoute
   AuthenticatedContaRoute: typeof AuthenticatedContaRoute
   AuthenticatedConteudoRoute: typeof AuthenticatedConteudoRoute
@@ -635,7 +873,8 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedAssinaturaRoute: AuthenticatedAssinaturaRoute,
   AuthenticatedBoasVindasRoute: AuthenticatedBoasVindasRoute,
   AuthenticatedContaRoute: AuthenticatedContaRoute,
   AuthenticatedConteudoRoute: AuthenticatedConteudoRoute,
@@ -671,6 +910,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPlanoRoute: ApiPlanoRoute,
   ApiPromoVideoRoute: ApiPromoVideoRoute,
   ApiVideoStatusRoute: ApiVideoStatusRoute,
+  ApiAdminBillingRoute: ApiAdminBillingRoute,
+  ApiBillingCheckoutRoute: ApiBillingCheckoutRoute,
+  ApiBillingWebhookRoute: ApiBillingWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

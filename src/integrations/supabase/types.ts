@@ -12,20 +12,26 @@ export type Database = {
         Row: {
           company_id: string;
           created_at: string;
+          est_cost_usd: number;
           id: string;
           kind: string;
+          plan_key: string | null;
         };
         Insert: {
           company_id: string;
           created_at?: string;
+          est_cost_usd?: number;
           id?: string;
           kind: string;
+          plan_key?: string | null;
         };
         Update: {
           company_id?: string;
           created_at?: string;
+          est_cost_usd?: number;
           id?: string;
           kind?: string;
+          plan_key?: string | null;
         };
         Relationships: [
           {
@@ -602,6 +608,353 @@ export type Database = {
         };
         Relationships: [];
       };
+      billing_events: {
+        Row: {
+          error: string | null;
+          event_id: string;
+          event_type: string;
+          id: string;
+          payload: Json;
+          processed_at: string | null;
+          provider: string;
+          received_at: string;
+          status: string;
+        };
+        Insert: {
+          error?: string | null;
+          event_id: string;
+          event_type: string;
+          id?: string;
+          payload: Json;
+          processed_at?: string | null;
+          provider?: string;
+          received_at?: string;
+          status?: string;
+        };
+        Update: {
+          error?: string | null;
+          event_id?: string;
+          event_type?: string;
+          id?: string;
+          payload?: Json;
+          processed_at?: string | null;
+          provider?: string;
+          received_at?: string;
+          status?: string;
+        };
+        Relationships: [];
+      };
+      plan_entitlements: {
+        Row: {
+          included_videos: number;
+          plan_key: string;
+        };
+        Insert: {
+          included_videos: number;
+          plan_key: string;
+        };
+        Update: {
+          included_videos?: number;
+          plan_key?: string;
+        };
+        Relationships: [];
+      };
+      price_registry: {
+        Row: {
+          amount_cents: number;
+          assumptions: Json;
+          billing_interval: string;
+          cohort_key: string;
+          created_at: string;
+          created_by: string | null;
+          expected_margin: number | null;
+          floor_min_cents: number;
+          id: string;
+          plan_key: string;
+          retired_at: string | null;
+          seats: number;
+          status: string;
+          worst_margin: number | null;
+        };
+        Insert: {
+          amount_cents: number;
+          assumptions: Json;
+          billing_interval: string;
+          cohort_key: string;
+          created_at?: string;
+          created_by?: string | null;
+          expected_margin?: number | null;
+          floor_min_cents: number;
+          id?: string;
+          plan_key: string;
+          retired_at?: string | null;
+          seats: number;
+          status?: string;
+          worst_margin?: number | null;
+        };
+        Update: {
+          amount_cents?: number;
+          assumptions?: Json;
+          billing_interval?: string;
+          cohort_key?: string;
+          created_at?: string;
+          created_by?: string | null;
+          expected_margin?: number | null;
+          floor_min_cents?: number;
+          id?: string;
+          plan_key?: string;
+          retired_at?: string | null;
+          seats?: number;
+          status?: string;
+          worst_margin?: number | null;
+        };
+        Relationships: [];
+      };
+      pricing_assumptions: {
+        Row: {
+          card_fee_fixed_brl: number;
+          card_fee_pct: number;
+          fx_brl_per_usd: number;
+          id: number;
+          infra_usd_per_company: number;
+          render_credits: number;
+          tax_rate: number;
+          updated_at: string;
+          updated_by: string | null;
+          usd_per_credit: number;
+          video_yield: number;
+        };
+        Insert: {
+          card_fee_fixed_brl?: number;
+          card_fee_pct?: number;
+          fx_brl_per_usd?: number;
+          id?: number;
+          infra_usd_per_company?: number;
+          render_credits?: number;
+          tax_rate?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          usd_per_credit?: number;
+          video_yield?: number;
+        };
+        Update: {
+          card_fee_fixed_brl?: number;
+          card_fee_pct?: number;
+          fx_brl_per_usd?: number;
+          id?: number;
+          infra_usd_per_company?: number;
+          render_credits?: number;
+          tax_rate?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+          usd_per_credit?: number;
+          video_yield?: number;
+        };
+        Relationships: [];
+      };
+      purchases: {
+        Row: {
+          amount_cents: number;
+          company_id: string;
+          created_at: string;
+          id: string;
+          invoice_url: string | null;
+          paid_at: string | null;
+          provider_payment_id: string | null;
+          sku: string;
+          status: string;
+          units: number;
+        };
+        Insert: {
+          amount_cents: number;
+          company_id: string;
+          created_at?: string;
+          id?: string;
+          invoice_url?: string | null;
+          paid_at?: string | null;
+          provider_payment_id?: string | null;
+          sku: string;
+          status?: string;
+          units: number;
+        };
+        Update: {
+          amount_cents?: number;
+          company_id?: string;
+          created_at?: string;
+          id?: string;
+          invoice_url?: string | null;
+          paid_at?: string | null;
+          provider_payment_id?: string | null;
+          sku?: string;
+          status?: string;
+          units?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "purchases_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      subscriptions: {
+        Row: {
+          amount_cents: number;
+          billing_interval: string;
+          cancel_at_period_end: boolean;
+          canceled_at: string | null;
+          cohort_key: string | null;
+          company_id: string;
+          created_at: string;
+          current_period_end: string | null;
+          current_period_start: string | null;
+          id: string;
+          is_design_partner: boolean;
+          plan_key: string;
+          price_registry_id: string | null;
+          provider: string;
+          provider_customer_id: string | null;
+          provider_subscription_id: string | null;
+          started_at: string | null;
+          status: string;
+          trial_ends_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          amount_cents: number;
+          billing_interval: string;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          cohort_key?: string | null;
+          company_id: string;
+          created_at?: string;
+          current_period_end?: string | null;
+          current_period_start?: string | null;
+          id?: string;
+          is_design_partner?: boolean;
+          plan_key: string;
+          price_registry_id?: string | null;
+          provider?: string;
+          provider_customer_id?: string | null;
+          provider_subscription_id?: string | null;
+          started_at?: string | null;
+          status: string;
+          trial_ends_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          amount_cents?: number;
+          billing_interval?: string;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          cohort_key?: string | null;
+          company_id?: string;
+          created_at?: string;
+          current_period_end?: string | null;
+          current_period_start?: string | null;
+          id?: string;
+          is_design_partner?: boolean;
+          plan_key?: string;
+          price_registry_id?: string | null;
+          provider?: string;
+          provider_customer_id?: string | null;
+          provider_subscription_id?: string | null;
+          started_at?: string | null;
+          status?: string;
+          trial_ends_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      video_unit_events: {
+        Row: {
+          company_id: string;
+          created_at: string;
+          delta: number;
+          id: string;
+          lot_id: string | null;
+          reason: string;
+          ref: string;
+        };
+        Insert: {
+          company_id: string;
+          created_at?: string;
+          delta: number;
+          id?: string;
+          lot_id?: string | null;
+          reason: string;
+          ref: string;
+        };
+        Update: {
+          company_id?: string;
+          created_at?: string;
+          delta?: number;
+          id?: string;
+          lot_id?: string | null;
+          reason?: string;
+          ref?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "video_unit_events_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      video_unit_lots: {
+        Row: {
+          company_id: string;
+          created_at: string;
+          expires_at: string | null;
+          id: string;
+          ref: string;
+          source: string;
+          units_granted: number;
+          units_remaining: number;
+        };
+        Insert: {
+          company_id: string;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          ref: string;
+          source: string;
+          units_granted: number;
+          units_remaining: number;
+        };
+        Update: {
+          company_id?: string;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          ref?: string;
+          source?: string;
+          units_granted?: number;
+          units_remaining?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "video_unit_lots_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -627,6 +980,61 @@ export type Database = {
         };
         Returns: boolean;
       };
+      apply_payment_event: {
+        Args: {
+          _event: string;
+          _external_ref: string | null;
+          _paid_at: string | null;
+          _payment_id: string;
+          _provider_subscription_id: string | null;
+        };
+        Returns: string;
+      };
+      company_plan: { Args: { _company_id: string }; Returns: string };
+      consume_ai_quota: {
+        Args: {
+          _company_id: string;
+          _daily_limit: number;
+          _est_cost_usd: number;
+          _kind: string;
+          _monthly_limit: number;
+          _plan_key: string;
+        };
+        Returns: boolean;
+      };
+      consume_video_unit: { Args: { _company_id: string; _ref: string }; Returns: boolean };
+      ensure_video_grant: { Args: { _company_id: string }; Returns: number };
+      grant_design_partner: {
+        Args: { _company_id: string; _plan_key: string; _trial_days: number };
+        Returns: Database["public"]["Tables"]["subscriptions"]["Row"];
+      };
+      grant_video_units: {
+        Args: {
+          _company_id: string;
+          _expires_at: string | null;
+          _ref: string;
+          _source: string;
+          _units: number;
+        };
+        Returns: boolean;
+      };
+      price_seats_taken: { Args: { _price_id: string }; Returns: number };
+      public_price_list: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          amount_cents: number;
+          billing_interval: string;
+          cohort_key: string;
+          plan_key: string;
+          seats: number;
+          seats_taken: number;
+        }[];
+      };
+      reserve_subscription: {
+        Args: { _company_id: string; _interval: string; _plan_key: string };
+        Returns: Database["public"]["Tables"]["subscriptions"]["Row"];
+      };
+      video_units_balance: { Args: { _company_id: string }; Returns: number };
       owns_company: { Args: { _company_id: string }; Returns: boolean };
       owns_company_folder: { Args: { _folder: string }; Returns: boolean };
     };

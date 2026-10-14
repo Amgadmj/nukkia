@@ -10,6 +10,7 @@ test("static art passes the saved caption's offer conditions to the image provid
   let uploaded: Uint8Array | undefined;
   const modules: Record<string, unknown> = {
     "zod/v4": zod4,
+    "@/lib/higgsfield.server": {},
     "./style-anchor": { buildStyleAnchor: () => "Paleta da marca: #112233." },
     "@/lib/ai.server": {
       AiError: class extends Error {},
@@ -81,6 +82,7 @@ for (const [label, b64, ext, contentType] of [
     const exports: Record<string, (...args: unknown[]) => Promise<unknown>> = {};
     const modules: Record<string, unknown> = {
       "zod/v4": zod4,
+      "@/lib/higgsfield.server": {},
       "./style-anchor": { buildStyleAnchor: () => "" },
       "@/lib/ai.server": { AiError: class extends Error {}, generateImageBase64: async () => b64 },
     };

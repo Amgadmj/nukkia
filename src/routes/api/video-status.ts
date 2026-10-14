@@ -3,6 +3,7 @@ import { z } from "zod";
 import { AiError } from "@/lib/ai.server";
 import { checkVideoRender } from "@/lib/content-engine";
 import { userClientFromRequest } from "@/lib/supabase-request.server";
+import { consumeVideoUnit } from "@/lib/video-units.server";
 
 const bodySchema = z.object({
   companyId: z.string().uuid(),
@@ -49,12 +50,13 @@ export const Route = createFileRoute("/api/video-status")({
         }
 
         if (item.video_path) return Response.json({ status: "ready" });
-        if (!item.video_operation) return Response.json({ status: "none" });
+        const operationName = item.video_operation;
+        if (!operationName) return Response.json({ status: "none" });
 
         let saving = false;
         try {
           const result = await checkVideoRender(supabase, {
-            operationName: item.video_operation,
+            operationName,
             companyId: item.company_id,
             contentItemId: item.id,
           });
@@ -70,6 +72,11 @@ export const Route = createFileRoute("/api/video-status")({
               .select("id")
               .maybeSingle();
             if (error || !saved) return saveFailure();
+            // A finished video uses one unit of the customer's balance. The
+            // ref is the render's operation, so polling twice charges once.
+            // If the balance ran out meanwhile the video is still delivered:
+            // the render cost is already spent.
+            await consumeVideoUnit(supabase, item.company_id, `render:${operationName}`);
             return Response.json({ status: "ready" });
           }
 

@@ -260,6 +260,8 @@ function harness(t: TestContext, pathname = "/boas-vindas", tab?: string) {
       },
     },
     "@/lib/utils": { cn: (...values: unknown[]) => values.filter(Boolean).join(" ") },
+    // Build-time Vite flag (import.meta); production builds and these tests never enable it.
+    "@/lib/admin/fixture-mode": { isFixtureMode: () => false },
     "@/components/app-shell": { AppShell: "app-shell" },
     // Layout tests exercise the authentication boundary, not its child provider.
     // Provider query behavior is exercised by loading its real module below.

@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { VideosMeter } from "@/components/videos-meter";
 import { apiFetch } from "@/lib/api";
 import type { DemoData } from "@/lib/quick-start";
 import { contentPlanReady } from "@/lib/content-readiness";
@@ -360,6 +361,8 @@ function Calendario({
           </Button>
         )}
       </div>
+
+      {!libraryMode && <VideosMeter />}
 
       {!libraryMode && (briefIssues(data).length > 0 || !identityReady(data.brand)) && (
         <ContentReadiness

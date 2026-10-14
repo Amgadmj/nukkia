@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { NukkiaLogo } from "@/components/nukkia-logo";
 import { AtlanticJourney } from "@/components/atlantic-journey";
+import { AtlanticProof } from "@/components/atlantic-proof";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useFirstSecondsLoop, useHeroScatter } from "@/hooks/use-hero-scatter";
 
@@ -219,6 +220,7 @@ export function AtlanticLanding() {
           </div>
           <AtlanticJourney />
         </section>
+        <AtlanticProof />
         <section
           className="atl-section atl-health"
           id="para-sua-clinica"

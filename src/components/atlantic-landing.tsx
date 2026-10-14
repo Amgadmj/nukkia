@@ -17,7 +17,7 @@ import {
 import { NukkiaLogo } from "@/components/nukkia-logo";
 import { AtlanticJourney } from "@/components/atlantic-journey";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useHeroScatter } from "@/hooks/use-hero-scatter";
+import { useFirstSecondsLoop, useHeroScatter } from "@/hooks/use-hero-scatter";
 
 const faqs = [
   [
@@ -57,6 +57,8 @@ function DemoLink({
 }
 export function AtlanticLanding() {
   const heroStageRef = useRef<HTMLElement>(null);
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
+  useFirstSecondsLoop(heroVideoRef, 10);
   useHeroScatter(heroStageRef);
   return (
     <div className="atl-landing">
@@ -113,6 +115,28 @@ export function AtlanticLanding() {
                 <strong>A sua identidade, presente.</strong>
               </div>
               <Check size={16} />
+            </div>
+            <div className="atl-art-back atl-art-back-2" data-scatter="back2" aria-hidden="true">
+              <img src="/landing/clinica-horizonte.jpg" alt="" loading="lazy" />
+              <div className="atl-art-back-top">
+                <span>CLÍNICA HORIZONTE</span>
+                <span>3 / 3</span>
+              </div>
+            </div>
+            <div className="atl-art-back atl-art-back-1" data-scatter="back1" aria-hidden="true">
+              <video
+                ref={heroVideoRef}
+                src="/landing/clinica-horizonte.mp4"
+                muted
+                loop
+                playsInline
+                autoPlay
+                preload="metadata"
+              />
+              <div className="atl-art-back-top">
+                <span>CLÍNICA HORIZONTE</span>
+                <span>2 / 3</span>
+              </div>
             </div>
             <div className="atl-art-card" data-scatter="art">
               <div className="atl-art-top">

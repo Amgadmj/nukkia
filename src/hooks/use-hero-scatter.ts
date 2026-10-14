@@ -10,6 +10,8 @@ type Vector = { base: number; x: number; y: number; r: number; s: number };
 const VECTORS: Record<string, Vector> = {
   orbit: { base: -14, x: 0, y: 40, r: -46, s: 1.3 },
   context: { base: -2, x: -360, y: -240, r: -30, s: 1 },
+  back2: { base: -13, x: -300, y: 200, r: -24, s: 0.92 },
+  back1: { base: 11, x: 320, y: -220, r: 28, s: 0.92 },
   art: { base: -5, x: -30, y: 170, r: -18, s: 0.9 },
   arch: { base: 0, x: 170, y: -210, r: 32, s: 1 },
   version: { base: 4, x: 400, y: -150, r: 36, s: 1 },
@@ -81,4 +83,23 @@ export function useHeroScatter(ref: RefObject<HTMLElement | null>, intensity = 1
       for (const { el } of items) el.style.transform = "";
     };
   }, [ref, intensity]);
+}
+
+// Muted video that loops only its first `seconds`.
+export function useFirstSecondsLoop(ref: RefObject<HTMLVideoElement | null>, seconds: number) {
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    v.muted = true;
+    const onTime = () => {
+      if (v.currentTime >= seconds) {
+        v.currentTime = 0;
+        void v.play().catch(() => {});
+      }
+    };
+    v.addEventListener("timeupdate", onTime);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) v.pause();
+    else void v.play().catch(() => {});
+    return () => v.removeEventListener("timeupdate", onTime);
+  }, [ref, seconds]);
 }

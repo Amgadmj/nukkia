@@ -2129,11 +2129,13 @@
   --side-gap: clamp(0px, 0.3svh, 3px);
   --side-group-gap: clamp(2px, 1svh, 12px);
   --side-pad: 12px;
+  --side-top: clamp(8px, 1.8svh, 20px);
+  --side-brand: clamp(28px, 4.2svh, 38px);
   overflow: hidden;
-  padding: clamp(8px, 1.8svh, 20px) 10px clamp(6px, 1.4svh, 14px);
+  padding: var(--side-top) 10px clamp(6px, 1.4svh, 14px);
 }
 .nukkia-workspace .workspace-brand-button {
-  height: clamp(28px, 4.2svh, 38px);
+  height: var(--side-brand);
   margin: 0 var(--side-pad) clamp(2px, 0.8svh, 10px);
 }
 .nukkia-workspace .workspace-nav-label {
@@ -2221,6 +2223,28 @@
 .nukkia-workspace.is-collapsed .workspace-sidebar .workspace-footer-controls {
   padding: 0;
   justify-content: center;
+}
+/* Collapse arrow: centered on the logo row, right edge aligned with the rows. */
+.nukkia-workspace .workspace-sidebar .workspace-collapse {
+  top: calc(var(--side-top) + (var(--side-brand) - 32px) / 2);
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+}
+.nukkia-workspace .workspace-sidebar .workspace-collapse:hover {
+  background: var(--ws-subtle);
+  color: var(--ws-text);
+}
+.nukkia-workspace.is-collapsed .workspace-brand-button {
+  margin-bottom: calc(32px + clamp(6px, 1.2svh, 12px));
+}
+.nukkia-workspace.is-collapsed .workspace-sidebar .workspace-collapse {
+  top: calc(var(--side-top) + var(--side-brand) + 4px);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
 }
 /* Very short screens: last resort, scroll without drawing a scrollbar. */
 @media (max-height: 600px) {

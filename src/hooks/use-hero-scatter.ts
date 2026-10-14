@@ -19,7 +19,7 @@ const VECTORS: Record<string, Vector> = {
   caption: { base: 0, x: 0, y: 150, r: -6, s: 1 },
 };
 
-const SCROLL_DISTANCE = 520;
+const SCROLL_DISTANCE = 360;
 const SMOOTHING = 0.14;
 
 const easeInOutQuad = (p: number) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);

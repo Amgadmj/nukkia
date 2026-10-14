@@ -403,7 +403,7 @@ export function AtlanticJourney() {
                 <div className="atl-j atl-j-brand" data-k="brand">
                   <div className="atl-window-bar">
                     <span>
-                      <NukkiaLogo compact /> Contexto
+                      <NukkiaLogo compact markOnly /> Contexto
                     </span>
                     <small>CLÍNICA FICTÍCIA</small>
                   </div>

@@ -1784,3 +1784,19 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Soft shadow under the faded outlines so boxes stay readable (light + dark). */
+.atl-landing {
+  --atl-edge-shadow: 0 1px 2px #0617200f, 0 8px 22px #06172017;
+}
+.dark .atl-landing {
+  --atl-edge-shadow: 0 1px 2px #00000059, 0 10px 26px #00000073;
+}
+.atl-demo,
+.atl-demo-window,
+.atl-plan-float,
+.atl-j-row,
+.atl-j-scene,
+.atl-j-plan {
+  box-shadow: var(--atl-edge-shadow);
+}

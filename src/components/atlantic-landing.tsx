@@ -59,7 +59,7 @@ export function AtlanticLanding() {
   const heroStageRef = useRef<HTMLElement>(null);
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   useFirstSecondsLoop(heroVideoRef, 10);
-  useHeroScatter(heroStageRef);
+  useHeroScatter(heroStageRef, 0.45);
   return (
     <div className="atl-landing">
       <a className="atl-skip" href="#proposta-conteudo">
@@ -67,7 +67,7 @@ export function AtlanticLanding() {
       </a>
       <header className="atl-nav atl-container">
         <Link to="/" aria-label="Nukkia — início">
-          <NukkiaLogo />
+          <NukkiaLogo markOnly />
         </Link>
         <nav aria-label="Conheça a Nukkia">
           <a href="#como-funciona">Como funciona</a>

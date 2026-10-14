@@ -117,7 +117,14 @@ export function AtlanticLanding() {
               <Check size={16} />
             </div>
             <div className="atl-art-back atl-art-back-2" data-scatter="back2" aria-hidden="true">
-              <img src="/landing/clinica-horizonte.jpg" alt="" loading="lazy" />
+              <video
+                src="/landing/hero-left.mp4"
+                muted
+                loop
+                playsInline
+                autoPlay
+                preload="metadata"
+              />
               <div className="atl-art-back-top">
                 <span>CLÍNICA HORIZONTE</span>
                 <span>3 / 3</span>
@@ -139,29 +146,13 @@ export function AtlanticLanding() {
               </div>
             </div>
             <div className="atl-art-card" data-scatter="art">
-              <div className="atl-art-top">
+              <video src="/landing/hero-front.mp4" muted loop playsInline autoPlay preload="auto" />
+              <div className="atl-art-back-top">
                 <span>CLÍNICA HORIZONTE</span>
-                <ArrowUpRight size={18} />
-              </div>
-              <div className="atl-arch" data-scatter="arch" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="atl-art-copy">
-                <span>ANTES DA PRIMEIRA CONSULTA</span>
-                <strong>
-                  Conheça
-                  <br />
-                  quem cuida
-                  <br />
-                  de você.
-                </strong>
-                <p>Equipe, espaço e atendimento.</p>
-              </div>
-              <div className="atl-art-bottom">
-                <span>Carrossel · Exemplo fictício</span>
                 <span>1 / 3</span>
+              </div>
+              <div className="atl-art-back-bottom">
+                <span>Carrossel · Exemplo fictício</span>
               </div>
             </div>
             <div className="atl-version-float" data-scatter="version">

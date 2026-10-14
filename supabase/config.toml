@@ -1,1 +1,31 @@
 project_id = "zvnkjiqdqssztveevyhc"
+
+# Auth e-mail delivery.
+# Supabase's built-in mailer is a shared, rate-limited sender meant for testing: it only
+# delivers to team members' addresses and lands in spam elsewhere. Production sign-up,
+# confirmation and recovery e-mails must go through custom SMTP on a domain we own, with
+# SPF, DKIM and DMARC set up. See docs/operations/2026-10-14-auth-email-deliverability.md.
+# Secrets are read from the environment; apply with `supabase config push`.
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true
+max_frequency = "60s"
+otp_expiry = 3600
+
+[auth.email.smtp]
+enabled = true
+host = "env(AUTH_SMTP_HOST)"
+port = 465
+user = "env(AUTH_SMTP_USER)"
+pass = "env(AUTH_SMTP_PASS)"
+admin_email = "env(AUTH_SMTP_FROM)"
+sender_name = "Nukkia"
+
+[auth.email.template.confirmation]
+subject = "Confirme seu e-mail na Nukkia"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Redefina sua senha da Nukkia"
+content_path = "./supabase/templates/recovery.html"

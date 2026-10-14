@@ -178,7 +178,11 @@ function AuthPage() {
                 {sent ? (
                   <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
                     Enviamos um e-mail de confirmação. Clique no link para ativar sua conta e voltar
-                    para a plataforma.
+                    para a plataforma. Não chegou em alguns minutos? Confira o spam ou{" "}
+                    <Link to="/auth" search={{ modo: "reenviar" }} className="underline">
+                      reenvie a confirmação
+                    </Link>
+                    .
                   </p>
                 ) : (
                   <form className="space-y-4" onSubmit={handleSubmit}>

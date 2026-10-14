@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nukkia — Workflow Board (protótipo)</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#14202b;--mut:#5d6b78;--line:#dde3e9;--brand:#0f6e8c;--brand2:#e6f3f7;--ok:#1d8a5b;--warn:#b86e00;--bad:#b3261e;--bad2:#fdecea;--radius:14px}
+@media(prefers-color-scheme:dark){:root{--bg:#0e141a;--card:#16202a;--ink:#e8eef3;--mut:#93a3b1;--line:#263340;--brand:#4cc1e0;--brand2:#12303a;--ok:#4cd39a;--warn:#f0b04a;--bad:#ff8a80;--bad2:#3a1f1d}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,Segoe UI,sans-serif}
+header.top{padding:20px 24px;border-bottom:1px solid var(--line);background:var(--card)}
+header.top h1{margin:0;font-size:20px}header.top p{margin:4px 0 0;color:var(--mut)}
+nav.tabs{display:flex;gap:6px;padding:10px 24px;flex-wrap:wrap;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+nav.tabs button{border:1px solid var(--line);background:transparent;color:var(--ink);padding:8px 14px;border-radius:999px;cursor:pointer;font:inherit}
+nav.tabs button[aria-selected=true]{background:var(--brand);color:#fff;border-color:var(--brand)}
+main{padding:24px;max-width:1180px;margin:0 auto}
+section.view{display:none}section.view.on{display:block}
+h2{margin:0 0 6px;font-size:22px}.sub{color:var(--mut);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.flow{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;margin:10px 0 22px}
+.step{flex:1 1 150px;min-width:150px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card);position:relative}
+.step b{display:block;font-size:13px}.step small{color:var(--mut)}
+.step.bad{border-color:var(--bad);background:var(--bad2)}.step.good{border-color:var(--ok)}.step.auto{border-color:var(--brand);background:var(--brand2)}
+.arrow{align-self:center;color:var(--mut)}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mut);margin-bottom:6px}
+.tag.bad{color:var(--bad);border-color:var(--bad)}.tag.ok{color:var(--ok);border-color:var(--ok)}.tag.auto{color:var(--brand);border-color:var(--brand)}
+ul.clean{margin:6px 0 0;padding-left:18px}ul.clean li{margin:3px 0}
+/* app mock */
+.app{display:grid;grid-template-columns:210px 1fr;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--bg);min-height:560px}
+.side{background:var(--card);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:4px}
+.side .logo{font-weight:800;padding:6px 10px 14px;font-size:18px;color:var(--brand)}
+.side button{all:unset;cursor:pointer;padding:9px 10px;border-radius:9px;display:flex;gap:8px;align-items:center;color:var(--ink)}
+.side button:hover{background:var(--brand2)}.side button[aria-current=page]{background:var(--brand2);color:var(--brand);font-weight:600}
+.side hr{border:0;border-top:1px solid var(--line);width:100%;margin:8px 0}
+.side .lbl{font-size:11px;color:var(--mut);padding:4px 10px;text-transform:uppercase;letter-spacing:.06em}
+.canvas{padding:20px;overflow:auto}
+.screen{display:none}.screen.on{display:block}
+.hero{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+@media(max-width:760px){.app{grid-template-columns:1fr}.side{flex-direction:row;overflow:auto;border-right:0;border-bottom:1px solid var(--line)}.side hr,.side .lbl,.side .logo{display:none}.hero{grid-template-columns:1fr}}
+.big{all:unset;cursor:pointer;display:block;padding:18px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card)}
+.big:hover{border-color:var(--brand)}.big strong{font-size:17px;display:block}.big span{color:var(--mut);font-size:13px}
+.big.primary{background:var(--brand);color:#fff;border-color:var(--brand)}.big.primary span{color:#e9f7fb}
+.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--brand2);color:var(--brand);margin-right:4px}
+.pill.ok{background:rgba(29,138,91,.14);color:var(--ok)}.pill.warn{background:rgba(184,110,0,.14);color:var(--warn)}
+.fmt{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:10px}
+.fmt button{all:unset;cursor:pointer;text-align:center;padding:14px 8px;border-radius:12px;border:1px solid var(--line);background:var(--card)}
+.fmt button:hover{border-color:var(--brand)}.fmt i{font-style:normal;font-size:24px;display:block}
+.cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.post{all:unset;cursor:pointer;display:block;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.post:hover{border-color:var(--brand)}
+.thumb{height:110px;display:flex;align-items:flex-end;padding:8px;color:#fff;font-size:12px;font-weight:600}
+.post .b{padding:10px}.post .b b{display:block;font-size:13px;line-height:1.3}.post small{color:var(--mut)}
+.phone{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:14px}
+.progress{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:8px 0}.progress i{display:block;height:100%;background:var(--brand);width:0;transition:width .5s}
+.btn{border:0;background:var(--brand);color:#fff;padding:10px 16px;border-radius:10px;cursor:pointer;font:inherit}.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand)}
+textarea{width:100%;font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px;min-height:110px}
+.chk{display:flex;gap:8px;align-items:center;margin:6px 0}.chk.done{color:var(--ok)}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top;font-size:14px}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Nukkia — Workflow Board <span class="pill">protótipo, nenhum código alterado</span></h1>
+  <p>Do cadastro ao conteúdo pronto: o que acontece hoje, por que se perde, e como deve ficar.</p>
+</header>
+<nav class="tabs" role="tablist" id="tabs">
+  <button role="tab" data-v="v1" aria-selected="true">1 · Por que se perde hoje</button>
+  <button role="tab" data-v="v2" aria-selected="false">2 · Fluxo proposto</button>
+  <button role="tab" data-v="v3" aria-selected="false">3 · Protótipo clicável</button>
+  <button role="tab" data-v="v4" aria-selected="false">4 · Plano de mudança</button>
+</nav>
+<main>
+
+<!-- 1 ---------------------------------------------------------------->
+<section class="view on" id="v1">
+  <h2>Hoje: o app termina o cadastro e entrega você vazio</h2>
+  <p class="sub">Lido direto do código: <code>painel.tsx</code>, <code>conteudo.tsx</code>, <code>marketing-views.tsx</code>, <code>workspace-shell.tsx</code>, <code>api/plano.ts</code>.</p>
+  <div class="flow">
+    <div class="step"><b>Cadastro + Cérebro</b><small>Perguntas, site, identidade (logo, tom)</small></div><span class="arrow">→</span>
+    <div class="step"><b>Painel</b><small>“O que você quer criar?” + “Comece pela sua marca” + rascunhos + métricas</small><span class="tag bad">muita coisa</span></div><span class="arrow">→</span>
+    <div class="step bad"><b>Conteúdo (7 abas)</b><small>Briefing, Estúdio de saúde, Minha peça, Biblioteca, Planejar versões, Plano da conta, Prontidão</small><span class="tag bad">perdido aqui</span></div><span class="arrow">→</span>
+    <div class="step bad"><b>Plano do mês</b><small>Vazio: “Nenhuma publicação planejada ainda.” Botão “Gerar plano do mês”, muitas vezes desabilitado</small><span class="tag bad">nada pré-preenchido</span></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><span class="tag bad">Causa 1</span><h3 style="margin:0 0 6px">Nada gera o plano sozinho</h3>
+      <p>A única chamada a <code>/api/plano</code> é o botão “Gerar plano do mês” em <code>conteudo.tsx:265</code>. Terminar o Cérebro não dispara nada: não há plano, legendas, imagens nem roteiros esperando por você.</p></div>
+    <div class="card"><span class="tag bad">Causa 2</span><h3 style="margin:0 0 6px">O botão fica travado sem explicar</h3>
+      <p><code>contentPlanReady</code> exige kit de marca <i>e</i> briefing sem pendências <i>e</i> identidade pronta. Faltando qualquer um, o botão fica cinza e a razão aparece em outro bloco (“Prontidão”), não no botão.</p></div>
+    <div class="card"><span class="tag bad">Causa 3</span><h3 style="margin:0 0 6px">Imagem, carrossel e vídeo são passos manuais por item</h3>
+      <p>Mesmo com o plano, cada peça exige clicar “Gerar arte / carrossel / roteiro + vídeo”. A pessoa vê só texto e botões.</p></div>
+    <div class="card"><span class="tag bad">Causa 4</span><h3 style="margin:0 0 6px">Três caminhos para a mesma coisa</h3>
+      <p>Imagem/Carrossel vão para “Briefing”, Vídeo vai para a aba padrão (“Estúdio de saúde”), e o calendário é outra rota. Mesmo destino, três portas, abas diferentes.</p></div>
+  </div>
+  <div class="card" style="margin-top:14px"><b>Barra lateral hoje: 7 itens + Calendário + nível/XP + tema + notificações + sair</b>
+    <p class="sub" style="margin:4px 0 0">Meu painel · Minha trilha · Cérebro da marca · Conteúdo · Identidade · Canais · Resultados · Calendário. Dois “centros” de progresso (trilha e barra “Primeira entrega”) competem com o trabalho real.</p></div>
+</section>
+
+<!-- 2 ---------------------------------------------------------------->
+<section class="view" id="v2">
+  <h2>Proposto: terminar o Cérebro já entrega o mês pronto para revisar</h2>
+  <p class="sub">A IA trabalha antes de você pedir. Você só revisa, aprova e publica.</p>
+  <div class="flow">
+    <div class="step"><b>1. Cérebro da marca</b><small>Cadastro e identidade (como hoje)</small></div><span class="arrow">→</span>
+    <div class="step auto"><span class="tag auto">automático</span><b>2. “Montando seu mês”</b><small>Plano de ~12 peças, legendas, roteiros e prévia de imagem. Progresso real por etapa.</small></div><span class="arrow">→</span>
+    <div class="step good"><span class="tag ok">1 tela de decisão</span><b>3. Início</b><small>Dois botões grandes: Minha marca · Planejar o mês</small></div><span class="arrow">→</span>
+    <div class="step good"><b>4. Planejar o mês</b><small>Calendário já cheio, 1 peça por data</small></div><span class="arrow">→</span>
+    <div class="step good"><b>5. Peça</b><small>Texto + visual pré-preenchidos → Aprovar → Gerar final</small></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3 style="margin-top:0">Início: só 2 decisões</h3>
+      <ul class="clean"><li><b>Minha marca</b> (Cérebro): ver, editar, confirmar hipóteses</li><li><b>Planejar o mês</b>: abrir o calendário já gerado</li></ul>
+      <p class="sub" style="margin-top:8px">Abaixo, atalhos por tipo: Imagens · Carrosséis · Vídeos · Roteiros · Ver vídeos.</p></div>
+    <div class="card"><h3 style="margin-top:0">Barra lateral: de 8 para 5</h3>
+      <table><tr><th>Novo</th><th>Absorve hoje</th></tr>
+      <tr><td>Início</td><td>Meu painel, Trilha (vira checklist no Início)</td></tr>
+      <tr><td>Minha marca</td><td>Cérebro + Identidade</td></tr>
+      <tr><td>Planejar o mês</td><td>Calendário, Plano da conta, Briefing</td></tr>
+      <tr><td>Criar</td><td>Imagens, Carrosséis, Vídeos, Roteiros</td></tr>
+      <tr><td>Biblioteca e resultados</td><td>Biblioteca, Ver vídeos, Canais, Resultados</td></tr></table></div>
+  </div>
+  <div class="card" style="margin-top:14px"><b>Regras para o “pré-preenchido”</b>
+    <ul class="clean">
+      <li>Tudo gerado pela IA vem marcado como <span class="pill warn">sugestão</span>; só vira fato depois que você aprova (mantém a regra “hipótese separada de fato”).</li>
+      <li>Imagens e vídeos <b>não</b> são gerados em massa sem aviso: texto e roteiro são grátis; imagem entra na cota; vídeo consome o medidor de vídeos e pede confirmação.</li>
+      <li>Se algo bloqueia (logo ausente, serviço vencido), o motivo aparece <b>no próprio botão</b>, com atalho para resolver.</li>
+      <li>Compliance de saúde (CFM/OAB): a sugestão sai com a checagem já aplicada e marcada como pendente de revisão humana.</li>
+    </ul></div>
+</section>
+
+<!-- 3 ---------------------------------------------------------------->
+<section class="view" id="v3">
+  <h2>Protótipo clicável</h2>
+  <p class="sub">Dados fictícios. Clique na barra lateral, nos cartões e nas peças. Use “Simular fim do Cérebro” para ver a tela de montagem.</p>
+  <div style="margin-bottom:10px"><button class="btn ghost" id="sim">▶ Simular fim do Cérebro</button></div>
+  <div class="app">
+    <aside class="side" id="side">
+      <div class="logo">Nukkia</div>
+      <button data-s="home" aria-current="page">🏠 Início</button>
+      <button data-s="brand">🧠 Minha marca</button>
+      <button data-s="plan">🗓️ Planejar o mês</button>
+      <hr><div class="lbl">Criar</div>
+      <button data-s="create">🖼️ Imagens e carrosséis</button>
+      <button data-s="create">🎬 Vídeos e roteiros</button>
+      <hr>
+      <button data-s="library">📚 Biblioteca e vídeos</button>
+      <button data-s="results">📈 Resultados</button>
+    </aside>
+    <div class="canvas">
+
+      <div class="screen" id="s-build">
+        <h2>Montando seu mês…</h2>
+        <p class="sub">A IA usa o seu Cérebro da marca. Você pode fechar esta tela; continuamos em segundo plano.</p>
+        <div class="card">
+          <div id="steps"></div>
+          <div class="progress"><i id="bar"></i></div>
+          <small id="bartxt" style="color:var(--mut)">0 de 5 etapas</small>
+        </div>
+      </div>
+
+      <div class="screen on" id="s-home">
+        <h2>Olá, Clínica Aurora</h2>
+        <p class="sub">Seu mês de outubro está pronto para revisão: <b>12 peças</b>, 9 com visual sugerido.</p>
+        <div class="hero">
+          <button class="big" data-go="brand"><strong>🧠 Minha marca</strong><span>Cérebro da marca: o que a IA sabe sobre você. 86% completo.</span></button>
+          <button class="big primary" data-go="plan"><strong>🗓️ Planejar o mês</strong><span>12 peças esperando revisão · 3 aprovadas</span></button>
+        </div>
+        <h3 style="margin:22px 0 4px">Criar agora</h3>
+        <div class="fmt">
+          <button data-go="create"><i>🖼️</i>Imagens</button>
+          <button data-go="create"><i>🎠</i>Carrosséis</button>
+          <button data-go="create"><i>🎬</i>Vídeos</button>
+          <button data-go="create"><i>📝</i>Roteiros</button>
+          <button data-go="library"><i>▶️</i>Ver vídeos</button>
+        </div>
+        <div class="card" style="margin-top:18px"><b>Próximos passos</b>
+          <div class="chk done">✓ Cérebro da marca criado</div>
+          <div class="chk done">✓ Plano do mês gerado</div>
+          <div class="chk">○ Aprovar as 12 peças <button class="btn ghost" style="margin-left:auto;padding:4px 10px" data-go="plan">Revisar</button></div>
+          <div class="chk">○ Conectar Instagram</div></div>
+      </div>
+
+      <div class="screen" id="s-brand">
+        <h2>Minha marca</h2><p class="sub">O Cérebro. Cada item vem como sugestão até você confirmar.</p>
+        <div class="grid g2">
+          <div class="card"><b>Posicionamento</b><p>Odontologia estética para adultos de 30–50 anos em Pinheiros.</p><span class="pill warn">sugestão</span> <span class="pill">do site</span></div>
+          <div class="card"><b>Tom de voz</b><p>Acolhedor, técnico sem jargão, sem promessas de resultado.</p><span class="pill ok">confirmado</span></div>
+          <div class="card"><b>Pilares</b><p>Educação · Bastidores · Prova social permitida · Convite à avaliação</p><span class="pill warn">sugestão</span></div>
+          <div class="card"><b>Identidade</b><p>Logo e paleta definidos.</p><span class="pill ok">confirmado</span></div>
+        </div>
+      </div>
+
+      <div class="screen" id="s-plan">
+        <div style="display:flex;justify-content:space-between;align-items:end;flex-wrap:wrap;gap:8px"><div><h2>Planejar o mês · Outubro</h2><p class="sub" style="margin:0 0 14px">Já preenchido. Clique numa peça para revisar.</p></div>
+          <button class="btn ghost" id="regen">↻ Refazer o plano</button></div>
+        <div class="cal" id="cal"></div>
+      </div>
+
+      <div class="screen" id="s-piece">
+        <button class="btn ghost" data-go="plan" style="margin-bottom:12px">← Voltar ao mês</button>
+        <div class="grid g2">
+          <div class="phone"><div class="thumb" id="pthumb" style="height:260px;border-radius:10px"></div><small style="color:var(--mut)">Prévia sugerida (gerar versão final consome cota de imagem)</small></div>
+          <div class="card">
+            <span class="pill" id="pfmt"></span><span class="pill warn">sugestão da IA</span>
+            <h3 id="ptitle" style="margin:8px 0"></h3>
+            <label for="pcap" class="sub" style="display:block;margin-bottom:4px">Legenda (editável)</label>
+            <textarea id="pcap"></textarea>
+            <p class="sub" style="margin:8px 0">✓ Sem promessa de resultado · ✓ Sem antes/depois · ⚠ Revisão humana pendente</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="approve">Aprovar texto</button><button class="btn ghost" id="final">Gerar versão final</button></div>
+            <p id="pmsg" class="sub" style="margin-top:8px"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen" id="s-create">
+        <h2>Criar</h2><p class="sub">Um lugar só para cada tipo. Sempre começa de uma sugestão pronta, não de uma tela em branco.</p>
+        <div class="grid g3">
+          <button class="big" data-go="plan"><strong>🖼️ Imagem</strong><span>3 ideias prontas do seu plano</span></button>
+          <button class="big" data-go="plan"><strong>🎠 Carrossel</strong><span>4 temas educativos prontos</span></button>
+          <button class="big" data-go="plan"><strong>🎬 Vídeo</strong><span>Roteiro pronto; vídeo usa 1 do medidor</span></button>
+          <button class="big" data-go="plan"><strong>📝 Roteiro</strong><span>Cena a cena, editável</span></button>
+          <button class="big"><strong>＋ Do zero</strong><span>Descreva uma ideia própria</span></button>
+        </div>
+      </div>
+
+      <div class="screen" id="s-library"><h2>Biblioteca e vídeos</h2><p class="sub">Peças aprovadas e vídeos gerados.</p>
+        <div class="card">Nenhum vídeo ainda. Aprove um roteiro em “Planejar o mês” e gere o vídeo.</div></div>
+      <div class="screen" id="s-results"><h2>Resultados</h2><p class="sub">Mensagens recebidas (DMs), não alcance, como métrica principal.</p>
+        <div class="card">Conecte um canal para ver resultados.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 ---------------------------------------------------------------->
+<section class="view" id="v4">
+  <h2>Plano de mudança (nada executado ainda)</h2>
+  <p class="sub">Fases independentes: cada uma entrega valor sozinha e pode ser aprovada separadamente.</p>
+  <div class="grid">
+    <div class="card"><span class="tag ok">Fase 1 · maior ganho, menor risco</span><h3 style="margin:0">Pré-preencher após o Cérebro</h3>
+      <ul class="clean"><li>Ao concluir o Cérebro, disparar <code>/api/plano</code> em segundo plano e mostrar a tela “Montando seu mês” com progresso real.</li>
+      <li>Salvar o resultado como rascunho (<code>content_items</code>), marcado como sugestão.</li>
+      <li>Botão do plano deixa de ser cinza mudo: mostra o motivo e o atalho.</li></ul>
+      <small>Arquivos: <code>diagnostico.tsx</code>, <code>conteudo.tsx</code>, <code>api/plano.ts</code>, novo componente “build progress”.</small></div>
+    <div class="card"><span class="tag ok">Fase 2</span><h3 style="margin:0">Novo Início com duas decisões</h3>
+      <ul class="clean"><li>Trocar o <code>WorkspaceOverview</code> por: Minha marca · Planejar o mês · Criar (Imagens, Carrosséis, Vídeos, Roteiros, Ver vídeos).</li>
+      <li>Trilha/XP vira checklist “Próximos passos”.</li></ul>
+      <small>Arquivos: <code>marketing-views.tsx</code>, <code>painel.tsx</code>.</small></div>
+    <div class="card"><span class="tag ok">Fase 3</span><h3 style="margin:0">Menu lateral de 8 para 5 e fim das 7 abas</h3>
+      <ul class="clean"><li>Reagrupar <code>WORKSPACE_NAV</code>; “Conteúdo” vira Planejar o mês + Criar; abas antigas viram seções dentro da peça.</li>
+      <li>Redirecionar rotas e <code>?aba=</code> antigas para não quebrar links.</li></ul>
+      <small>Arquivos: <code>marketing-workspace.ts</code>, <code>workspace-shell.tsx</code>, <code>conteudo.tsx</code>.</small></div>
+    <div class="card"><span class="tag warn">Fase 4 · decisão de custo</span><h3 style="margin:0">Prévias de imagem automáticas</h3>
+      <ul class="clean"><li>Gerar capa/prévia das primeiras 3 peças sozinho? Consome cota. Proposta: só texto + roteiro automáticos; imagens sob demanda, ou as 3 primeiras dentro da cota grátis.</li></ul></div>
+    <div class="card"><b>Riscos</b><ul class="clean"><li>Cota de IA e custo por cadastro (já ~US$0,30–0,56 só no diagnóstico).</li><li>Testes existentes dependem das abas e rótulos atuais (<code>npm run check</code> deve passar).</li><li>O repositório sincroniza com o Lovable: nada de reescrever histórico.</li></ul></div>
+  </div>
+</section>
+</main>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+$$('#tabs button').forEach(b=>b.onclick=()=>{$$('#tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));$$('.view').forEach(v=>v.classList.toggle('on',v.id===b.dataset.v))});
+function go(s){$$('.screen').forEach(x=>x.classList.toggle('on',x.id==='s-'+s));
+  $$('#side button').forEach(b=>b.removeAttribute('aria-current'));
+  const m={home:'home',brand:'brand',plan:'plan',piece:'plan',create:'create',library:'library',results:'results'}[s];
+  const t=$$('#side button').find(b=>b.dataset.s===m);if(t)t.setAttribute('aria-current','page')}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-go],[data-s]');if(!t)return;go(t.dataset.go||t.dataset.s)});
+const posts=[
+ ['Instagram','Carrossel','5 sinais de que é hora de avaliar seu sorriso','linear-gradient(135deg,#0f6e8c,#4cc1e0)'],
+ ['Instagram','Reels','Bastidores: como é a primeira consulta','linear-gradient(135deg,#5b3fa8,#c07bd6)'],
+ ['Instagram','Post','Mitos sobre clareamento dental','linear-gradient(135deg,#1d8a5b,#7bd6a8)'],
+ ['LinkedIn','Artigo','Quando a estética é também saúde','linear-gradient(135deg,#b86e00,#f0b04a)'],
+ ['Instagram','Stories','Pergunte ao dentista: caixinha da semana','linear-gradient(135deg,#b3261e,#ff8a80)'],
+ ['Instagram','Carrossel','Cuidados após o procedimento','linear-gradient(135deg,#14202b,#3b5a73)'],
+ ['Instagram','Post','Convite: avaliação sem compromisso','linear-gradient(135deg,#0f6e8c,#7bd6a8)'],
+ ['Instagram','Reels','3 dúvidas sobre facetas respondidas','linear-gradient(135deg,#5b3fa8,#4cc1e0)']];
+const days=[2,4,7,9,11,14,16,18];
+$('#cal').innerHTML=posts.map((p,i)=>`<button class="post" data-i="${i}"><div class="thumb" style="background:${p[3]}">${p[1]}</div><div class="b"><small>${days[i]} out · ${p[0]}</small><b>${p[2]}</b><span class="pill warn" style="margin-top:6px">sugestão</span></div></button>`).join('');
+let cur=0;
+$('#cal').onclick=e=>{const b=e.target.closest('.post');if(!b)return;cur=+b.dataset.i;const p=posts[cur];
+ $('#pthumb').style.background=p[3];$('#pthumb').textContent=p[1];$('#pfmt').textContent=p[1]+' · '+p[0];$('#ptitle').textContent=p[2];
+ $('#pcap').value=`${p[2]}\n\nResumo em linguagem simples, sem promessa de resultado. Converse com a nossa equipe para entender o que faz sentido no seu caso.\n\n👉 Chame no direct para agendar uma avaliação.`;
+ $('#pmsg').textContent='';go('piece')};
+$('#approve').onclick=()=>$('#pmsg').textContent='✓ Texto aprovado. Falta revisão humana de saúde antes de publicar.';
+$('#final').onclick=()=>$('#pmsg').textContent=cur===1||cur===7?'Vídeo: usa 1 do seu medidor de vídeos. Confirmar?':'Gerando a versão final da imagem (1 da cota de imagens)…';
+$('#regen').onclick=()=>alert('Refazer o plano substitui as sugestões não aprovadas. As aprovadas ficam.');
+const st=['Lendo o Cérebro da marca','Definindo pilares e frequência','Planejando 12 peças do mês','Escrevendo legendas e roteiros','Preparando prévias visuais'];
+$('#sim').onclick=()=>{go('build');$$('#side button').forEach(b=>b.removeAttribute('aria-current'));let i=0;
+ $('#steps').innerHTML=st.map((s,k)=>`<div class="chk" id="st${k}">○ ${s}</div>`).join('');$('#bar').style.width='0';
+ const t=setInterval(()=>{if(i>=st.length){clearInterval(t);setTimeout(()=>go('home'),700);return}
+  const el=$('#st'+i);el.classList.add('done');el.textContent='✓ '+st[i];i++;$('#bar').style.width=(i/st.length*100)+'%';$('#bartxt').textContent=i+' de 5 etapas'},900)};
+</script>
+</body>
+</html>

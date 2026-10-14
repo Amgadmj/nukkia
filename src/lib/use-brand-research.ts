@@ -81,7 +81,13 @@ export function useBrandResearch(data: DemoData, setData: Dispatch<SetStateActio
       .then(async (response) => {
         if (response.status === 401) throw new ReadingRefused(SIGNED_OUT_MESSAGE);
         if (response.status === 429) throw new ReadingRefused(RATE_LIMITED_MESSAGE);
-        if (!response.ok) throw new Error("unavailable");
+        if (!response.ok) {
+          // The server explains 4xx refusals in Portuguese; show that, not a generic notice.
+          const detail = (await response.json().catch(() => null)) as { message?: unknown } | null;
+          if (response.status < 500 && typeof detail?.message === "string")
+            throw new ReadingRefused(detail.message.slice(0, 240));
+          throw new Error("unavailable");
+        }
         if (!response.body) throw new Error("unavailable");
         const reader = response.body.getReader(),
           decoder = new TextDecoder();

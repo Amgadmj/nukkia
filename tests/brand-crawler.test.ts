@@ -498,3 +498,29 @@ test("resolver error classification separates infrastructure failures from answe
   assert.equal(crawler.isResolverInfrastructureError(new Error("aborted")), false);
   assert.equal(crawler.isResolverInfrastructureError(null), false);
 });
+
+test("an unreadable robots.txt (firewall 403 or HTML fallback) does not abort the reading", async (t) => {
+  for (const robots of [
+    { status: 403, mime: "text/html", body: "Forbidden" },
+    { status: 200, mime: "text/html", body: "<html>app shell</html>" },
+  ]) {
+    network(t, { "/robots.txt": robots, "/": { body: html("Início"), mime: "text/html" } });
+    const research = await crawler.collectBrandSite(origin);
+    assert.equal(research.status, "ready");
+    assert.ok(research.sources.length >= 1);
+  }
+});
+
+test("failed readings get a specific Portuguese reason and a log code", () => {
+  const dns = crawler.describeReadFailure(Object.assign(new Error("x"), { code: "ENOTFOUND" }));
+  assert.equal(dns.code, "dns-not-found");
+  assert.match(dns.message, /Não encontramos esse endereço/);
+  const reset = crawler.describeReadFailure(Object.assign(new Error("x"), { code: "ECONNRESET" }));
+  assert.equal(reset.code, "connection-refused");
+  assert.match(reset.message, /recusou/);
+  const own = crawler.describeReadFailure(new Error("O site limita a leitura automática."));
+  assert.equal(own.code, "site-message");
+  assert.equal(own.message, "O site limita a leitura automática.");
+  const other = crawler.describeReadFailure(new Error("socket hang up"));
+  assert.doesNotMatch(other.message, /socket/);
+});

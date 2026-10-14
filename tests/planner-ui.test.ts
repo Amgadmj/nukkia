@@ -7,7 +7,11 @@ import { demoSchema } from "../src/lib/quick-start.ts";
 function render(state: Record<string, unknown>, libraryMode = false) {
   const exports: Record<string, (props: Record<string, unknown>) => unknown> = {};
   const deps: Record<string, unknown> = {
-    react: { useState: (value: unknown) => [value, () => {}], useEffect: () => {} },
+    react: {
+      useState: (value: unknown) => [value, () => {}],
+      useEffect: () => {},
+      useRef: (value: unknown) => ({ current: value }),
+    },
     "react/jsx-runtime": {
       jsx: (type: unknown, props: unknown) => ({ type, props }),
       jsxs: (type: unknown, props: unknown) => ({ type, props }),
@@ -20,7 +24,8 @@ function render(state: Record<string, unknown>, libraryMode = false) {
       useBrandKit: () => ({ data: {} }),
     },
     "@/components/workspace-skeleton": { WorkspaceSkeleton: "workspace-skeleton" },
-    "@/lib/content-readiness": { contentPlanReady: () => true },
+    "@/lib/month-plan": { planBlockers: () => [], shouldAutoBuildPlan: () => false },
+    "@/components/month-plan-builder": { MonthPlanBuilder: "month-plan-builder" },
     "@/lib/brand-preview": { briefIssues: () => [], identityReady: () => true },
   };
   runInNewContext(

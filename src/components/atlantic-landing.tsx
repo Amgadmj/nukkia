@@ -17,6 +17,7 @@ import {
 import { NukkiaLogo } from "@/components/nukkia-logo";
 import { AtlanticJourney } from "@/components/atlantic-journey";
 import { AtlanticProof } from "@/components/atlantic-proof";
+import { ScrollCue } from "@/components/scroll-cue";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useFirstSecondsLoop, useHeroScatter } from "@/hooks/use-hero-scatter";
 
@@ -179,6 +180,7 @@ export function AtlanticLanding() {
               Da sua ideia à próxima entrega · Exemplo ilustrativo
             </figcaption>
           </figure>
+          <ScrollCue />
         </section>
         <div className="atl-flow-strip">
           <div className="atl-container">

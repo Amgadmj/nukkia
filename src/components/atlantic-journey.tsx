@@ -334,8 +334,8 @@ export function AtlanticJourney() {
                   </div>
                 ))}
               </div>
-              <Link to="/demo" search={{ passo: 0 }} className="atl-text-link">
-                Experimentar o fluxo
+              <Link to="/auth" search={{ modo: "cadastro" }} className="atl-text-link">
+                Começar agora
                 <ArrowUpRight size={18} aria-hidden="true" />
               </Link>
             </div>

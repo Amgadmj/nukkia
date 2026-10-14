@@ -108,7 +108,8 @@ test("product preview visibly identifies fictional illustrative content and edit
 
 test("visible claims and page metadata do not promise publishing or integrated metrics", () => {
   const head = Route.options.head!({} as never) as { meta: Record<string, string>[] };
-  const claims = `${$("body").text()} ${JSON.stringify(head.meta)}`;
+  // Sourced market statistics live only in [data-proof]; the rest of the page must stay number-free.
+  const claims = `${$("body").clone().find("[data-proof]").remove().end().text()} ${JSON.stringify(head.meta)}`;
   assert.doesNotMatch(
     claims,
     /publica(?:ção|ções|r)? autom[aá]tic|agendad[oa]s? automaticamente|publica no Instagram|alcance, engajamento|\d+\s*%/i,
@@ -127,4 +128,21 @@ test("keyboard navigation has a working skip target and a labeled theme control"
   assert.equal($("main#proposta-conteudo[tabindex='-1']").length, 1);
   assert.equal($("header nav[aria-label]").length, 1);
   assert.equal($("header button[aria-label='Ativar tema claro']").length, 1);
+});
+
+test("market statistics are sourced, dated, and kept separate from Nukkia results", () => {
+  const proof = $("[data-proof]");
+  const stats = proof.find("dt");
+  assert.equal(stats.length, 4);
+  proof.find("div").each((_, el) => {
+    const link = $(el).find("a");
+    assert.match(link.text(), /^Fonte: .*(20\d\d)/);
+    assert.match(link.attr("href") ?? "", /^https:\/\/(cetic\.br|agenciasebrae\.com\.br)\//);
+  });
+  const section = $("#atl-proof-title").closest("section");
+  assert.match(section.text(), /não resultados da Nukkia/i);
+  const chart = $(".atl-pulse-card");
+  assert.match(chart.text(), /Exemplo ilustrativo/i);
+  assert.match(chart.text(), /dados fictícios/i);
+  assert.doesNotMatch(chart.text(), /\d+\s*%/);
 });

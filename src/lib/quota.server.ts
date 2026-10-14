@@ -1,57 +1,104 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  PLANS,
+  QUOTA_LABELS,
+  isPlanKey,
+  type PlanKey,
+  type QuotaKind,
+} from "@/lib/pricing/catalog";
+import { DEFAULT_ASSUMPTIONS, unitCostUsd, type Assumptions } from "@/lib/pricing/economics";
+import { loadAssumptions } from "@/lib/pricing/registry.server";
 
 /**
- * Per-company AI usage caps. Deliberately generous for a paid/demo account
- * today (no plan-tier system yet) but finite — closes the "loop /api/arte
- * forever on a free account" cost hole (AI-1 in the security review).
- * Tune here; the DB function takes the numbers as arguments, no migration
- * needed to change them.
+ * Per-plan AI quotas. The caps live in the catalog (src/lib/pricing/catalog.ts)
+ * and the database function only counts: it takes the limits as arguments,
+ * serializes concurrent calls for a company, and books the standard cost of
+ * each action so the admin panel can show real gross margin.
  */
-export const AI_LIMITS = {
-  diagnostico: { daily: 10, monthly: 20 },
-  plano: { daily: 10, monthly: 10 },
-  arte: { daily: 20, monthly: 150 },
-  carrossel: { daily: 20, monthly: 60 },
-  video_storyboard: { daily: 10, monthly: 60 },
-  video_render: { daily: 5, monthly: 20 },
-  pesquisa_empresa: { daily: 15, monthly: 60 },
-  paleta: { daily: 15, monthly: 60 },
-} as const satisfies Record<string, { daily: number; monthly: number }>;
+export type AiUsageKind = QuotaKind;
 
-export type AiUsageKind = keyof typeof AI_LIMITS;
+/** The plan a company is entitled to now. Any failure reads as the free plan. */
+export async function companyPlan(
+  supabase: SupabaseClient<Database>,
+  companyId: string,
+): Promise<PlanKey> {
+  const { data, error } = await supabase.rpc("company_plan", { _company_id: companyId });
+  if (error || !isPlanKey(data)) {
+    if (error) console.error("[quota] company_plan failed:", error.message);
+    return "free";
+  }
+  return data;
+}
+
+let cachedAssumptions: { value: Assumptions; at: number } | undefined;
+const ASSUMPTIONS_TTL_MS = 60_000;
 
 /**
- * Atomically checks the company's usage against its cap and records this
- * call in the same transaction (see check_and_record_ai_usage in
- * supabase/migrations/20260916210100_p1_security_and_features.sql).
- * Returns false when the company is over quota — callers should respond
- * with 429, never fall through and call the AI anyway.
+ * Assumptions for costing, read with the service role because customers cannot
+ * read the table. Cached for a minute; falls back to the code defaults.
+ */
+async function costingAssumptions(): Promise<Assumptions> {
+  const now = Date.now();
+  if (cachedAssumptions && now - cachedAssumptions.at < ASSUMPTIONS_TTL_MS) {
+    return cachedAssumptions.value;
+  }
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const value = await loadAssumptions(supabaseAdmin);
+    cachedAssumptions = { value, at: now };
+    return value;
+  } catch {
+    return DEFAULT_ASSUMPTIONS;
+  }
+}
+
+/** Test hook: forget the cached assumptions. */
+export function resetAssumptionsCache() {
+  cachedAssumptions = undefined;
+}
+
+/**
+ * Atomically checks the company's plan limits and records this call, with its
+ * standard cost, in one transaction. Returns false when the company is over
+ * quota or its plan has no allowance for this action: callers must respond
+ * with 429 and never fall through to the AI call. Fails closed.
  */
 export async function checkAiQuota(
   supabase: SupabaseClient<Database>,
   companyId: string,
   kind: AiUsageKind,
 ): Promise<boolean> {
-  const limits = AI_LIMITS[kind];
-  const { data, error } = await supabase.rpc("check_and_record_ai_usage", {
+  const plan = await companyPlan(supabase, companyId);
+  const monthly = PLANS[plan].monthly[kind];
+  const daily = PLANS[plan].daily[kind];
+  if (monthly <= 0 || daily <= 0) return false;
+
+  const assumptions = await costingAssumptions();
+  const { data, error } = await supabase.rpc("consume_ai_quota", {
     _company_id: companyId,
     _kind: kind,
-    _daily_limit: limits.daily,
-    _monthly_limit: limits.monthly,
+    _daily_limit: daily,
+    _monthly_limit: monthly,
+    _est_cost_usd: Math.round(unitCostUsd(kind, plan, assumptions) * 10_000) / 10_000,
+    _plan_key: plan,
   });
   if (error) {
-    console.error(`[quota] check_and_record_ai_usage failed for ${kind}:`, error.message);
-    // Fail closed: if we can't verify quota, don't spend money.
+    console.error(`[quota] consume_ai_quota failed for ${kind}:`, error.message);
     return false;
   }
   return data === true;
 }
 
+/**
+ * A customer-facing 429 naming the allowance that ran out. It covers both
+ * cases, a used-up cap and a plan without the feature, and points to the
+ * Assinatura page where the plan can change.
+ */
 export function quotaExceededResponse(kind: AiUsageKind): Response {
-  const limits = AI_LIMITS[kind];
+  const label = QUOTA_LABELS[kind].toLowerCase();
   return new Response(
-    `Limite de uso atingido para esta função (máx. ${limits.daily}/dia). Tente novamente mais tarde.`,
+    `Seu plano não tem mais ${label} disponíveis agora. A cota renova em até 30 dias; para ampliar, veja Assinatura.`,
     { status: 429 },
   );
 }

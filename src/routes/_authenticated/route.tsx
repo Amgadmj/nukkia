@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { BrandLoading } from "@/components/brand-loading";
@@ -14,6 +15,7 @@ import { WorkspaceSkeleton } from "@/components/workspace-skeleton";
 import { workspaceLoadingLayout } from "@/lib/workspace-loading";
 import { clearOnboardingDrafts } from "@/lib/onboarding-draft";
 import { MarketingProvider, clearMarketingWorkspace } from "@/components/marketing-provider";
+import { isFixtureMode } from "@/lib/admin/fixture-mode";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -21,6 +23,10 @@ export const Route = createFileRoute("/_authenticated")({
   pendingMs: 0,
   pendingMinMs: 0,
   beforeLoad: async ({ location }) => {
+    // Development only: the admin panel can render sample data without a login.
+    if (location.pathname.startsWith("/admin") && isFixtureMode()) {
+      return { user: { id: "fixture-admin" } as unknown as User };
+    }
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user)
       throw redirect({
@@ -54,7 +60,9 @@ function AuthenticatedLayout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [sessionValid, setSessionValid] = useState(true);
+  const fixtureAdmin = pathname.startsWith("/admin") && isFixtureMode();
   useEffect(() => {
+    if (fixtureAdmin) return;
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (
         event === "SIGNED_OUT" ||
@@ -69,8 +77,10 @@ function AuthenticatedLayout() {
       }
     });
     return () => data.subscription.unsubscribe();
-  }, [user.id, navigate, queryClient]);
+  }, [user.id, navigate, queryClient, fixtureAdmin]);
   if (!sessionValid) return null;
+  // The admin panel has its own shell and does not load a customer workspace.
+  if (pathname.startsWith("/admin")) return <Outlet />;
   return (
     <MarketingProvider
       ownerId={user.id}

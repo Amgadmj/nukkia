@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Settings, ShieldCheck } from "lucide-react";
+import { CreditCard, Settings, ShieldCheck } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { WorkspaceShell } from "./workspace-shell";
 import { WorkspaceSkeleton } from "./workspace-skeleton";
@@ -67,6 +67,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="workspace-action-label">Administração</span>
             </Link>
           )}
+          <Link to="/assinatura" aria-label="Assinatura">
+            <CreditCard size={17} />
+            <span className="workspace-action-label">Assinatura</span>
+          </Link>
           <Link to="/conta" aria-label="Configurações">
             <Settings size={17} />
             <span className="workspace-action-label">Configurações</span>

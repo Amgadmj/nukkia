@@ -9,6 +9,7 @@ import {
 } from "@/lib/content-engine";
 import type { BrandKitLike } from "@/lib/content-engine/types";
 import { checkAiQuota, quotaExceededResponse } from "@/lib/quota.server";
+import { ensureVideoGrant, videoUnitsBalance } from "@/lib/video-units.server";
 import { userClientFromRequest } from "@/lib/supabase-request.server";
 
 const bodySchema = z.object({
@@ -142,6 +143,15 @@ export const Route = createFileRoute("/api/arte")({
             // quota unit from the storyboard generation above — video
             // rendering is materially more expensive than a text call.
             stage = "video-quota";
+            // The storyboard is saved, so a refusal here loses no work. The
+            // balance is what the customer sees as "videos remaining"; the
+            // render quota below is our technical cap on attempts.
+            await ensureVideoGrant(supabase, item.company_id);
+            if ((await videoUnitsBalance(supabase, item.company_id)) < 1) {
+              return new Response("Sem vídeos restantes neste período. Veja Assinatura.", {
+                status: 402,
+              });
+            }
             const renderAllowed = await checkAiQuota(supabase, item.company_id, "video_render");
             if (!renderAllowed) return quotaExceededResponse("video_render");
 

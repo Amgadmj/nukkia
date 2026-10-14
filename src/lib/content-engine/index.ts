@@ -10,6 +10,15 @@ import {
   generateJson,
   startVideoGeneration,
 } from "@/lib/ai.server";
+import {
+  buildSeedancePrompt,
+  checkHiggsfieldVideo,
+  downloadHiggsfieldVideo,
+  HIGGSFIELD_OP_PREFIX,
+  planVideoRender,
+  startHiggsfieldVideo,
+  videoProvider,
+} from "@/lib/higgsfield.server";
 import { buildStyleAnchor } from "./style-anchor";
 import type {
   BrandKitLike,
@@ -293,8 +302,20 @@ export async function startVideoRender(params: {
   storyboard: Storyboard;
   aspectRatio?: "16:9" | "9:16";
 }): Promise<{ operationName: string }> {
+  const aspectRatio = params.aspectRatio ?? "9:16";
+  if (videoProvider() === "higgsfield") {
+    // Plan first: it enforces the per-render credit ceiling before any spend.
+    const plan = planVideoRender(params.storyboard);
+    const anchor = buildStyleAnchor(params.company, params.brandKit);
+    return startHiggsfieldVideo({
+      prompt: buildSeedancePrompt(anchor, plan),
+      plan,
+      aspectRatio,
+      idempotencyKey: crypto.randomUUID(),
+    });
+  }
   const prompt = buildVideoPrompt(params.company, params.brandKit, params.storyboard);
-  return startVideoGeneration(prompt, { aspectRatio: params.aspectRatio ?? "9:16" });
+  return startVideoGeneration(prompt, { aspectRatio });
 }
 
 /**
@@ -307,6 +328,18 @@ export async function checkVideoRender(
   supabase: SupabaseClient<Database>,
   params: { operationName: string; companyId: string; contentItemId: string },
 ): Promise<VideoJobStatus> {
+  if (params.operationName.startsWith(HIGGSFIELD_OP_PREFIX)) {
+    const hf = await checkHiggsfieldVideo(params.operationName);
+    if (hf.status !== "ready") return hf;
+    const { path } = await uploadGeneratedVideo(
+      supabase,
+      params.companyId,
+      params.contentItemId,
+      await downloadHiggsfieldVideo(hf.videoUrl),
+    );
+    return { status: "ready", videoPath: path };
+  }
+
   const status = await checkVideoOperation(params.operationName);
   if (!status.done) return { status: "rendering" };
   if ("error" in status) return { status: "failed", error: status.error };

@@ -9,7 +9,7 @@ import { HealthStudio } from "@/components/health-studio";
 import { ContentReadiness } from "@/components/content-readiness";
 import { contentReturn } from "@/lib/marketing-workspace";
 import { briefIssues, identityReady } from "@/lib/brand-preview";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CheckCircle2, Clapperboard, GalleryHorizontal, ImageIcon, Sparkles } from "lucide-react";
@@ -22,7 +22,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { VideosMeter } from "@/components/videos-meter";
 import { apiFetch } from "@/lib/api";
 import type { DemoData } from "@/lib/quick-start";
-import { contentPlanReady } from "@/lib/content-readiness";
+import { planBlockers, shouldAutoBuildPlan, type MonthPlanBuildState } from "@/lib/month-plan";
+import { MonthPlanBuilder } from "@/components/month-plan-builder";
 import { useBrandKit, useCompany } from "@/lib/company";
 import type { CarouselSlide, Storyboard } from "@/lib/content-engine/types";
 
@@ -244,7 +245,13 @@ function Calendario({
   const queryClient = useQueryClient();
   const [gerando, setGerando] = useState(false);
   const [gerandoArte, setGerandoArte] = useState<string | null>(null);
-  const planReady = contentPlanReady(data, Boolean(brandKit));
+  const blockers = planBlockers(data, Boolean(brandKit));
+  const planReady = blockers.length === 0;
+  const [build, setBuild] = useState<{ state: MonthPlanBuildState; error: string }>({
+    state: "idle",
+    error: "",
+  });
+  const attemptKey = company ? `nukkia:month-plan-attempt:${company.id}` : "";
 
   const itemsQuery = useQuery({
     enabled: Boolean(company?.id),
@@ -263,22 +270,56 @@ function Calendario({
   const itens = itemsQuery.data;
 
   async function gerarPlano() {
-    if (!company) return;
+    if (!company || gerando) return;
     setGerando(true);
+    setBuild({ state: "building", error: "" });
+    try {
+      localStorage.setItem(attemptKey, "1");
+    } catch {
+      // Private mode: the in-memory guard below still prevents a loop.
+    }
     try {
       const response = await apiFetch("/api/plano", { companyId: company.id });
       if (!response.ok) {
-        toast.error(`Não foi possível gerar o plano. ${(await response.text()).slice(0, 120)}`);
+        const message = `Não foi possível gerar o plano. ${(await response.text()).slice(0, 120)}`;
+        setBuild({ state: "error", error: message });
+        toast.error(message);
         return;
       }
+      setBuild({ state: "idle", error: "" });
       toast.success("Calendário do mês criado!");
       queryClient.invalidateQueries({ queryKey: ["content-items", company.id] });
     } catch {
-      toast.error("Não foi possível conectar. Seu plano anterior foi preservado.");
+      const message = "Não foi possível conectar. Seu plano anterior foi preservado.";
+      setBuild({ state: "error", error: message });
+      toast.error(message);
     } finally {
       setGerando(false);
     }
   }
+
+  let attempted = false;
+  try {
+    attempted = Boolean(attemptKey) && localStorage.getItem(attemptKey) === "1";
+  } catch {
+    attempted = false;
+  }
+  const autoBuild =
+    !libraryMode &&
+    shouldAutoBuildPlan({
+      blockers,
+      itemsLoaded: itemsQuery.isSuccess,
+      itemCount: itemsQuery.data?.length ?? 0,
+      attempted,
+      state: build.state,
+    });
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!autoBuild || autoStarted.current) return;
+    autoStarted.current = true;
+    void gerarPlano();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoBuild]);
 
   async function aprovar(item: ContentItem, caption: string) {
     if (!company) return;
@@ -362,6 +403,20 @@ function Calendario({
         )}
       </div>
 
+      {!libraryMode && !planReady && (
+        <p role="status" className="text-sm text-muted-foreground">
+          Para gerar o plano: {blockers[0]}
+        </p>
+      )}
+
+      {!libraryMode && build.state !== "idle" && (
+        <MonthPlanBuilder
+          state={build.state}
+          error={build.error}
+          onRetry={() => void gerarPlano()}
+        />
+      )}
+
       {!libraryMode && <VideosMeter />}
 
       {!libraryMode && (briefIssues(data).length > 0 || !identityReady(data.brand)) && (
@@ -374,7 +429,7 @@ function Calendario({
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {(itens ?? []).length === 0 && (
+        {(itens ?? []).length === 0 && build.state === "idle" && (
           <p className="text-sm text-muted-foreground">Nenhuma publicação planejada ainda.</p>
         )}
         {(itens ?? []).map((item) => (

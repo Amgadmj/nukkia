@@ -172,7 +172,7 @@
   width: 65%;
   height: 440px;
   padding: 25px;
-  background: #dff1ed;
+  background: #15333f;
   color: #122b3a;
   border-radius: 16px;
   box-shadow: 0 24px 60px #06172024;
@@ -1699,6 +1699,13 @@
     display: flex;
   }
 }
+.atl-art-card > video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .atl-art-back {
   position: absolute;
   width: 50%;
@@ -1728,6 +1735,16 @@
   font-weight: 700;
   color: #fff;
   background: linear-gradient(180deg, #0b202b88, transparent);
+}
+.atl-art-back-bottom {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 18px;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(0deg, #0b202b88, transparent);
 }
 .atl-art-back-1 {
   top: 0;

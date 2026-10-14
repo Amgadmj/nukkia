@@ -24,6 +24,17 @@ function safeHost(raw: string) {
     return "invalid";
   }
 }
+/** One info line per pipeline stage: host, elapsed time and counts only, never site text. */
+function stage(host: string, started: number, name: string, extra: Record<string, unknown> = {}) {
+  console.log("[brand-preview]", name, { host, ms: Date.now() - started, ...extra });
+}
+function failureClass(error: unknown) {
+  const status = (error as { status?: unknown } | null)?.status;
+  return {
+    error: error instanceof Error ? error.constructor.name : typeof error,
+    status: typeof status === "number" ? status : null,
+  };
+}
 const json = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
@@ -222,6 +233,8 @@ export async function handleBrandPreview(
         const run = async () => {
           emit(research);
           const { url, material, aiAuthorized } = parsed.data;
+          const host = safeHost(url);
+          stage(host, started, "start", { ai: aiAuthorized, material: Boolean(material.trim()) });
           try {
             if (url.trim())
               research = researchSchema.parse(
@@ -233,6 +246,7 @@ export async function handleBrandPreview(
                     emit({ ...partial, status: "loading", phase: "collecting" }),
                 }),
               );
+            stage(host, started, "collected", { sources: research.sources.length });
             if (material.trim())
               research.sources = [
                 ...research.sources.slice(0, 15),
@@ -277,18 +291,23 @@ export async function handleBrandPreview(
                 ? Promise.resolve()
                     .then(() => dependencies.profile!(research, signal, { deadline }))
                     .then((profile) => {
+                      stage(host, started, "profile", { fields: profile.length });
                       // Publish as soon as it is ready: the client fills the form from it.
                       if (profile.length) {
                         research = { ...research, profile };
                         emit(research);
                       }
                     })
-                    .catch(() => undefined)
+                    .catch((error: unknown) =>
+                      stage(host, started, "profile failed", failureClass(error)),
+                    )
                 : Promise.resolve();
               try {
                 const suggestions = await dependencies.synthesize(research, signal, { deadline });
                 research = { ...research, suggestions, synthesis: "ready" };
-              } catch {
+                stage(host, started, "synthesis", { suggestions: suggestions.length });
+              } catch (error) {
+                stage(host, started, "synthesis failed", failureClass(error));
                 research = {
                   ...research,
                   synthesis: "unavailable",
@@ -366,6 +385,11 @@ export async function handleBrandPreview(
                 research = previous;
               }
             }
+            stage(host, started, "complete", {
+              sources: research.sources.length,
+              profile: research.profile.length,
+              suggestions: research.suggestions.length,
+            });
             emit({ ...research, phase: "complete" });
           } catch (error) {
             const failure = describeReadFailure(error);

@@ -44,41 +44,46 @@ const points: [number, number][] = [
 ];
 
 export function AtlanticProof() {
+  return (
+    <section className="atl-section atl-container atl-proof" aria-labelledby="atl-proof-title">
+      <div className="atl-section-heading">
+        <p className="atl-eyebrow">O MERCADO BRASILEIRO, EM DADOS</p>
+        <h2 id="atl-proof-title">
+          O WhatsApp é onde
+          <br />
+          <em>o negócio brasileiro acontece.</em>
+        </h2>
+        <p>
+          Números de pesquisas públicas sobre empresas brasileiras. São dados do mercado, não
+          resultados da Nukkia.
+        </p>
+      </div>
+      <dl className="atl-proof-grid" data-proof>
+        {stats.map((s) => (
+          <div key={s.label} className="atl-proof-stat">
+            <dt>
+              <span>{s.value}</span>
+            </dt>
+            <dd>
+              {s.label}
+              <a href={s.href} target="_blank" rel="noreferrer">
+                Fonte: {s.source}
+              </a>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+// Hidden for now: not rendered on the landing page. Re-add <AtlanticPulse /> to bring it back.
+export function AtlanticPulse() {
   const line = points.map(([x, y]) => `${x},${y}`).join(" ");
   const area = `${points[0]![0]},220 ${line} ${points[3]![0]},220`;
   const [px, py] = points[0]!;
   return (
     <>
-      <section className="atl-section atl-container atl-proof" aria-labelledby="atl-proof-title">
-        <div className="atl-section-heading">
-          <p className="atl-eyebrow">O MERCADO BRASILEIRO, EM DADOS</p>
-          <h2 id="atl-proof-title">
-            O WhatsApp é onde
-            <br />
-            <em>o negócio brasileiro acontece.</em>
-          </h2>
-          <p>
-            Números de pesquisas públicas sobre empresas brasileiras. São dados do mercado, não
-            resultados da Nukkia.
-          </p>
-        </div>
-        <dl className="atl-proof-grid" data-proof>
-          {stats.map((s) => (
-            <div key={s.label} className="atl-proof-stat">
-              <dt>
-                <span>{s.value}</span>
-              </dt>
-              <dd>
-                {s.label}
-                <a href={s.href} target="_blank" rel="noreferrer">
-                  Fonte: {s.source}
-                </a>
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
       <section className="atl-section atl-container atl-pulse" aria-labelledby="atl-pulse-title">
         <div className="atl-section-heading">
           <p className="atl-eyebrow">UM MÊS COM A NUKKIA</p>

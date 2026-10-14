@@ -141,8 +141,6 @@ test("market statistics are sourced, dated, and kept separate from Nukkia result
   });
   const section = $("#atl-proof-title").closest("section");
   assert.match(section.text(), /não resultados da Nukkia/i);
-  const chart = $(".atl-pulse-card");
-  assert.match(chart.text(), /Exemplo ilustrativo/i);
-  assert.match(chart.text(), /dados fictícios/i);
-  assert.doesNotMatch(chart.text(), /\d+\s*%/);
+  // The illustrative weekly chart is hidden for now.
+  assert.equal($(".atl-pulse-card").length, 0);
 });

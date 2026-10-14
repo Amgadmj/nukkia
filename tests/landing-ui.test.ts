@@ -83,12 +83,13 @@ test("landing introduces the health studio under Nukkia with one clear main head
   );
 });
 
-test("the hero discovery CTA opens the demo and signup and login keep distinct destinations", () => {
+test("every landing CTA opens signup so the AI reading always runs signed in", () => {
   const cta = $("main a").first();
-  assert.equal(cta.text().trim(), "Conhecer a Nukkia");
+  assert.equal(cta.text().trim(), "Começar com a Nukkia");
   const destination = new URL(cta.attr("href")!, "https://nukkia.test");
-  assert.equal(destination.pathname, "/demo");
-  assert.equal(destination.searchParams.get("passo"), "0");
+  assert.equal(destination.pathname, "/auth");
+  assert.equal(destination.searchParams.get("modo"), "cadastro");
+  assert.equal($("a[href^='/demo']").length, 0);
   const signup = $("footer a").filter((_, el) => $(el).text().trim() === "Criar conta");
   const login = $("header a").filter((_, el) => $(el).text().trim() === "Entrar");
   assert.equal(signup.attr("href"), "/auth?modo=cadastro");

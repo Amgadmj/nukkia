@@ -43,7 +43,7 @@ const faqs = [
     "Você pode explorar a demonstração local sem conta, usando informações fictícias. Os rascunhos da demonstração ficam nesta sessão do navegador; ela não comprova sincronização entre dispositivos.",
   ],
 ];
-function DemoLink({
+function SignupLink({
   children,
   className = "atl-button",
 }: {
@@ -51,7 +51,7 @@ function DemoLink({
   className?: string;
 }) {
   return (
-    <Link to="/demo" search={{ passo: 0 }} className={className}>
+    <Link to="/auth" search={{ modo: "cadastro" }} className={className}>
       {children}
       <ArrowUpRight size={18} aria-hidden="true" />
     </Link>
@@ -81,7 +81,7 @@ export function AtlanticLanding() {
           <Link to="/auth" search={{ modo: "entrar" }}>
             Entrar
           </Link>
-          <DemoLink className="atl-button atl-nav-cta">Explorar</DemoLink>
+          <SignupLink className="atl-button atl-nav-cta">Criar conta</SignupLink>
         </div>
       </header>
       <main id="proposta-conteudo" tabIndex={-1}>
@@ -97,7 +97,7 @@ export function AtlanticLanding() {
               para criar, guardar e continuar.
             </p>
             <div className="atl-actions">
-              <DemoLink>Conhecer a Nukkia</DemoLink>
+              <SignupLink>Começar com a Nukkia</SignupLink>
               <a className="atl-text-link" href="#como-funciona">
                 <Play size={15} aria-hidden="true" />
                 Veja o caminho
@@ -407,7 +407,7 @@ export function AtlanticLanding() {
             </h2>
             <p>Conheça o caminho. Ajuste à sua marca. Continue no seu ritmo de trabalho.</p>
           </div>
-          <DemoLink>Explorar a demonstração</DemoLink>
+          <SignupLink>Criar minha conta</SignupLink>
         </section>
       </main>
       <footer className="atl-footer atl-container">

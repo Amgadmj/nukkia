@@ -19,6 +19,17 @@ class ReadingRefused extends Error {
     this.userMessage = userMessage;
   }
 }
+// A short code shown with the generic notice so a support report names the failing step.
+function failureCode(error: unknown) {
+  if (error instanceof DOMException && error.name === "AbortError") return "aborted";
+  if (error instanceof SyntaxError) return "bad-stream";
+  if (error instanceof Error && error.name === "ZodError") return "bad-data";
+  const text = error instanceof Error ? error.message : "";
+  if (text === "interrupted research") return "interrupted";
+  if (text === "oversized research") return "oversized";
+  if (text === "unavailable") return "server-error";
+  return "network";
+}
 async function accessToken() {
   try {
     const { data } = await supabase.auth.getSession();
@@ -125,7 +136,10 @@ export function useBrandResearch(data: DemoData, setData: Dispatch<SetStateActio
                 ...current.brand.research,
                 status: current.brand.research.sources.length ? "ready" : "unavailable",
                 phase: "complete",
-                message: error instanceof ReadingRefused ? error.userMessage : UNAVAILABLE_MESSAGE,
+                message:
+                  error instanceof ReadingRefused
+                    ? error.userMessage
+                    : `${UNAVAILABLE_MESSAGE} (${failureCode(error)})`,
               }),
             ),
           );

@@ -37,6 +37,23 @@ function failureClass(error: unknown) {
 }
 const json = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
+/** A refusal that happens before the reading starts; without a log it is invisible. */
+function refuse(request: Request, status: number, why: string, body: unknown) {
+  let host = "invalid";
+  try {
+    host = new URL(request.url).host;
+  } catch {
+    /* Keep the placeholder. */
+  }
+  console.warn("[brand-preview] refused", {
+    status,
+    why,
+    requestHost: host,
+    origin: request.headers.get("origin"),
+    hasAuth: Boolean(request.headers.get("authorization")),
+  });
+  return json(body, status);
+}
 
 // Rate limits. In-memory state is per server instance: on Vercel each warm
 // function instance keeps its own counters and a cold start resets them, so
@@ -174,45 +191,46 @@ export async function handleBrandPreview(
   let userKey = "local";
   if (!localPreviewAllowed(request, development)) {
     if (!sameOriginRequest(request))
-      return json({ message: "Origem da solicitação não permitida." }, 403);
+      return refuse(request, 403, "origin-mismatch", {
+        message: "Origem da solicitação não permitida.",
+      });
     const userId = await (dependencies.verifyUser ?? verifySupabaseUser)(request);
     if (!userId)
-      return json(
-        {
-          code: "auth-required",
-          message:
-            "Entre na sua conta para ler o site automaticamente. Você pode continuar preenchendo manualmente.",
-        },
-        401,
-      );
+      return refuse(request, 401, "auth-required", {
+        code: "auth-required",
+        message:
+          "Entre na sua conta para ler o site automaticamente. Você pode continuar preenchendo manualmente.",
+      });
     userKey = `user:${userId}`;
   }
   if (!request.headers.get("content-type")?.startsWith("application/json"))
-    return json({ message: "Envie JSON." }, 415);
+    return refuse(request, 415, "not-json", { message: "Envie JSON." });
   let raw: unknown;
   try {
     raw = await readBody(request);
   } catch {
-    return json({ message: "Pedido inválido ou muito grande." }, 400);
+    return refuse(request, 400, "bad-body", { message: "Pedido inválido ou muito grande." });
   }
   const parsed = inputSchema.safeParse(raw);
-  if (!parsed.success) return json({ message: "Confira os dados enviados." }, 400);
+  if (!parsed.success)
+    return refuse(request, 400, "bad-input", { message: "Confira os dados enviados." });
   if (parsed.data.url.trim() && !parsed.data.siteAuthorized)
-    return json(
-      { message: "Confirme que este é o site da marca e que você pode solicitar sua análise." },
-      400,
-    );
+    return refuse(request, 400, "site-not-authorized", {
+      message: "Confirme que este é o site da marca e que você pode solicitar sua análise.",
+    });
   try {
     if (parsed.data.url.trim()) parsed.data.url = normalizeWebsite(parsed.data.url);
   } catch {
-    return json({ message: "Informe um site público como suamarca.com.br." }, 400);
+    return refuse(request, 400, "bad-url", {
+      message: "Informe um site público como suamarca.com.br.",
+    });
   }
   const release = acquireSlot(userKey);
   if (!release)
-    return json(
-      { code: "rate-limited", message: "Há uma leitura em andamento. Aguarde um instante." },
-      429,
-    );
+    return refuse(request, 429, "rate-limited", {
+      code: "rate-limited",
+      message: "Há uma leitura em andamento. Aguarde um instante.",
+    });
   if (parsed.data.stream) {
     const cancel = new AbortController();
     // request.signal is deliberately not used: some hosts fire it as soon as the

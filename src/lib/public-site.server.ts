@@ -157,7 +157,13 @@ export async function fetchPublicResource(
           const mime = String(res.headers["content-type"] ?? "")
             .split(";")[0]!
             .toLowerCase();
-          if (options.robots && (status === 404 || status === 410)) {
+          // RFC 9309: a robots.txt the crawler cannot get (any 4xx, including a
+          // firewall's 401/403) means no rules, and a 200 that is not text is
+          // a site fallback page, not rules. Neither may abort the whole reading.
+          if (
+            options.robots &&
+            ((status >= 400 && status < 500) || (status === 200 && !/^text\//.test(mime)))
+          ) {
             res.destroy();
             resolve({ status, location: "", mime, bytes: Buffer.alloc(0) });
             return;
@@ -522,6 +528,39 @@ export type CollectBrandSiteOptions = {
   onProgress?: (research: BrandResearch) => void;
   previous?: BrandResearch;
 };
+
+/**
+ * Turns a failed site reading into a safe message for the user and a short
+ * code for the server log. Raw network errors are English and say nothing
+ * useful; the collector's own messages are already Portuguese and user-safe.
+ */
+export function describeReadFailure(error: unknown): { code: string; message: string } {
+  const code = (error as { code?: unknown } | null)?.code;
+  const text = error instanceof Error ? error.message : "";
+  if (code === "ENOTFOUND" || code === "ENODATA")
+    return {
+      code: "dns-not-found",
+      message: "Não encontramos esse endereço. Confira se o site está escrito corretamente.",
+    };
+  if (code === "ECONNRESET" || code === "ECONNREFUSED" || code === "EPIPE")
+    return {
+      code: "connection-refused",
+      message:
+        "O site recusou a leitura automática. Cole um texto da marca abaixo ou preencha manualmente.",
+    };
+  if (code === "ETIMEDOUT" || code === "ABORT_ERR" || /demorou|timeout/i.test(text))
+    return {
+      code: "timeout",
+      message: "O site demorou para responder. Tente novamente ou cole um texto da marca.",
+    };
+  if (/^[A-ZÀ-Ý]/.test(text) && /[áàâãéêíóôõúç]| o | a | de /.test(text) && text.length < 200)
+    return { code: "site-message", message: text };
+  return {
+    code: typeof code === "string" ? code : "unknown",
+    message:
+      "Não foi possível ler este site agora. Cole um texto da marca ou preencha manualmente.",
+  };
+}
 
 export async function collectBrandSite(
   raw: string,

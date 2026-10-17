@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const isTrackingParameter = (key: string) =>
+  /^(utm_.+|[fg]clid|fbclid|dclid|msclkid|gad_source|gad_campaignid|gbraid|wbraid|mc_cid|mc_eid)$/i.test(
+    key,
+  );
+
 /** Accept familiar domain entry; collection still validates DNS and redirects. */
 export function normalizeWebsite(value: string): string {
   const raw = value.trim();
@@ -20,6 +25,8 @@ export function normalizeWebsite(value: string): string {
   url.protocol = "https:";
   url.port = "";
   url.hash = "";
+  for (const key of [...url.searchParams.keys()])
+    if (isTrackingParameter(key)) url.searchParams.delete(key);
   return url.href;
 }
 
@@ -233,7 +240,8 @@ export const CHAPTERS: {
       {
         key: "objections",
         label: "Quais são as três principais objeções à compra?",
-        placeholder: "Preço, falta de tempo, insegurança sobre o resultado…",
+        placeholder:
+          "Objeções são dúvidas ou motivos que fazem a pessoa adiar a contratação. Ex.: preço, falta de tempo ou dúvidas sobre o preparo.",
       },
       {
         key: "praise",

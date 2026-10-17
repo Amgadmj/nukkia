@@ -112,7 +112,9 @@ Nenhuma invenção de descontos, preços, métricas ou atributos. Não inclua co
       {
         role: "user",
         content: JSON.stringify({
-          evidence,
+          documentMarkdown: evidence
+            .map((source) => `## ${source.id}\n\n${source.text}`)
+            .join("\n\n"),
           excerpts: prepareSynthesisExcerpts(research.sources),
         }),
       },

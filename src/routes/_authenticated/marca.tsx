@@ -1,8 +1,6 @@
 import { useLogoUrl } from "@/lib/use-logo-url";
-import { InspirationBoard } from "@/components/inspiration-board";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BrandIdentitySettings } from "@/components/brand-identity-settings";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowRight, BookOpen, Check, Image, Sparkles, Upload } from "lucide-react";
@@ -25,7 +23,14 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useBrandKit, useCompany, useDiagnostic, type Company } from "@/lib/company";
 import { cn } from "@/lib/utils";
-import { updateBrand, type BrandPreview } from "@/lib/brand-preview";
+import {
+  identityIssues,
+  identityReady,
+  VISUAL_STYLES,
+  updateBrand,
+  type BrandPreview,
+} from "@/lib/brand-preview";
+import { identityPaletteOptions, type PaletteOption } from "@/lib/identity-palette";
 import {
   WORKSPACE_NAV,
   contentReturn,
@@ -40,6 +45,7 @@ import {
   brandFonts,
   brandPalette,
   brandStorySchema,
+  brandStoryCandidates,
   savedBrandStorySchema,
   type BrandStory,
   type SavedBrandStory,
@@ -75,15 +81,14 @@ export const Route = createFileRoute("/_authenticated/marca")({
   component: Marca,
 });
 
-export type PaletteOption = { nome: string; cores: string[]; justificativa?: string };
+export type { PaletteOption } from "@/lib/identity-palette";
 
-// Starter choices for a company without saved options. AI generation is
-// explicit only: visiting /marca must never spend quota or write brand data.
-const FALLBACK_PALETTES: PaletteOption[] = [
-  { nome: "Confiança Clínica", cores: ["#0F3D6E", "#2E8BC0", "#B1D4E0", "#F5F9FC"] },
-  { nome: "Energia Moderna", cores: ["#2A0845", "#3B82F6", "#06B6D4", "#F8FAFC"] },
-  { nome: "Acolhimento Natural", cores: ["#2F4F3E", "#7BA88B", "#E4C58B", "#FBF7F0"] },
-];
+function completionIssues(brand: BrandPreview) {
+  const issues = identityIssues(brand);
+  if (brand.preferredApproach === "trust" && !brand.photo)
+    issues.push("Adicione uma foto no briefing ou escolha um formato sem foto.");
+  return issues;
+}
 
 const fontesOpcoes = [
   { id: "sora-manrope", label: "Sora + Manrope (moderna e tecnológica)" },
@@ -104,7 +109,10 @@ function Marca() {
   const navigate = useNavigate();
   const { retorno, origemConteudo } = Route.useSearch();
   const origin = WORKSPACE_NAV.find((section) => section.id === (retorno ?? "conteudo"))!;
-  const returnSearch = origin.id === "conteudo" ? { aba: origemConteudo ?? ("peca" as const) } : {};
+  const returnSearch = useMemo(
+    () => (origin.id === "conteudo" ? { aba: origemConteudo ?? ("peca" as const) } : {}),
+    [origin.id, origemConteudo],
+  );
   const workspace = useMarketingWorkspace();
   const { data: company } = useCompany();
   const {
@@ -151,6 +159,88 @@ function Marca() {
     workspace.company?.id === company?.id &&
     workspace.sync !== "loading" &&
     workspace.sync !== "conflict";
+  const [completion, setCompletion] = useState<{
+    brand: BrandPreview;
+    companyId: string;
+    ownerId: string | null;
+  } | null>(null);
+  const missing = completionIssues(workspace.data.brand);
+  const [exitError, setExitError] = useState("");
+  useBlocker({
+    enableBeforeUnload: false,
+    shouldBlockFn: ({ next }) => {
+      if (next.pathname !== "/painel" && next.pathname !== "/trilha") return false;
+      if (
+        workspaceReady &&
+        !uploading &&
+        !applying &&
+        !brandKitLoading &&
+        !brandKitError &&
+        identityReady(workspace.data.brand) &&
+        !missing.length
+      )
+        return false;
+      setExitError("Conclua a identidade antes de voltar. Seus ajustes permanecem salvos.");
+      return true;
+    },
+  });
+  const storyInput = {
+    company: company ?? { name: "", segment: null, website: null },
+    diagnosticAnswers: {
+      ...(diagnostic?.answers &&
+      typeof diagnostic.answers === "object" &&
+      !Array.isArray(diagnostic.answers)
+        ? diagnostic.answers
+        : {}),
+      ...(workspaceReady && workspace.data.brand.confirmed ? workspace.data.answers : {}),
+    },
+    brandKit: brandKit ?? null,
+    story: null,
+  };
+  useEffect(() => {
+    if (
+      completion &&
+      workspaceReady &&
+      company?.id === completion.companyId &&
+      workspace.ownerId === completion.ownerId &&
+      workspace.data.brand === completion.brand &&
+      workspace.data.brand.identityConfirmed &&
+      !completionIssues(workspace.data.brand).length
+    ) {
+      setCompletion(null);
+      void navigate({ to: origin.to, search: returnSearch });
+    }
+  }, [
+    completion,
+    workspaceReady,
+    company?.id,
+    workspace.ownerId,
+    workspace.data.brand,
+    navigate,
+    origin.to,
+    returnSearch,
+  ]);
+
+  function completeIdentity() {
+    const current = latest.current;
+    if (
+      uploading ||
+      applying ||
+      brandKitLoading ||
+      brandKitError ||
+      !current.company ||
+      current.workspace.company?.id !== current.company.id ||
+      ["loading", "conflict"].includes(current.workspace.sync) ||
+      completionIssues(current.workspace.data.brand).length
+    )
+      return;
+    const original = current.workspace.data.brand;
+    const brand = { ...original, identityConfirmed: true };
+    current.workspace.setData((data) =>
+      data.brand === original && !completionIssues(data.brand).length ? { ...data, brand } : data,
+    );
+    setCompletion({ brand, companyId: current.company.id, ownerId: current.workspace.ownerId });
+  }
 
   async function applyIdentity() {
     if (
@@ -282,6 +372,7 @@ function Marca() {
 
   return (
     <div className="space-y-8">
+      {exitError && <p role="alert">{exitError}</p>}
       <Button variant="outline" asChild>
         <Link to={origin.to} search={returnSearch}>
           Voltar para {origin.label}
@@ -512,6 +603,16 @@ function Marca() {
           company={company}
           brandKit={brandKit ?? null}
           logoUrl={logoUrl}
+          initialOptions={identityPaletteOptions({
+            saved: brandKit?.palette,
+            accent: workspaceReady ? workspace.data.brand.accent : undefined,
+            confirmed:
+              workspaceReady &&
+              (workspace.data.brand.identityConfirmed || workspace.data.brand.confirmed),
+            colors: workspaceReady
+              ? workspace.data.brand.research.visualEvidence?.colors.map((color) => color.value)
+              : [],
+          })}
         />
       )}
       {logo.error && (
@@ -523,19 +624,9 @@ function Marca() {
           ou envie uma nova imagem.
         </p>
       )}
-      {workspaceReady && <InspirationBoard data={workspace.data} onData={workspace.setData} />}
-      {workspaceReady && (
-        <BrandIdentitySettings
-          key={`piece:${workspace.ownerId}:${company.id}`}
-          data={workspace.data}
-          onData={workspace.setData}
-          savedAccent={savedAccent}
-          onContinue={() => void navigate({ to: origin.to, search: returnSearch })}
-        />
-      )}
       <Card id="historia" className="scroll-mt-24 shadow-none">
         <CardHeader>
-          <h2 className="text-base font-semibold">História da marca</h2>
+          <h2 className="text-base font-semibold">História da marca · opcional</h2>
           <CardDescription>
             {storyQuery.isLoading
               ? "Verificando a história salva..."
@@ -543,24 +634,28 @@ function Marca() {
                 ? BRAND_STORY_UNAVAILABLE
                 : storyQuery.isError
                   ? "Não foi possível carregar a história salva. Recarregue a página para tentar novamente."
-                  : "Manifesto, missão, visão e valores: escreva com suas palavras e revise os fatos antes de salvar."}
+                  : "Propostas locais com base nas respostas confirmadas. Edite cada frase e revise antes de salvar. Você pode concluir sem uma história."}
           </CardDescription>
         </CardHeader>
-        {storyQuery.data && !storyQuery.data.unavailable && !storyQuery.isError && (
-          <CardContent>
-            <StoryEditor
-              key={company.id}
-              companyId={company.id}
-              savedStory={storyQuery.data.story}
-              onSaved={(saved) =>
-                queryClient.setQueryData(["brand-story", company.id], {
-                  ...saved,
-                  unavailable: false,
-                })
-              }
-            />
-          </CardContent>
-        )}
+        {storyQuery.data &&
+          !storyQuery.data.unavailable &&
+          !storyQuery.isError &&
+          !diagnosticLoading && (
+            <CardContent>
+              <StoryEditor
+                key={`${workspace.ownerId}:${company.id}`}
+                companyId={company.id}
+                savedStory={storyQuery.data.story}
+                candidates={brandStoryCandidates(storyInput)}
+                onSaved={(saved) =>
+                  queryClient.setQueryData(["brand-story", company.id], {
+                    ...saved,
+                    unavailable: false,
+                  })
+                }
+              />
+            </CardContent>
+          )}
       </Card>
       <details id="brandbook" className="scroll-mt-24 rounded-xl border border-border bg-card">
         <summary className="cursor-pointer rounded-xl px-5 py-4 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
@@ -579,7 +674,7 @@ function Marca() {
             <BrandBook
               input={{
                 company,
-                diagnosticAnswers: diagnostic?.answers,
+                diagnosticAnswers: storyInput.diagnosticAnswers,
                 brandKit: brandKit ?? null,
                 story: storyQuery.data?.story ?? null,
               }}
@@ -594,12 +689,49 @@ function Marca() {
             Acompanhe o que já foi salvo e o que falta revisar.
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link to={origin.to} search={returnSearch}>
-            Voltar para {origin.label}
-            <ArrowRight className="size-4" />
-          </Link>
-        </Button>
+        {workspaceReady && (
+          <div className="space-y-3">
+            <Label htmlFor="identity-direction">Direção visual</Label>
+            <select
+              id="identity-direction"
+              value={workspace.data.brand.visualStyle ?? ""}
+              className="min-h-11 rounded-md border border-input bg-background px-3 text-sm"
+              onChange={(event) => {
+                const visualStyle = VISUAL_STYLES.find(
+                  (style) => style.id === event.target.value,
+                )?.id;
+                if (visualStyle)
+                  workspace.setData((data) => ({
+                    ...data,
+                    brand: updateBrand(data.brand, { visualStyle }),
+                  }));
+              }}
+            >
+              <option value="" disabled>
+                Escolha uma direção
+              </option>
+              {VISUAL_STYLES.map((style) => (
+                <option key={style.id} value={style.id}>
+                  {style.name}
+                </option>
+              ))}
+            </select>
+            {missing.length > 0 && (
+              <p role="status" className="text-sm text-muted-foreground">
+                {missing[0]}
+              </p>
+            )}
+            <Button
+              type="button"
+              onClick={completeIdentity}
+              disabled={
+                uploading || applying || brandKitLoading || brandKitError || missing.length > 0
+              }
+            >
+              Concluir identidade <ArrowRight className="size-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -608,17 +740,19 @@ function Marca() {
 function StoryEditor({
   companyId,
   savedStory,
+  candidates,
   onSaved,
 }: {
   companyId: string;
   savedStory: BrandStory | null;
+  candidates: BrandStory;
   onSaved: (saved: SavedBrandStory) => void;
 }) {
   const [draft, setDraft] = useState({
-    manifesto: savedStory?.manifesto ?? "",
-    mission: savedStory?.mission ?? "",
-    vision: savedStory?.vision ?? "",
-    valuesText: savedStory?.values.join("\n") ?? "",
+    manifesto: savedStory?.manifesto ?? candidates.manifesto,
+    mission: savedStory?.mission ?? candidates.mission,
+    vision: savedStory?.vision ?? candidates.vision,
+    valuesText: (savedStory?.values ?? candidates.values).join("\n"),
   });
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -720,7 +854,11 @@ function StoryEditor({
         </p>
       )}
       <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4 sm:col-span-2">
-        <Button type="submit" disabled={saving || !dirty}>
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={saving || (!dirty && Boolean(savedStory))}
+        >
           {saving ? "Salvando..." : "Salvar história"}
         </Button>
         <p role="status" className="text-xs text-muted-foreground">
@@ -728,7 +866,7 @@ function StoryEditor({
             ? "Alterações ainda não salvas."
             : savedStory
               ? "História salva no BrandBook."
-              : "Sua história ainda não foi salva."}
+              : "Proposta editável · ainda não salva. Preencha apenas se quiser incluir a história."}
         </p>
       </div>
     </form>
@@ -739,32 +877,20 @@ function IdentityForm({
   company,
   brandKit,
   logoUrl,
+  initialOptions,
 }: {
   company: Company;
   brandKit: BrandKit | null;
   logoUrl: string | null;
+  initialOptions: PaletteOption[];
 }) {
   const queryClient = useQueryClient();
-  const savedOptions = (brandKit?.options as unknown as PaletteOption[] | null) ?? null;
   const savedPalette = brandPalette(brandKit?.palette);
-  const choices = savedOptions?.length ? savedOptions : FALLBACK_PALETTES;
-  const matching = choices.findIndex(
-    (option) => JSON.stringify(option.cores) === JSON.stringify(savedPalette.colors),
-  );
-  const includeSaved = savedPalette.colors.length > 0 && matching < 0;
-  const [options, setOptions] = useState<PaletteOption[]>(
-    includeSaved
-      ? [{ nome: savedPalette.name || "Paleta salva", cores: savedPalette.colors }, ...choices]
-      : choices,
-  );
+  const [chosenOptions, setOptions] = useState<PaletteOption[] | null>(null);
+  // Follow delayed research until the owner chooses a palette or requests AI.
+  const options = chosenOptions ?? initialOptions;
   const [generating, setGenerating] = useState(false);
-  const [selected, setSelected] = useState<number>(
-    includeSaved
-      ? 0
-      : matching >= 0
-        ? matching
-        : Math.min(Math.max(brandKit?.selected_index ?? 0, 0), choices.length - 1),
-  );
+  const [selected, setSelected] = useState(0);
   const [saving, setSaving] = useState(false);
   const savedFontPreset = (brandKit?.fonts as { preset?: string } | null)?.preset;
   const fontChoice = fontesOpcoes.some((font) => font.id === savedFontPreset)
@@ -773,6 +899,14 @@ function IdentityForm({
       ? "saved-fonts"
       : "sora-manrope";
   async function gerarPaletas() {
+    if (initialOptions.length > 0) {
+      // Deterministic variants keep saved/observed identity as the anchor.
+      // An explicit refresh must not replace it with unrelated AI palettes.
+      setOptions(initialOptions);
+      setSelected(0);
+      toast.success("Referência atual e duas variações próximas. Propostas locais, sem uso de IA.");
+      return;
+    }
     setGenerating(true);
     try {
       const response = await apiFetch("/api/paleta", { companyId: company.id });
@@ -798,7 +932,11 @@ function IdentityForm({
     const fonts = String(form.get("fonts") ?? fontChoice);
     setSaving(true);
     try {
-      const paleta = options[selected] ?? options[0]!;
+      const paleta = options[selected] ?? options[0];
+      if (!paleta?.cores.length) {
+        toast.error("Confirme uma cor da identidade antes de salvar.");
+        return;
+      }
       const { error } = await supabase.from("brand_kits").upsert(
         {
           company_id: company.id,
@@ -853,7 +991,7 @@ function IdentityForm({
                 <h3 className="text-sm font-semibold">Paleta de cores</h3>
                 <CardDescription>
                   {generating
-                    ? "Gerando três direções para o seu segmento..."
+                    ? "Gerando propostas para revisão..."
                     : "Escolha uma combinação e salve no kit da marca. A peça atual mantém suas cores."}
                 </CardDescription>
               </div>
@@ -865,7 +1003,11 @@ function IdentityForm({
                 disabled={generating}
               >
                 <Sparkles className="mr-1.5 size-3.5" />
-                {generating ? "Gerando..." : "Sugerir com IA"}
+                {generating
+                  ? "Gerando..."
+                  : initialOptions.length > 0
+                    ? "Atualizar variações próximas"
+                    : "Autorizar sugestão com IA (usa cota)"}
               </Button>
             </CardHeader>
             <CardContent className="grid gap-3 lg:grid-cols-3">
@@ -873,7 +1015,10 @@ function IdentityForm({
                 <button
                   type="button"
                   key={`${paleta.nome}-${index}`}
-                  onClick={() => setSelected(index)}
+                  onClick={() => {
+                    setOptions(options);
+                    setSelected(index);
+                  }}
                   aria-pressed={selected === index}
                   disabled={generating}
                   className={cn(
@@ -986,7 +1131,7 @@ function IdentityForm({
         </section>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" variant="outline" disabled={saving}>
             {saving ? "Salvando..." : "Salvar identidade"}
           </Button>
           <p className="text-xs text-muted-foreground">

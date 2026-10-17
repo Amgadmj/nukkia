@@ -67,6 +67,38 @@ export type BrandBookInput = {
   story: BrandStory | null;
 };
 
+/** Editable wording from supplied inputs. Missing facts stay missing. */
+export function brandStoryCandidates(input: BrandBookInput): BrandStory {
+  const answers = record(input.diagnosticAnswers);
+  const offer = text(answers["offers"]);
+  const audience = text(answers["audience"]);
+  const purpose = text(answers["purpose"]);
+  return {
+    manifesto: [
+      text(answers["founderStory"]),
+      purpose || (offer ? `${input.company.name}: ${offer}.` : ""),
+    ]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, 4000),
+    mission: (offer ? `${offer}${audience ? ` para ${audience}` : ""}.` : "").slice(0, 1000),
+    vision: text(answers["goals"]).slice(0, 1000),
+    values: purpose ? [purpose.slice(0, 300)] : [],
+  };
+}
+
+function sloganCandidates(input: BrandBookInput) {
+  const answers = record(input.diagnosticAnswers);
+  const offer = text(answers["offers"]).slice(0, 160);
+  const purpose = text(answers["purpose"]).slice(0, 160);
+  const audience = text(answers["audience"]).slice(0, 160);
+  return [
+    offer ? `${input.company.name}: ${offer}` : "",
+    offer && audience ? `${offer} para ${audience}` : "",
+    purpose,
+  ].filter(Boolean);
+}
+
 export function brandStoryContext(input: BrandBookInput) {
   const answers = record(input.diagnosticAnswers);
   return {
@@ -177,6 +209,10 @@ export function buildBrandBookDocument(input: BrandBookInput) {
   const palette = brandPalette(input.brandKit?.palette);
   const fonts = brandFonts(input.brandKit?.fonts);
   const logo = safeLogoUrl(input.brandKit?.logo_url);
+  const logoSample = logo
+    ? `<img src="${escape(logo)}" alt="Logomarca de ${escape(input.company.name)}">`
+    : `<p>${escape(input.company.name)}</p><p class="caption">Exemplo tipográfico · logo não cadastrado</p>`;
+  const slogans = sloganCandidates(input);
   const paragraph = (value: string | null | undefined, missing = "Não informado") =>
     `<p>${escape(value?.trim() || missing)}</p>`;
   const detail = (label: string, value: unknown) =>
@@ -206,6 +242,14 @@ ul { padding-left: 20px; } li { margin: 10px 0; white-space: pre-wrap; overflow-
 .swatch { width: 90px; height: 52px; border: 1px solid #69737a; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .caption, footer { color: #52616b; font: 9pt/1.5 Arial, sans-serif; }
 footer { padding-top: 24px; }
+.applications { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.sample { padding: 22px; border: 1px solid #69737a; overflow-wrap: anywhere; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.sample img { max-width: 100%; margin: 16px auto; }
+.light { background: #fff; color: #172129; }
+.dark { background: #172129; color: #fff; }
+.dark .caption { color: #d8dfe3; }
+.type-heading { font-family: ${fonts.heading}; font-size: 22pt; }
+@media (max-width: 520px) { main { padding: 18px; } .applications { grid-template-columns: 1fr; } }
 @media print { main { max-width: none; padding: 0; } h1, h2, h3 { break-after: avoid; } li, .colors, img { break-inside: avoid; } p { orphans: 3; widows: 3; } }
 </style></head><body><main>
 <header>${logo ? `<img src="${escape(logo)}" alt="Logomarca de ${escape(input.company.name)}">` : '<p class="caption">Logomarca não cadastrada</p>'}
@@ -238,6 +282,20 @@ ${palette.colors.length ? `<div class="colors">${palette.colors.map((color) => `
 <h3>Tipografia</h3>${paragraph(fonts.label)}
 <p class="caption">A impressão usa fontes locais de substituição quando as fontes da marca não estão instaladas.</p>
 <h3>Tom de voz</h3>${paragraph(input.brandKit?.tone, "Tom de voz ainda não salvo.")}</section>
+<section><h2>Aplicações · exemplos para revisão</h2>
+<p class="caption">O mesmo arquivo de logo é usado sem recoloração. Confira contraste e margens antes de produzir; estes exemplos não definem versões oficiais do logo.</p>
+<div class="applications">
+<div class="sample light"><h3>Superfície clara</h3>${logoSample}</div>
+<div class="sample dark"><h3>Superfície escura</h3>${logoSample}</div>
+<div class="sample light"><h3>Cartão de visita · frente</h3>${logoSample}${paragraph(input.company.name)}</div>
+<div class="sample light"><h3>Cartão de visita · verso</h3>${paragraph(input.company.name)}${paragraph(input.company.segment)}${input.company.website ? paragraph(input.company.website) : ""}<p class="caption">Dados de contato não informados ficam fora do exemplo.</p></div>
+<div class="sample light"><h3>Cabeçalho · exemplo</h3>${logoSample}${paragraph(input.company.name)}${paragraph(text(answers["offers"]))}</div>
+</div></section>
+<section><h2>Tipografia em uso</h2>${paragraph(fonts.label)}
+<p class="type-heading">${escape(input.company.name)}</p>${paragraph(text(answers["offers"]))}
+<p class="caption">Título e texto de apoio com a combinação salva; fontes ausentes usam substituições locais.</p></section>
+<section><h2>Slogans · propostas</h2><p class="caption">Rascunhos locais baseados na oferta e no propósito informados. Revise linguagem, restrições e adequação antes de usar; não são fatos ou resultados comprovados.</p>
+${slogans.length ? `<ul>${slogans.map((value) => `<li>${escape(value)}</li>`).join("")}</ul>` : paragraph("Informe oferta ou propósito para preparar propostas de slogan.")}</section>
 <footer>Preparado com os dados salvos da empresa, do diagnóstico e da identidade da marca no Nukkia.</footer>
 </main></body></html>`;
 }

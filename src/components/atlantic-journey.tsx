@@ -334,7 +334,7 @@ export function AtlanticJourney() {
                   </div>
                 ))}
               </div>
-              <Link to="/auth" search={{ modo: "cadastro" }} className="atl-text-link">
+              <Link to="/demo" search={{ passo: 0, aba: "painel" }} className="atl-text-link">
                 Começar agora
                 <ArrowUpRight size={18} aria-hidden="true" />
               </Link>

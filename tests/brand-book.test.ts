@@ -6,6 +6,37 @@ import ts from "typescript";
 import * as jsx from "react/jsx-runtime";
 import * as brandStory from "../src/lib/brand-story.ts";
 
+test("brandbook renders unchanged logos on both surfaces, mockups and escaped slogan proposals", () => {
+  const html = brandStory.buildBrandBookDocument({
+    company: { name: "<Aurora>", segment: "Pilates", website: null },
+    diagnosticAnswers: { offers: "Aulas <script>ruins</script>", audience: "Adultos" },
+    brandKit: { logo_url: "https://example.com/logo.png", palette: null, fonts: null, tone: null },
+    story: null,
+  });
+  assert.match(html, /Superfície clara/);
+  assert.match(html, /Superfície escura/);
+  assert.match(html, /Cartão de visita/);
+  assert.match(html, /Slogans · propostas/);
+  assert.match(html, /Aulas &lt;script&gt;ruins&lt;\/script&gt; para Adultos/);
+  assert.match(html, /Aulas &lt;script&gt;ruins&lt;\/script&gt;/);
+  assert.ok(!html.includes("<script>"));
+  assert.ok(!html.includes("filter:"));
+  assert.ok((html.match(/src="https:\/\/example.com\/logo.png"/g) ?? []).length >= 4);
+});
+
+test("story candidates use supplied answers without inventing missing intentions", () => {
+  const candidate = brandStory.brandStoryCandidates({
+    company: { name: "Aurora", segment: null, website: null },
+    diagnosticAnswers: { offers: "Aulas individuais", audience: "Adultos" },
+    brandKit: null,
+    story: null,
+  });
+  assert.match(candidate.manifesto, /Aulas individuais/);
+  assert.match(candidate.mission, /Adultos/);
+  assert.equal(candidate.vision, "");
+  assert.deepEqual(candidate.values, []);
+});
+
 test("HTML download uses the preview document, safe filename, and releases its object URL", async () => {
   const source = readFileSync(new URL("../src/components/brand-book.tsx", import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, {

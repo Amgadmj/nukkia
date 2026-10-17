@@ -7,7 +7,7 @@ function compactTitle(value: string, index: number) {
   // sentence as a summary; new analyses provide the semantic title separately.
   return normalized.split(" ").length <= 5 && normalized.length <= 80
     ? normalized
-    : `Proposta ${index + 1}`;
+    : normalized || `Sugestão ${index + 1}`;
 }
 
 export function ResearchSuggestions({
@@ -16,12 +16,14 @@ export function ResearchSuggestions({
   confirmedValue,
   compact = false,
   selectedValue,
+  selectedValues,
 }: {
   suggestions: BrandSuggestion[];
   onUse: (item: BrandSuggestion) => void;
   confirmedValue?: string | undefined;
   compact?: boolean;
   selectedValue?: string | undefined;
+  selectedValues?: string[] | undefined;
 }) {
   if (!suggestions.length) return null;
   return (
@@ -35,6 +37,7 @@ export function ResearchSuggestions({
         const displayValue = compact ? item.title || compactTitle(item.value, index) : item.value;
         // Match the value actually applied to the question field, which is limited to 240 characters.
         const selected =
+          selectedValues?.includes(item.value) ||
           selectedValue === (item.field === "faq" ? item.value.slice(0, 240) : item.value);
         const date =
           item.foundAt && !Number.isNaN(Date.parse(item.foundAt))
@@ -84,7 +87,7 @@ export function ResearchSuggestions({
             {item.kind === "opportunity" && (
               <p>
                 {compact
-                  ? "Hipótese da IA · confirme antes de usar."
+                  ? "Hipótese de público · confirme antes de usar."
                   : "Inferido pela IA · confirme se faz sentido para sua marca."}
               </p>
             )}

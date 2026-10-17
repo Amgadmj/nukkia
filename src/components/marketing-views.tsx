@@ -1,4 +1,5 @@
 import { applyServiceToBrief } from "@/lib/service-brief";
+import { useBlocker } from "@tanstack/react-router";
 import { InspirationBoard } from "./inspiration-board";
 import { WorkspaceServices } from "./workspace-services";
 import type { CatalogScope } from "@/lib/service-catalog-storage";
@@ -13,6 +14,7 @@ import {
   FileText,
   Film,
   Image,
+  CalendarDays,
   Layers,
   Globe2,
   Lightbulb,
@@ -57,7 +59,7 @@ import { postSvg, prepareAsset, svgUrl } from "@/lib/post-art";
 import { CompactAnswer } from "./brand-onboarding";
 import { BrandSources } from "./brand-sources";
 import { ResearchSuggestions } from "./research-suggestions";
-import { VisualStylePicker } from "./brand-direction";
+import { VisualStylePicker, BrandPaletteVariations } from "./brand-direction";
 import { ChannelRecommendations } from "./channel-recommendations";
 import { applyResearchSuggestion, allowedSuggestions } from "@/lib/brand-research";
 
@@ -84,12 +86,6 @@ export function WorkspaceOverview({
   onSection,
   onEditBrief,
   onChooseApproach,
-  onEditPiece,
-  onResumeSaved,
-  onLibrary,
-  identity,
-  snapshots = [],
-  metricsState = "ready",
 }: BaseProps & {
   onEditBrief: () => void;
   onChooseApproach: (approach?: ContentApproach) => void;
@@ -101,18 +97,33 @@ export function WorkspaceOverview({
   metricsState?: "ready" | "loading" | "error";
 }) {
   const diagnostic = essentialDiagnostic(data);
-  const coverage = diagnosticCoverage(data.answers);
-  const priorities = commandPriorities(data, identity);
-  const metrics = metricsState === "ready" ? dashboardMetrics(snapshots, data.strategy.metric) : [];
-  const measurement = MEASUREMENT_OPTIONS.find((option) => option.value === data.strategy.metric);
-  const channel = CHANNEL_OPTIONS.find((option) => option.value === data.strategy.channel);
-  const creative = data.brand.creative;
-  const status = creativeStatus(data);
-  const healthDraft = data.healthStudio.options.find(
-    (option) => option.id === data.healthStudio.selectedOption,
-  );
   return (
     <div className="workspace-page command-center">
+      <section className="workspace-card home-next-step" aria-labelledby="home-next-step-title">
+        <Brain size={30} aria-hidden="true" />
+        <div>
+          <h2 id="home-next-step-title">Concluir diagnóstico da marca</h2>
+          <p>
+            {data.brand.research.sources.length > 0
+              ? "Seu site já trouxe um ponto de partida. "
+              : "Confirme as informações da sua clínica. "}
+            Revise o Cérebro da marca para orientar a identidade e o planejamento do mês.
+          </p>
+          <p>
+            {diagnostic.completed} de {diagnostic.total} decisões essenciais preenchidas.
+          </p>
+        </div>
+        <button className="quick-primary" onClick={onEditBrief}>
+          Concluir diagnóstico da marca <ArrowRight size={18} />
+        </button>
+      </section>
+      <section className="workspace-card home-plan-next">
+        <h2>Depois, planeje o mês</h2>
+        <p>Confirme a identidade, organize os temas e só então prepare as peças.</p>
+        <button className="quick-secondary" onClick={() => onSection("conteudo")}>
+          Começar meu planejamento <CalendarDays size={18} />
+        </button>
+      </section>
       <section aria-labelledby="home-create-title" className="home-create-section">
         <div className="command-section-title">
           <h2 id="home-create-title">O que você quer criar?</h2>
@@ -193,308 +204,7 @@ export function WorkspaceOverview({
             {identityReady(data.brand) ? <Check size={16} /> : <ArrowRight size={16} />}
           </button>
         </section>
-        <section className="home-studio-card" aria-labelledby="home-studio-title">
-          <div>
-            <span className="studio-kicker">ESTÚDIO DE SAÚDE</span>
-            <h2 id="home-studio-title">Do roteiro à sequência.</h2>
-            <p>Escolha uma estrutura, compare três exemplos e edite cena por cena.</p>
-          </div>
-          <div className="home-scene-art" aria-hidden="true">
-            <span />
-            <span>
-              <Film size={32} strokeWidth={1.3} />
-            </span>
-            <span />
-          </div>
-          <button className="quick-primary" onClick={() => onSection("conteudo")}>
-            {healthDraft ? "Continuar roteiro" : "Criar roteiro"}
-            <ArrowRight size={17} />
-          </button>
-          <small>Prévia em cartões de texto · exemplo fictício</small>
-        </section>
       </div>
-      <section className="home-library" aria-labelledby="home-library-title">
-        <div className="command-section-title">
-          <h2 id="home-library-title">Seus rascunhos</h2>
-          {onLibrary && (
-            <button className="quick-text-button" onClick={onLibrary}>
-              Abrir biblioteca
-            </button>
-          )}
-        </div>
-        {healthDraft || creative ? (
-          <div className="home-draft-grid">
-            {healthDraft && (
-              <button className="home-draft-card" onClick={() => onSection("conteudo")}>
-                <div className="home-draft-cover">
-                  <span>EXEMPLO FICTÍCIO</span>
-                  <strong>{healthDraft.scenes[0]?.heading}</strong>
-                  <Film size={23} />
-                </div>
-                <strong>{healthDraft.title}</strong>
-                <small>{healthDraft.scenes.length} cenas · sem aprovação</small>
-              </button>
-            )}
-            {creative && (
-              <button className="home-draft-card" onClick={onEditPiece}>
-                <img
-                  className="home-saved-thumbnail"
-                  alt={`Rascunho atual: ${creative.copy.title}`}
-                  src={svgUrl(
-                    postSvg(firstPostBrief(data), creative.copy, data.brand, {
-                      approach: creative.approach,
-                      page: 1,
-                      total: creative.slides.length + 1,
-                    }),
-                  )}
-                />
-                <strong>{creative.copy.title || "Sua peça de conteúdo"}</strong>
-                <span>
-                  {creative.slides.length ? "Carrossel" : "Imagem"} ·{" "}
-                  {status.approved ? "Aprovação criativa registrada" : "Rascunho"}
-                </span>
-                <small>
-                  {status.stale
-                    ? "Contexto atualizado · revisar peça"
-                    : "Abrir no editor de imagem"}
-                </small>
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="home-library-empty">
-            <FileText size={24} />
-            <p>Os roteiros e peças que você preparar ficam aqui.</p>
-            <button className="quick-text-button" onClick={() => onChooseApproach("invite")}>
-              Preparar minha primeira peça <ArrowRight size={15} />
-            </button>
-          </div>
-        )}
-      </section>
-      {onResumeSaved && data.library.items.some((item) => !item.archived) && (
-        <section className="home-library" aria-label="Versões guardadas">
-          <h2>Versões guardadas</h2>
-          <div className="home-draft-grid">
-            {data.library.items
-              .filter((item) => !item.archived)
-              .slice()
-              .sort((a, b) => b.versions.at(-1)!.savedAt.localeCompare(a.versions.at(-1)!.savedAt))
-              .slice(0, 4)
-              .map((item) => {
-                const saved = item.versions.at(-1)!;
-                const snapshot = saved.snapshot;
-                const savedCreative = snapshot.kind === "generic" ? snapshot.brand.creative : null;
-                const savedScene =
-                  snapshot.kind === "health"
-                    ? snapshot.draft.options.find(
-                        (option) => option.id === snapshot.draft.selectedOption,
-                      )?.scenes[0]
-                    : null;
-                return (
-                  <button
-                    className="home-draft-card"
-                    key={item.id}
-                    onClick={() => onResumeSaved(item.id, saved.version)}
-                  >
-                    {snapshot.kind === "generic" && savedCreative ? (
-                      <img
-                        className="home-saved-thumbnail"
-                        alt={`Prévia guardada: ${savedCreative.copy.title}`}
-                        src={svgUrl(
-                          postSvg(
-                            firstPostBrief({
-                              name: snapshot.name,
-                              segment: snapshot.segment,
-                              answers: {
-                                offers: snapshot.offer,
-                                audience: snapshot.audience,
-                                goals: snapshot.goal,
-                              },
-                              brand: snapshot.brand,
-                            }),
-                            savedCreative.copy,
-                            snapshot.brand,
-                            {
-                              approach: savedCreative.approach,
-                              page: 1,
-                              total: savedCreative.slides.length + 1,
-                            },
-                          ),
-                        )}
-                      />
-                    ) : (
-                      <div className="home-draft-cover">
-                        <span>ROTEIRO FICTÍCIO</span>
-                        <strong>{savedScene?.heading || "Roteiro guardado"}</strong>
-                        <p>{savedScene?.script}</p>
-                      </div>
-                    )}
-                    <strong>{item.title}</strong>
-                    <span>
-                      {item.kind === "health"
-                        ? "Roteiro fictício"
-                        : savedCreative?.slides.length
-                          ? "Carrossel"
-                          : "Imagem"}
-                    </span>
-                    <small>
-                      {snapshot.kind === "health"
-                        ? "Sem revisão profissional"
-                        : snapshot.approved
-                          ? "Aprovação criativa registrada"
-                          : "Rascunho"}
-                    </small>
-                    <small>{new Date(saved.savedAt).toLocaleString("pt-BR")}</small>
-                    <span>{`Retomar versão ${saved.version}`}</span>
-                  </button>
-                );
-              })}
-          </div>
-        </section>
-      )}
-      <section className="home-objective" aria-label="Seu objetivo">
-        <div>
-          <small>OBJETIVO DA MARCA</small>
-          <strong>{data.answers.goals || "Defina sua prioridade"}</strong>
-          <span>
-            {measurement?.label || "Indicador a definir"} · {channel?.label || "Canal a definir"}
-          </span>
-        </div>
-        <button className="quick-text-button" onClick={onEditBrief}>
-          <Pencil size={14} /> Editar
-        </button>
-      </section>
-      <section aria-labelledby="command-priorities">
-        <div className="command-section-title">
-          <h2 id="command-priorities">Prioridades</h2>
-          <span>Com base na sua configuração</span>
-        </div>
-        <div className="command-priorities">
-          {priorities.map((task, index) => (
-            <article
-              key={task.id}
-              className={index === 0 ? "command-priority is-primary" : "command-priority"}
-            >
-              <div className="command-priority-icon">
-                {task.section === "cerebro" ? (
-                  <Brain size={22} />
-                ) : task.section === "redes" ? (
-                  <Globe2 size={22} />
-                ) : task.section === "marca" ? (
-                  <Palette size={22} />
-                ) : (
-                  <FileText size={22} />
-                )}
-                {index === 0 && <span>Comece por aqui</span>}
-              </div>
-              <h3>{task.title}</h3>
-              <p>{task.description}</p>
-              <button
-                className={index === 0 ? "quick-primary" : "quick-text-button"}
-                onClick={() =>
-                  task.section === "cerebro" ? onEditBrief() : onSection(task.section)
-                }
-              >
-                {task.label}
-                <ArrowRight size={16} />
-              </button>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section aria-labelledby="command-results">
-        <div className="command-section-title">
-          <h2 id="command-results">Resultados</h2>
-          <button className="quick-text-button" onClick={() => onSection("metricas")}>
-            Ver resultados <ArrowRight size={15} />
-          </button>
-        </div>
-        {metrics.length ? (
-          <div className="command-metrics">
-            {metrics.map((metric) => (
-              <article key={metric.provider + metric.key}>
-                <span>{metric.label}</span>
-                <strong>{metric.value.toLocaleString("pt-BR")}</strong>
-                <small>
-                  {metric.provider} · Referente a{" "}
-                  {new Date(metric.period + "T00:00:00Z").toLocaleDateString("pt-BR", {
-                    timeZone: "UTC",
-                  })}
-                </small>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="command-metrics-empty">
-            <Globe2 size={25} strokeWidth={1.5} />
-            <div>
-              <h3>
-                {metricsState === "loading"
-                  ? "Consultando seus dados…"
-                  : metricsState === "error"
-                    ? "Dados indisponíveis no momento"
-                    : "Seus resultados começam nos seus canais"}
-              </h3>
-              <p>
-                {metricsState === "error"
-                  ? "Abra Resultados para tentar novamente. Nenhum valor estimado está sendo exibido."
-                  : "A conexão automática ainda não está disponível. Prepare os canais que você quer acompanhar."}
-              </p>
-            </div>
-            <button
-              className="quick-secondary"
-              onClick={() => onSection(metricsState === "error" ? "metricas" : "redes")}
-            >
-              {metricsState === "error" ? "Verificar dados" : "Ver meus canais"}
-              <ArrowRight size={15} />
-            </button>
-          </div>
-        )}
-      </section>
-      {(coverage.answered > 0 || creative) && (
-        <section aria-labelledby="command-current">
-          <div className="command-section-title">
-            <h2 id="command-current">Em andamento</h2>
-          </div>
-          <div className="command-current">
-            {coverage.answered > 0 && (
-              <button onClick={onEditBrief}>
-                <span className="command-current-icon">
-                  <Brain size={20} />
-                </span>
-                <span>
-                  <strong>Diagnóstico da marca</strong>
-                  <small>
-                    {diagnostic.complete
-                      ? "Essencial concluído"
-                      : diagnostic.completed + " de 4 decisões essenciais"}{" "}
-                    · {coverage.answered} respostas registradas
-                  </small>
-                </span>
-                <ArrowRight size={18} />
-              </button>
-            )}
-            {creative && (
-              <button onClick={() => onSection("conteudo")}>
-                <span className="command-current-icon">
-                  <FileText size={20} />
-                </span>
-                <span>
-                  <strong>{creative.copy.title || "Sua peça de conteúdo"}</strong>
-                  <small>
-                    {status.approved
-                      ? "Aprovada · disponível para baixar"
-                      : status.stale
-                        ? "Contexto atualizado · revisar peça"
-                        : "Rascunho em edição"}
-                  </small>
-                </span>
-                <ArrowRight size={18} />
-              </button>
-            )}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
@@ -522,6 +232,7 @@ export function BrandBrain({
     "confirmed",
   );
   const [chapter, setChapter] = useState<number | null>(null);
+  const [chapterError, setChapterError] = useState("");
   const [hypothesisDraft, setHypothesisDraft] = useState<string | null>(null);
   const [hypothesisId, setHypothesisId] = useState<string | null>(null);
   const [hypothesisSource, setHypothesisSource] = useState<"user" | "suggestion">("user");
@@ -545,6 +256,11 @@ export function BrandBrain({
     ["Objetivo", data.answers.goals],
     ["Oferta", data.answers.offers],
     ["Público", data.answers.audience],
+    ["Faixa etária", data.answers.age],
+    ["Localização do público", data.answers.location],
+    ["Perfil socioeconômico", data.answers.income],
+    ["Interesses e necessidades", data.answers.interests],
+    ["Dúvidas e objeções", data.answers.objections],
     ["Detalhe concreto", data.brand.detail],
   ];
   return (
@@ -569,8 +285,7 @@ export function BrandBrain({
           [
             ["confirmed", "Confirmado"],
             ["services", "Serviços e ofertas"],
-            ["found", "Encontrado"],
-            ["hypotheses", "Hipóteses"],
+            ["found", "Referências do site"],
             ["gaps", "Lacunas"],
           ] as const
         ).map(([id, label]) => (
@@ -829,15 +544,15 @@ export function BrandBrain({
         <div className="workspace-card-top">
           <div>
             <p className="workspace-eyebrow">DIAGNÓSTICO PROGRESSIVO</p>
-            <h2>Diagnóstico da marca</h2>
+            <h2>Complete os capítulos do Cérebro</h2>
           </div>
           <span className="workspace-tag">
             {coverage.answered}/{coverage.total} respostas
           </span>
         </div>
         <p className="workspace-note">
-          Complete o que for útil agora. As respostas aprofundam seu contexto; a quantidade não mede
-          a qualidade da marca.
+          Revise cada capítulo. Os campos opcionais, como a história da marca, não impedem a
+          conclusão.
         </p>
         {chapter === null ? (
           <div className="workspace-chapter-grid">
@@ -874,8 +589,37 @@ export function BrandBrain({
                 />
               ))}
             </div>
-            <button className="quick-secondary" onClick={() => setChapter(null)}>
-              Concluir por agora <Check size={15} />
+            {chapterError && <p role="alert">{chapterError}</p>}
+            <div className="studio-next">
+              <button
+                className="quick-primary"
+                onClick={() => {
+                  if (
+                    CHAPTERS[chapter]!.questions.some(
+                      (question) => question.required && !hasAnswer(data.answers[question.key]),
+                    )
+                  ) {
+                    setChapterError("Preencha as respostas obrigatórias antes de avançar.");
+                    return;
+                  }
+                  setChapterError("");
+                  setChapter(chapter < CHAPTERS.length - 1 ? chapter + 1 : null);
+                }}
+              >
+                {chapter < CHAPTERS.length - 1
+                  ? "Próximo capítulo"
+                  : "Concluir revisão dos capítulos"}{" "}
+                <ArrowRight size={18} />
+              </button>
+            </div>
+            <button
+              className="quick-text-button"
+              onClick={() => {
+                setChapterError("");
+                setChapter(null);
+              }}
+            >
+              Ver todos os capítulos
             </button>
           </div>
         )}
@@ -913,6 +657,11 @@ export function BrandBrain({
           revisão.
         </p>
       </section>
+      <div className="studio-next">
+        <button className="quick-primary" onClick={onEditBrief}>
+          Continuar configuração do Cérebro <ArrowRight size={18} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -923,15 +672,28 @@ export function DeliveryJourney({
   onCalendar,
   onDiagnose,
   identity,
+  accountPlan = [],
 }: BaseProps & {
   identity?: { logo: boolean; tone: boolean };
   onCalendar?: () => void;
   onDiagnose?: () => void;
+  accountPlan?: { status: string; scheduled_for: string | null }[];
 }) {
   const status = journeyProgress(data);
   const [selected, setSelected] = useState(-1);
   const trailId = useId();
   const essential = essentialDiagnostic(data);
+  const planned = data.library.items.filter((item) => item.plan && !item.archived);
+  const hasPlan = planned.length > 0 || accountPlan.length > 0;
+  const reviewedPlan =
+    hasPlan &&
+    planned.every((item) => {
+      const snapshot = item.versions.find(
+        (version) => version.version === item.plan?.version,
+      )?.snapshot;
+      return snapshot?.kind === "generic" && snapshot.approved;
+    }) &&
+    accountPlan.every((item) => item.status === "approved");
   const phases = [
     {
       title: "Objetivo e diagnóstico",
@@ -951,28 +713,6 @@ export function DeliveryJourney({
           why: `${essential.completed} de 4 decisões: objetivo, oferta e público, obstáculo e indicador.`,
           done: essential.complete,
           section: "cerebro",
-        },
-      ],
-    },
-    {
-      title: "Canais e presença digital",
-      detail: "Use o diagnóstico para priorizar presença e preparar as conexões.",
-      tasks: [
-        {
-          title: data.strategy.channel ? "Canal inicial confirmado" : "Revisar canais recomendados",
-          why:
-            CHANNEL_OPTIONS.find((option) => option.value === data.strategy.channel)?.label ||
-            (essential.complete
-              ? "Confirme uma hipótese baseada no público e no objetivo da marca."
-              : "Disponível depois do diagnóstico da marca."),
-          done: !!data.strategy.channel,
-          section: "redes",
-        },
-        {
-          title: "Preparar a conexão da conta",
-          why: "Integração automática ainda indisponível. Um link não é uma conexão autorizada.",
-          done: false,
-          section: "redes",
         },
       ],
     },
@@ -999,9 +739,43 @@ export function DeliveryJourney({
       ],
     },
     {
+      title: "Canais e presença digital",
+      detail: "Use o diagnóstico para priorizar presença e preparar as conexões.",
+      tasks: [
+        {
+          title: data.strategy.channel ? "Canal inicial confirmado" : "Revisar canais recomendados",
+          why:
+            CHANNEL_OPTIONS.find((option) => option.value === data.strategy.channel)?.label ||
+            (essential.complete
+              ? "Confirme uma hipótese baseada no público e no objetivo da marca."
+              : "Disponível depois do diagnóstico da marca."),
+          done: !!data.strategy.channel,
+          section: "redes",
+        },
+        {
+          title: "Preparar a conexão da conta",
+          why: "Integração automática ainda indisponível. Um link não é uma conexão autorizada.",
+          done: false,
+          section: "redes",
+        },
+      ],
+    },
+    {
       title: "Conteúdo e execução",
       detail: "Da recomendação a uma peça que você pode usar.",
       tasks: [
+        {
+          title: "Gerar o cronograma mensal",
+          why: "Organize temas e datas antes de produzir as peças.",
+          done: hasPlan,
+          section: "conteudo",
+        },
+        {
+          title: "Revisar o cronograma",
+          why: "Confira cada tema, público, canal e data antes de aprovar o conteúdo.",
+          done: reviewedPlan,
+          section: "conteudo",
+        },
         {
           title: "Escolher uma abordagem",
           why: "Explicar, gerar confiança ou convidar para agir.",
@@ -1022,16 +796,12 @@ export function DeliveryJourney({
           section: "conteudo",
           reward: "+30 XP",
         },
-        ...(onCalendar
-          ? [
-              {
-                title: "Explorar o planejamento",
-                why: "Seu calendário existente continua disponível em Conteúdo.",
-                done: false,
-                section: "calendar",
-              },
-            ]
-          : []),
+        {
+          title: "Planejar a data de publicação",
+          why: "Arraste a peça para a data pretendida. Planejamento não é publicação automática.",
+          done: planned.length > 0 || accountPlan.some((item) => !!item.scheduled_for),
+          section: onCalendar ? "calendar" : "conteudo",
+        },
       ],
     },
     {
@@ -1055,11 +825,11 @@ export function DeliveryJourney({
       ],
     },
   ];
-  const phaseIcons = [Brain, Globe2, Palette, FileText, Lightbulb];
+  const phaseIcons = [Brain, Palette, Globe2, FileText, Lightbulb];
   const reasons = [
     "Uma oferta e um público bem definidos ajudam a criar conteúdo relevante, sem inventar informações sobre sua marca.",
-    "Priorizar um canal concentra seu esforço onde seu público pode encontrar você. Um link informado ainda não conecta a conta.",
     "Cores, estilo e materiais consistentes ajudam as pessoas a reconhecer sua marca em cada peça.",
+    "Priorizar um canal concentra seu esforço onde seu público pode encontrar você. Um link informado ainda não conecta a conta.",
     "Revisar a mensagem e o visual evita levar informações incorretas para o público. Baixar uma peça não a publica.",
     "Comparar entregas com dados observados ajuda a decidir o que manter e o que ajustar, sem confundir hipóteses com resultados.",
   ];
@@ -1170,6 +940,41 @@ export function DeliveryJourney({
           );
         })}
       </ol>
+      <section className="workspace-card" aria-label="Missões da sua estratégia">
+        <h2>Missões da sua estratégia</h2>
+        <p>Siga esta ordem. As etapas são concluídas a partir do que foi salvo e confirmado.</p>
+        <ol className="workspace-task-list">
+          {phases
+            .slice(0, 4)
+            .flatMap((phase) => phase.tasks)
+            .map((task) => (
+              <li key={task.title}>
+                <button
+                  className="journey-action"
+                  data-complete={task.done}
+                  onClick={() =>
+                    task.section === "cerebro" && onDiagnose
+                      ? onDiagnose()
+                      : task.section === "calendar"
+                        ? onCalendar?.()
+                        : onSection(task.section as WorkspaceSection)
+                  }
+                >
+                  {task.done ? (
+                    <Check size={18} aria-hidden="true" />
+                  ) : (
+                    <Circle size={18} aria-hidden="true" />
+                  )}
+                  <span>
+                    <strong>{task.title}</strong>
+                    <small>{task.done ? "Concluída" : task.why}</small>
+                  </span>
+                  <ArrowRight size={16} />
+                </button>
+              </li>
+            ))}
+        </ol>
+      </section>
       <p className="workspace-note">
         O progresso considera as etapas concluídas e a versão atual da peça. Aprovação e download
         precisam de nova revisão após alterações; baixar não significa publicar.
@@ -1189,6 +994,7 @@ export function LocalIdentity({
 }) {
   const [notice, setNotice] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [completion, setCompletion] = useState<DemoData["brand"] | null>(null);
   const active = useRef(true);
   useEffect(() => {
     active.current = true;
@@ -1203,6 +1009,33 @@ export function LocalIdentity({
     missing.push(
       "Adicione uma foto própria para a abordagem Gerar confiança, ou escolha um formato sem foto.",
     );
+  useBlocker({
+    enableBeforeUnload: false,
+    shouldBlockFn: ({ next }) => {
+      const search = next.search as Record<string, unknown>;
+      const overview =
+        next.pathname === "/painel" ||
+        next.pathname === "/trilha" ||
+        (next.pathname === "/demo" &&
+          !search["editar"] &&
+          (search["aba"] === "painel" || search["aba"] === "trilha"));
+      if (!overview || (!uploading && identityReady(data.brand) && !missing.length)) return false;
+      setNotice("Conclua a identidade antes de voltar. Seus ajustes permanecem salvos.");
+      return true;
+    },
+  });
+  useEffect(() => {
+    if (
+      completion &&
+      data.brand === completion &&
+      identityReady(data.brand) &&
+      !missing.length &&
+      !uploading
+    ) {
+      setCompletion(null);
+      onContinue();
+    }
+  }, [completion, data.brand, missing.length, uploading, onContinue]);
   async function upload(file: File | undefined, kind: "logo" | "photo") {
     if (!file) return;
     setUploading(true);
@@ -1252,6 +1085,12 @@ export function LocalIdentity({
           </p>
         </section>
         <div className="identity-controls">
+          <BrandPaletteVariations
+            data={data}
+            onAccent={(accent) =>
+              onData((current) => ({ ...current, brand: updateBrand(current.brand, { accent }) }))
+            }
+          />
           <VisualStylePicker
             selected={selected}
             recommended={recommendedVisualStyle(data)}
@@ -1365,12 +1204,16 @@ export function LocalIdentity({
               disabled={uploading || missing.length > 0}
               onClick={() => {
                 if (uploading || missing.length) return;
-                onData((current) => {
-                  const brand = updateBrand(current.brand, { visualStyle: selected });
-                  if (identityIssues(brand).length) return current;
-                  return { ...current, brand: { ...brand, identityConfirmed: true } };
-                });
-                onContinue();
+                const brand = {
+                  ...updateBrand(data.brand, { visualStyle: selected }),
+                  identityConfirmed: true,
+                };
+                onData((current) =>
+                  current.brand === data.brand && !identityIssues(brand).length
+                    ? { ...current, brand }
+                    : current,
+                );
+                setCompletion(brand);
               }}
             >
               {uploading ? "Preparando imagem…" : "Salvar identidade e continuar"}
@@ -1380,7 +1223,6 @@ export function LocalIdentity({
           {notice && <p role="status">{notice}</p>}
         </div>
       </div>
-      <InspirationBoard data={data} onData={onData} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import * as calendar from "../src/lib/content-calendar.ts";
 import {
   calendarDays,
   localCalendarDate,
@@ -29,6 +30,20 @@ function fixture() {
   data.brand.creative = composeContent(data, "invite");
   return saveLibraryVersion(data, "generic");
 }
+test("calendar move validates the saved plan and preserves date-only legacy fields", () => {
+  let data = fixture();
+  const id = data.library.items[0]!.id;
+  data = planLibraryVersion(data, id, 1, "2026-10-15");
+  const before = JSON.stringify(data);
+  assert.deepEqual(calendar.calendarPlanMove(data.library.items, id, "2026-10-20"), {
+    date: "2026-10-20",
+    version: 1,
+  });
+  for (const date of ["2026-02-30", "bad", "", "2026-10-15"])
+    assert.equal(calendar.calendarPlanMove(data.library.items, id, date), null);
+  assert.equal(calendar.calendarPlanMove(data.library.items, "unknown", "2026-10-20"), null);
+  assert.equal(JSON.stringify(data), before);
+});
 test("calendar aligns Monday through Sunday across leap years and year boundaries", () => {
   const days = calendarDays("2028-02");
   assert.equal(days.length, 42);

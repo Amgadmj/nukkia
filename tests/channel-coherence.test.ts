@@ -139,7 +139,7 @@ function load(file: string, stubs: Record<string, unknown>) {
   return exports;
 }
 
-test("onboarding site input keeps both representations within the answer schema", () => {
+test("onboarding preserves the full reference URL and bounds the legacy answer", () => {
   let data = fixture();
   const component = load("../src/components/brand-onboarding.tsx", {
     react: {
@@ -171,15 +171,125 @@ test("onboarding site input keeps both representations within the answer schema"
   const input = nodes(tree).find(
     (node) => node.type === "input" && node.props.inputMode === "url",
   )!;
-  assert.equal(input.props.maxLength, 200);
+  assert.equal(input.props.maxLength, 2048);
   const website = "https://example.com/" + "a".repeat(240);
   (input.props.onChange as (event: unknown) => void)({ target: { value: website } });
   assert.equal(data.answers.website, website.slice(0, 200));
-  assert.equal(data.brand.referenceUrl, data.answers.website);
+  assert.equal(data.brand.referenceUrl, website);
   assert.equal(quick.demoSchema.safeParse(data).success, true);
   assert.deepEqual(data.brand.research.sources, []);
   assert.equal(data.answers.offers, fixture().answers.offers);
   assert.equal(data.brand.creative?.approved, null);
+});
+
+for (const phase of ["complete", "synthesizing"] as const) {
+  test(`returning to the same website preserves ${phase} research without starting again`, () => {
+    let data = fixture();
+    data.brand.siteAuthorized = true;
+    data.brand.aiAuthorized = true;
+    data.brand.research.phase = phase;
+    data.brand.research.status = phase === "complete" ? "ready" : "loading";
+    data.brand.research.evidenceMarkdown = "# Pesquisa que deve permanecer";
+    let reads = 0;
+    const steps: number[] = [];
+    const component = load("../src/components/brand-onboarding.tsx", {
+      react: {
+        useState: (value: unknown) => [value, () => {}],
+        useRef: () => ({ current: null }),
+        useEffect() {},
+        useLayoutEffect() {},
+      },
+      "lucide-react": {},
+      "./quick-start-flow": {},
+      "./brand-direction": {},
+      "./brand-sources": {},
+      "./research-suggestions": {},
+      "@/lib/brand-research": research,
+      "@/lib/brand-sources": sources,
+      "@/lib/quick-start": quick,
+      "@/lib/brand-preview": preview,
+      "@/lib/onboarding": onboarding,
+    }).BrandOnboarding as (props: Record<string, unknown>) => Element;
+    const render = () =>
+      nodes(
+        component({
+          step: 0,
+          data,
+          onData: (update: (value: quick.DemoData) => quick.DemoData) => {
+            data = update(data);
+          },
+          onStep: (step: number) => steps.push(step),
+          onResearch: () => {
+            reads++;
+          },
+        }),
+      );
+    const original = JSON.stringify(data);
+    const submit = () =>
+      (render().find((node) => node.type === "form")!.props.onSubmit as (event: unknown) => void)({
+        preventDefault() {},
+      });
+    submit();
+    assert.equal(reads, 0, "Back → Continue is not a new collection request");
+    assert.deepEqual(steps, [1]);
+    assert.equal(JSON.stringify(data), original, "sources, markdown and human edits survive");
+    const input = render().find((node) => node.type === "input" && node.props.inputMode === "url")!;
+    (input.props.onChange as (event: unknown) => void)({
+      target: { value: "https://new.example/" },
+    });
+    assert.equal(data.brand.research.sources.length, 0);
+    assert.equal(data.brand.research.evidenceMarkdown, undefined);
+    data.brand.siteAuthorized = true;
+    data.brand.aiAuthorized = true;
+    submit();
+    assert.equal(reads, 1, "a changed reference needs a new collection");
+  });
+}
+
+test("onboarding contact channel is separate from factual answers and preserves priority order", () => {
+  let data = fixture();
+  data.brand.contentIntents = ["trust", "explain"];
+  data.brand.questionAnswer = "Resposta factual anterior preservada.";
+  const component = load("../src/components/brand-onboarding.tsx", {
+    react: {
+      useState: (value: unknown) => [value, () => {}],
+      useRef: () => ({ current: null }),
+      useEffect() {},
+      useLayoutEffect() {},
+    },
+    "lucide-react": {},
+    "./quick-start-flow": {},
+    "./brand-direction": {},
+    "./brand-sources": {},
+    "./research-suggestions": {},
+    "@/lib/brand-research": research,
+    "@/lib/brand-sources": sources,
+    "@/lib/quick-start": quick,
+    "@/lib/brand-preview": preview,
+    "@/lib/onboarding": onboarding,
+  }).BrandOnboarding as (props: Record<string, unknown>) => Element;
+  const tree = nodes(
+    component({
+      step: 2,
+      data,
+      onData: (update: (value: quick.DemoData) => quick.DemoData) => {
+        data = update(data);
+      },
+      onStep() {},
+      onResearch() {},
+    }),
+  );
+  const channel = tree.find((node) => node.type === "select")!;
+  assert.ok(channel);
+  (channel.props.onChange as (event: unknown) => void)({ target: { value: "WhatsApp" } });
+  data = quick.demoSchema.parse(JSON.parse(JSON.stringify(data)));
+  assert.equal(data.answers.preferredChannel, "WhatsApp");
+  assert.equal(data.brand.questionAnswer, "Resposta factual anterior preservada.");
+  assert.deepEqual(preview.selectedContentIntents(data.brand), ["trust", "explain"]);
+  assert.match(
+    preview.firstPostBrief(data).constraints ?? "",
+    /1\. Fortalecer Marca; 2\. Explicar serviços/,
+  );
 });
 
 test("Channels reads workspace links including blanks and opens the new Brain or onboarding", () => {

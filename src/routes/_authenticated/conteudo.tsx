@@ -24,6 +24,7 @@ import { apiFetch } from "@/lib/api";
 import type { DemoData } from "@/lib/quick-start";
 import { planBlockers, shouldAutoBuildPlan, type MonthPlanBuildState } from "@/lib/month-plan";
 import { MonthPlanBuilder } from "@/components/month-plan-builder";
+import { ClinicMediaLibrary } from "@/components/clinic-media-library";
 import { useBrandKit, useCompany } from "@/lib/company";
 import type { CarouselSlide, Storyboard } from "@/lib/content-engine/types";
 
@@ -40,7 +41,7 @@ export const Route = createFileRoute("/_authenticated/conteudo")({
         "planejamento",
         "revisao",
       ])
-      .catch("saude"),
+      .catch("briefing"),
   }),
   head: () => ({
     meta: [
@@ -88,6 +89,7 @@ const FORMAT_LABEL: Record<string, string> = {
 
 function Conteudo() {
   const { data, setData } = useMarketingWorkspace();
+  const { data: company } = useCompany();
   const { aba } = Route.useSearch();
   const navigate = useNavigate();
   const setView = (
@@ -106,13 +108,12 @@ function Conteudo() {
       <div className="workspace-tabs" role="tablist" aria-label="Conteúdo">
         {(
           [
+            ["calendario", "Planejamento mensal"],
             ["briefing", "Briefing da peça"],
-            ["saude", "Estúdio de saúde"],
+            ["saude", "Roteiro de vídeo"],
             ["peca", "Minha peça"],
             ["biblioteca", "Biblioteca"],
             ["planejamento", "Planejar versões"],
-            ["calendario", "Plano da conta"],
-            ["revisao", "Prontidão e revisão"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -125,6 +126,24 @@ function Conteudo() {
           </button>
         ))}
       </div>
+      <details className="workspace-card">
+        <summary className="cursor-pointer font-semibold">
+          Seus materiais · enviar vídeos, fotos ou artes (opcional)
+        </summary>
+        <ClinicMediaLibrary companyId={company?.id} />
+      </details>
+      {(aba === "briefing" || aba === "abordagens") && (
+        <section className="workspace-card home-next-step">
+          <h2>Planeje o mês antes de produzir as peças</h2>
+          <p>
+            O briefing abaixo mostra como seu contexto vira conteúdo. Para organizar a sequência de
+            publicações, comece pelo cronograma mensal.
+          </p>
+          <button className="quick-primary" onClick={() => setView("calendario")}>
+            Montar meu cronograma mensal
+          </button>
+        </section>
+      )}
       {(aba === "peca" || aba === "saude") && (
         <SaveToLibrary
           data={data}

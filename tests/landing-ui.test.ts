@@ -83,18 +83,18 @@ test("landing introduces the health studio under Nukkia with one clear main head
   );
 });
 
-test("every landing CTA opens signup so the AI reading always runs signed in", () => {
+test("landing start and signup links enter onboarding while login still opens sign-in", () => {
   const cta = $("main a").first();
   assert.equal(cta.text().trim(), "Começar com a Nukkia");
   const destination = new URL(cta.attr("href")!, "https://nukkia.test");
-  assert.equal(destination.pathname, "/auth");
-  assert.equal(destination.searchParams.get("modo"), "cadastro");
-  assert.equal($("a[href^='/demo']").length, 0);
+  assert.equal(destination.pathname, "/demo");
+  assert.equal(destination.searchParams.get("passo"), "0");
   const signup = $("footer a").filter((_, el) => $(el).text().trim() === "Criar conta");
   const login = $("header a").filter((_, el) => $(el).text().trim() === "Entrar");
-  assert.equal(signup.attr("href"), "/auth?modo=cadastro");
+  assert.equal(new URL(signup.attr("href")!, "https://nukkia.test").pathname, "/demo");
   assert.equal(login.attr("href"), "/auth?modo=entrar");
-  assert.equal($("footer a[href='/auth?modo=cadastro']").length > 0, true);
+  assert.equal($("a[href='/auth?modo=cadastro']").length, 0);
+  assert.equal($("a[href^='/demo']").length, 5);
 });
 
 test("product preview visibly identifies fictional illustrative content and editorial review", () => {

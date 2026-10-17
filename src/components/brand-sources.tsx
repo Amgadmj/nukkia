@@ -33,6 +33,7 @@ export function BrandSources({
   research,
   showMaterial = false,
   showVerificationNote = true,
+  showResearchDocument = true,
   includeDiscovered = true,
   extraLinks = [],
   excludedKeys = [],
@@ -42,6 +43,7 @@ export function BrandSources({
   research: BrandResearch;
   showMaterial?: boolean;
   showVerificationNote?: boolean;
+  showResearchDocument?: boolean;
   includeDiscovered?: boolean;
   extraLinks?: string[];
   excludedKeys?: string[];
@@ -59,9 +61,9 @@ export function BrandSources({
   );
   if (!groups.length) return null;
   return (
-    <section className="brand-sources" aria-label="Referências da marca">
+    <section className="brand-sources" aria-label="Links da sua clínica:">
       <p className="brand-sources-heading">
-        Referências da marca <span>{groups.length}</span>
+        Links da sua clínica: <span>{groups.length}</span>
       </p>
       <ul className="brand-sources-list">
         {groups.map((group) => {
@@ -204,6 +206,18 @@ export function BrandSources({
           );
         })}
       </ul>
+      {showResearchDocument && research.evidenceMarkdown && (
+        <details className="brand-source-evidence">
+          <summary>Consultar documento de pesquisa</summary>
+          <a
+            download="perfil-clinica-evidencias.md"
+            href={`data:text/markdown;charset=utf-8,${encodeURIComponent(research.evidenceMarkdown)}`}
+          >
+            Baixar Markdown das evidências
+          </a>
+          <pre className="clinic-evidence-document">{research.evidenceMarkdown}</pre>
+        </details>
+      )}
       {!showMaterial && showVerificationNote && (
         <p className="brand-sources-note">Confira se estes endereços pertencem à sua marca.</p>
       )}

@@ -51,7 +51,7 @@ function SignupLink({
   className?: string;
 }) {
   return (
-    <Link to="/auth" search={{ modo: "cadastro" }} className={className}>
+    <Link to="/demo" search={{ passo: 0, aba: "painel" }} className={className}>
       {children}
       <ArrowUpRight size={18} aria-hidden="true" />
     </Link>
@@ -414,7 +414,7 @@ export function AtlanticLanding() {
         <NukkiaLogo />
         <p>Conteúdo para clínicas. Com contexto e revisão.</p>
         <div>
-          <Link to="/auth" search={{ modo: "cadastro" }}>
+          <Link to="/demo" search={{ passo: 0, aba: "painel" }}>
             Criar conta <ArrowRight size={14} />
           </Link>
           <Link to="/auth" search={{ modo: "entrar" }}>

@@ -22,7 +22,7 @@ export const Route = createFileRoute("/demo")({
     capitulo: z.coerce.number().int().min(0).max(4).optional().catch(undefined),
     vista: z
       .enum(["briefing", "peca", "abordagens", "saude", "biblioteca", "planejamento", "revisao"])
-      .catch("saude"),
+      .catch("briefing"),
     passo: z
       .number()
       .int()
@@ -167,7 +167,7 @@ function DemoPage() {
               search: {
                 passo: 6,
                 aba: section,
-                vista: section === "conteudo" ? "saude" : vista,
+                vista: section === "conteudo" ? "briefing" : vista,
                 ...(section === "marca" ? { retorno: aba } : {}),
               },
             })

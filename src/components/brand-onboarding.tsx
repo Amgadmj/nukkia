@@ -1,8 +1,10 @@
 import {
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
+  type KeyboardEvent,
   type Dispatch,
   type SetStateAction,
 } from "react";
@@ -11,18 +13,19 @@ import { OnboardingMark } from "./quick-start-flow";
 import { changeDemoContext, QUICK_GOALS, type DemoData } from "@/lib/quick-start";
 import {
   briefIssues,
-  CTA_OPTIONS,
   updateBrand,
   researchSchema,
   type BrandSuggestion,
 } from "@/lib/brand-preview";
-import { answersSchema, normalizeWebsite, normalizeInstagram } from "@/lib/onboarding";
+import { normalizeWebsite, normalizeInstagram, CHAPTERS } from "@/lib/onboarding";
 import {
   completeBrandOnboarding,
   recommendedVisualStyle,
   type VisualStyle,
 } from "@/lib/brand-preview";
 import { BrandDirection } from "./brand-direction";
+import { profileFingerprint, profileConfirmed } from "@/lib/brand-preview";
+import { CONTENT_INTENTS, selectedContentIntents, toggleContentIntent } from "@/lib/brand-preview";
 import { BrandSources } from "./brand-sources";
 import { ResearchSuggestions } from "./research-suggestions";
 import {
@@ -34,7 +37,7 @@ import {
 } from "@/lib/brand-research";
 import { groupBrandSources, sourceIdentity } from "@/lib/brand-sources";
 
-const websiteMaxLength = answersSchema.shape.website.removeDefault().maxLength!;
+const websiteMaxLength = 2048;
 const READING_LIMIT_MS = 45_000;
 const exampleTextNotice =
   "Encontramos textos de exemplo no site e os excluímos da leitura. Confirme as informações da marca antes de usar.";
@@ -45,12 +48,14 @@ export function CompactAnswer({
   onChange,
   maxLength = 300,
   placeholder = "",
+  onKeyDown,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   maxLength?: number;
   placeholder?: string;
+  onKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useLayoutEffect(() => {
@@ -75,13 +80,97 @@ export function CompactAnswer({
         maxLength={maxLength}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={onKeyDown}
       />
     </label>
   );
 }
 
+function areaList(value: string) {
+  return [
+    ...new Set(
+      value
+        .split(/[,;\n]/)
+        .map((area) => area.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function AreaChips({
+  value,
+  onChange,
+  onSuggestion,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSuggestion: () => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const [error, setError] = useState("");
+  const errorId = useId();
+  const areas = areaList(value);
+  const add = () => {
+    const next = areaList(draft);
+    const segment = [...new Set([...areas, ...next])].join(", ");
+    if (segment.length > 120) {
+      setError(
+        "As áreas de atuação devem somar até 120 caracteres. Reduza o texto ou remova uma área.",
+      );
+      return;
+    }
+    if (next.length) onChange(segment);
+    setError("");
+    setDraft("");
+  };
+  return (
+    <div className="segment-chip-input" aria-label="Áreas de atuação">
+      <div className="quick-input segment-chip-control">
+        <div className="segment-chips" aria-live="polite">
+          {areas.map((area) => (
+            <button
+              type="button"
+              className="segment-chip"
+              key={area}
+              onClick={() => onChange(areas.filter((item) => item !== area).join(", "))}
+              aria-label={`Remover ${area}`}
+            >
+              {area} <span aria-hidden="true">×</span>
+            </button>
+          ))}
+        </div>
+        <input
+          className="segment-chip-entry"
+          aria-label="Adicionar área de atuação"
+          aria-invalid={!!error}
+          aria-describedby={error ? errorId : undefined}
+          value={draft}
+          placeholder="Digite uma área e pressione Enter"
+          maxLength={120}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === ",") {
+              event.preventDefault();
+              add();
+            }
+            if (event.key === "Backspace" && !draft && areas.length)
+              onChange(areas.slice(0, -1).join(", "));
+            if (event.key === "Tab" && !draft && !areas.length) onSuggestion();
+          }}
+          onBlur={add}
+        />
+      </div>
+      {error && (
+        <p id={errorId} role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function BrandOnboarding({
-  step,
+  step: requestedStep,
   data,
   onData,
   onStep,
@@ -97,6 +186,7 @@ export function BrandOnboarding({
   onComplete?: (data: DemoData) => void;
   busy?: boolean;
 }) {
+  const step = requestedStep > 1 && !profileConfirmed(data) ? 1 : requestedStep;
   const [revealed, setRevealed] = useState(false);
   const [error, setError] = useState("");
   const [newLink, setNewLink] = useState("");
@@ -121,6 +211,7 @@ export function BrandOnboarding({
     window.scrollTo({ top: 0 });
   }, [step, revealed, data.brand.entrySource]);
   const brand = data.brand;
+  const contentIntents = selectedContentIntents(brand);
   const instagramStep = step === 0 && brand.entrySource === "instagram";
   const researchMessage = brand.research.message.replaceAll(exampleTextNotice, "").trim();
   const researching = brand.research.phase
@@ -168,7 +259,7 @@ export function BrandOnboarding({
   const referencesNeedConfirmation = !!references && brand.referencesConfirmed !== references;
   const patch = (value: Parameters<typeof updateBrand>[1]) =>
     onData((current) => ({ ...current, brand: updateBrand(current.brand, value) }));
-  const answer = (key: "audience" | "offers" | "goals", value: string) =>
+  const answer = (key: "audience" | "offers" | "goals" | "preferredChannel", value: string) =>
     onData((current) =>
       changeDemoContext(current, { answers: { ...current.answers, [key]: value } }),
     );
@@ -182,33 +273,71 @@ export function BrandOnboarding({
       },
     }));
   function applySuggestion(suggestion: BrandSuggestion) {
+    if (suggestion.field === "segment") {
+      onData((current) => {
+        const areas = areaList(current.segment);
+        const nextAreas = areas.includes(suggestion.value)
+          ? areas.filter((value) => value !== suggestion.value)
+          : [...areas, suggestion.value];
+        const segment = nextAreas.join(", ");
+        if (segment.length > 120) return current;
+        const next = changeDemoContext(current, { segment });
+        return {
+          ...next,
+          brand: {
+            ...next.brand,
+            confirmed: false,
+            editedFields: [...new Set([...next.brand.editedFields, "segment"])],
+          },
+        };
+      });
+      return;
+    }
     onData((current) => applyResearchSuggestion(current, suggestion));
   }
-  function suggestions(fields: BrandSuggestion["field"][]) {
+  function suggestions(fields: BrandSuggestion["field"][], asTopic = false) {
     const found = allowedSuggestions(data).filter((item) => fields.includes(item.field));
     if (!found.length) return null;
     const selectedValue =
       fields.length !== 1
         ? undefined
-        : fields[0] === "offers"
-          ? data.answers.offers
-          : fields[0] === "detail"
-            ? brand.detail
-            : fields[0] === "faq"
-              ? brand.customerQuestion
-              : undefined;
+        : fields[0] === "name"
+          ? data.name
+          : fields[0] === "segment"
+            ? data.segment
+            : fields[0] === "audience"
+              ? data.answers.audience
+              : fields[0] === "offers"
+                ? data.answers.offers
+                : fields[0] === "detail"
+                  ? brand.detail
+                  : fields[0] === "faq"
+                    ? brand.customerQuestion
+                    : undefined;
     return (
       <ResearchSuggestions
         compact
         selectedValue={selectedValue}
-        suggestions={found.slice(0, 3)}
-        onUse={applySuggestion}
+        selectedValues={fields.includes("segment") ? areaList(data.segment) : undefined}
+        suggestions={found.slice(0, fields.includes("segment") ? 6 : 3)}
+        onUse={(item) => applySuggestion(asTopic ? { ...item, field: "offers" } : item)}
         confirmedValue={
           fields.includes("offers") && !brand.offerReviewRequired ? data.answers.offers : undefined
         }
       />
     );
   }
+  const firstSuggestion = (field: BrandSuggestion["field"]) =>
+    allowedSuggestions(data).find((item) => item.field === field);
+  const acceptSuggestionOnTab = (
+    event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+    field: BrandSuggestion["field"],
+    value: string,
+  ) => {
+    if (event.key !== "Tab" || value.trim()) return;
+    const suggestion = firstSuggestion(field);
+    if (suggestion) applySuggestion(suggestion);
+  };
   function next() {
     if (step === 0) {
       if (instagramStep) {
@@ -247,12 +376,18 @@ export function BrandOnboarding({
         try {
           normalizeWebsite(brand.referenceUrl);
         } catch {
-          setError("Informe um site como suamarca.com.br ou escolha Não tenho site.");
+          setError("Informe um site como suaclinica.com.br ou escolha Não tenho site.");
           return;
         }
       }
       if (brand.referenceUrl.trim() && !brand.siteAuthorized) {
         setError("Confirme o site e a autorização de análise para continuar.");
+        return;
+      }
+      // Back/Continue is navigation, not permission to discard or restart a scan.
+      // Editing/removing the URL already invalidates research at the input boundary.
+      if (brand.research.status !== "idle" || brand.research.phase) {
+        onStep(1);
         return;
       }
       // A new reading may refill fields that were filled, then cleared, before.
@@ -264,6 +399,10 @@ export function BrandOnboarding({
       return;
     }
     if (step === 1) {
+      if (researching) {
+        setError("Aguarde o processamento do perfil antes de confirmar.");
+        return;
+      }
       if (pendingReference) {
         setError("Salve ou cancele a edição do link antes de continuar.");
         return;
@@ -280,12 +419,21 @@ export function BrandOnboarding({
         setError("Conte o nome, a área e quem você quer alcançar.");
         return;
       }
-      patch({ confirmed: true });
+      patch({ confirmed: true, profileConfirmation: profileFingerprint(data) });
       if (!data.answers.goals) answer("goals", "Atrair novos clientes");
       onStep(2);
       return;
     }
-    const issues = briefIssues(data);
+    if (!profileConfirmed(data)) {
+      setError("Confirme o nome, as áreas e o público da clínica antes de continuar.");
+      onStep(1);
+      return;
+    }
+    // Offer confirmation happens in the Brain/catalog, not in the intent picker.
+    // Content creation still enforces the complete factual brief there.
+    const issues = briefIssues(data).filter(
+      (issue) => issue !== "Escolha ou descreva a oferta que vamos apresentar.",
+    );
     if (references && brand.referencesConfirmed !== references) {
       onStep(1);
       return;
@@ -295,6 +443,10 @@ export function BrandOnboarding({
       return;
     }
     if (step === 2) {
+      if (!contentIntents.length) {
+        setError("Selecione pelo menos um tipo de conteúdo.");
+        return;
+      }
       onStep(3);
       return;
     }
@@ -326,7 +478,7 @@ export function BrandOnboarding({
           <div
             className="quick-segments"
             role="progressbar"
-            aria-label="Preparação da marca"
+            aria-label="Preparação da clínica"
             aria-valuemin={0}
             aria-valuemax={4}
             aria-valuenow={step + 1}
@@ -343,8 +495,8 @@ export function BrandOnboarding({
           {instagramStep
             ? "Qual é o Instagram da sua empresa?"
             : [
-                "Onde podemos conhecer sua marca?",
-                "Vamos dar contexto à sua marca.",
+                "Onde podemos conhecer sua clínica?",
+                "Vamos dar contexto à sua clínica.",
                 "O que vamos comunicar primeiro?",
                 "Sistema da marca",
               ][step]}
@@ -371,21 +523,26 @@ export function BrandOnboarding({
           {step === 0 && !instagramStep && (
             <>
               <label>
-                Site da sua marca
+                Site da sua clínica
                 <input
                   className="quick-input"
                   type="text"
                   inputMode="url"
                   autoCapitalize="none"
                   autoCorrect="off"
-                  placeholder="suamarca.com.br"
+                  placeholder="suaclinica.com.br"
                   maxLength={websiteMaxLength}
                   value={brand.referenceUrl}
                   onChange={(event) => {
-                    const website = event.target.value.slice(0, websiteMaxLength);
+                    let website = event.target.value.slice(0, websiteMaxLength);
+                    try {
+                      website = normalizeWebsite(website);
+                    } catch {
+                      /* Keep in-progress domain entry editable. */
+                    }
                     onData((current) => {
                       const next = changeDemoContext(current, {
-                        answers: { ...current.answers, website },
+                        answers: { ...current.answers, website: website.slice(0, 200) },
                       });
                       return {
                         ...next,
@@ -413,7 +570,7 @@ export function BrandOnboarding({
                       checked={brand.siteAuthorized}
                       onChange={(e) => patch({ siteAuthorized: e.target.checked })}
                     />
-                    <span>Este é o site da minha marca. Autorizo a análise.</span>
+                    <span>Este é o site da minha clínica. Autorizo a análise.</span>
                   </label>
                   <label className="research-check">
                     <input
@@ -562,11 +719,9 @@ export function BrandOnboarding({
                     </p>
                   )}
                   <small>
-                    {reading
-                      ? "Estamos preenchendo as perguntas com o que encontramos. Leva cerca de 30 segundos."
-                      : longWait
-                        ? "Está levando um pouco mais. Continue com seus dados; as sugestões chegarão aqui."
-                        : "Você pode preencher e continuar enquanto analisamos."}
+                    {longWait
+                      ? "Está levando um pouco mais. As evidências recebidas estão preservadas; aguarde a revisão do perfil."
+                      : "Ao concluir, mostraremos nome, áreas e público juntos para sua confirmação."}
                   </small>
                 </div>
               )}
@@ -582,6 +737,7 @@ export function BrandOnboarding({
               <BrandSources
                 research={brand.research}
                 showVerificationNote={false}
+                showResearchDocument={false}
                 extraLinks={brand.extraLinks}
                 excludedKeys={brand.excludedReferences}
                 editor={{
@@ -701,7 +857,7 @@ export function BrandOnboarding({
                       })
                     }
                   />
-                  <span>Conferi os links e confirmo que pertencem à minha marca.</span>
+                  <span>Conferi os links e confirmo que pertencem à minha clínica.</span>
                 </label>
               )}
               {brand.suggestedFields.length > 0 && (
@@ -713,74 +869,130 @@ export function BrandOnboarding({
                   · confira e edite os campos abaixo.
                 </p>
               )}
-              <div className="brand-field-pair">
-                <label>
-                  Nome da marca
-                  <input
-                    className="quick-input"
-                    maxLength={120}
-                    value={data.name}
-                    onChange={(event) => {
-                      onData((current) => changeDemoContext(current, { name: event.target.value }));
-                      markEdited("name");
+              {researching ? (
+                <p role="status">
+                  Processando nome, áreas de atuação e público da clínica… As sugestões aparecerão
+                  juntas para sua revisão.
+                </p>
+              ) : (
+                <>
+                  <p>
+                    Revise os três campos. Ao continuar, você confirma o perfil que será usado nas
+                    próximas etapas.
+                  </p>
+                  <div className="brand-field-pair">
+                    <div className="clinic-name-field">
+                      <label>
+                        Nome da clínica
+                        <input
+                          className="quick-input"
+                          maxLength={120}
+                          value={data.name}
+                          onChange={(event) => {
+                            onData((current) =>
+                              changeDemoContext(current, { name: event.target.value }),
+                            );
+                            markEdited("name");
+                          }}
+                          onKeyDown={(event) => acceptSuggestionOnTab(event, "name", data.name)}
+                        />
+                      </label>
+                      {suggestions(["name"])}
+                    </div>
+                    <div className="clinic-areas-field">
+                      <label>
+                        Áreas de atuação
+                        <AreaChips
+                          value={data.segment}
+                          onChange={(segment) => {
+                            onData((current) => changeDemoContext(current, { segment }));
+                            markEdited("segment");
+                          }}
+                          onSuggestion={() => {
+                            const suggestion = firstSuggestion("segment");
+                            if (suggestion) applySuggestion(suggestion);
+                          }}
+                        />
+                      </label>
+                      {suggestions(["segment"])}
+                    </div>
+                  </div>
+                  <CompactAnswer
+                    label="Quem você quer alcançar?"
+                    placeholder="Ex.: pessoas que buscam se movimentar com orientação"
+                    value={data.answers.audience}
+                    onChange={(value) => {
+                      answer("audience", value);
+                      markEdited("audience");
                     }}
+                    onKeyDown={(event) =>
+                      acceptSuggestionOnTab(event, "audience", data.answers.audience)
+                    }
                   />
-                </label>
-                <label>
-                  Área de atuação
-                  <input
-                    className="quick-input"
-                    maxLength={120}
-                    placeholder="Ex.: estúdio de pilates"
-                    value={data.segment}
-                    onChange={(event) => {
-                      onData((current) =>
-                        changeDemoContext(current, { segment: event.target.value }),
-                      );
-                      markEdited("segment");
-                    }}
-                  />
-                </label>
-              </div>
-              <CompactAnswer
-                label="Quem você quer alcançar?"
-                placeholder="Ex.: pessoas que buscam se movimentar com orientação"
-                value={data.answers.audience}
-                onChange={(value) => {
-                  answer("audience", value);
-                  markEdited("audience");
-                }}
-              />
+                  {suggestions(["audience"])}
+                </>
+              )}
             </>
           )}
           {step === 2 && (
             <>
-              <label>
-                Seu primeiro foco
-                <select
-                  className="quick-input"
-                  value={data.answers.goals}
-                  onChange={(event) => answer("goals", event.target.value)}
-                >
-                  {QUICK_GOALS.map((goal) => (
-                    <option key={goal.value} value={goal.value}>
-                      {goal.value}
-                    </option>
+              <fieldset className="content-intent-picker">
+                <legend>Que tipo de conteúdo você quer criar?</legend>
+                <p>Selecione suas prioridades. A ordem de seleção define o que vem primeiro.</p>
+                <div className="content-intent-grid">
+                  {CONTENT_INTENTS.map(({ value, label, description, icon }) => (
+                    <button
+                      type="button"
+                      aria-pressed={contentIntents.includes(value)}
+                      className="content-intent-card"
+                      data-intent={value}
+                      data-selected={contentIntents.includes(value)}
+                      key={value}
+                      onClick={() =>
+                        onData((current) => {
+                          const next = updateBrand(
+                            current.brand,
+                            toggleContentIntent(current.brand, value),
+                          );
+                          return {
+                            ...current,
+                            brand: next,
+                            answers: {
+                              ...current.answers,
+                              goals:
+                                !current.answers.goals ||
+                                QUICK_GOALS.some((goal) => goal.value === current.answers.goals)
+                                  ? {
+                                      service: "Lançar uma oferta",
+                                      explain: "Educar meus pacientes",
+                                      trust: "Fortalecer minha marca",
+                                      booking: "Receber mais agendamentos",
+                                    }[selectedContentIntents(next)[0] ?? "service"]
+                                  : current.answers.goals,
+                            },
+                          };
+                        })
+                      }
+                    >
+                      {contentIntents.includes(value) && (
+                        <span
+                          className="content-intent-priority"
+                          aria-label={`Prioridade ${contentIntents.indexOf(value) + 1}`}
+                        >
+                          {contentIntents.indexOf(value) + 1}
+                        </span>
+                      )}
+                      <span className="content-intent-icon" aria-hidden="true">
+                        {icon}
+                      </span>
+                      <strong>{label}</strong>
+                      <span>{description}</span>
+                    </button>
                   ))}
-                </select>
-              </label>
+                </div>
+              </fieldset>
               <CompactAnswer
-                label="Qual oferta vamos apresentar?"
-                placeholder="Ex.: aulas de pilates em pequenos grupos"
-                value={data.answers.offers}
-                onChange={(value) => {
-                  answer("offers", value);
-                  if (brand.selectedOfferKind) patch({ offerReviewRequired: true });
-                }}
-              />
-              {suggestions(["offers"])}
-              <CompactAnswer
-                label="Um detalhe verdadeiro que vale destacar (opcional)"
+                label="Um detalhe importante que vale destacar (opcional)"
                 maxLength={600}
                 placeholder="Ex.: turmas de até quatro pessoas, com acompanhamento próximo"
                 value={brand.detail}
@@ -800,8 +1012,8 @@ export function BrandOnboarding({
                   </span>
                 </label>
               )}
-              <fieldset className="brand-faq">
-                <legend>O que seus clientes perguntam antes de comprar? (opcional)</legend>
+              <section className="patient-questions" aria-label="Dúvidas dos pacientes">
+                <h2>O que seus pacientes costumam perguntar? (opcional)</h2>
                 <CompactAnswer
                   label="Uma dúvida que você costuma ouvir"
                   maxLength={240}
@@ -810,43 +1022,29 @@ export function BrandOnboarding({
                   placeholder="Ex.: preciso ter experiência para começar?"
                 />
                 {suggestions(["faq"])}
-                {brand.customerQuestion.trim() && (
-                  <CompactAnswer
-                    label="Como sua equipe responde?"
-                    maxLength={300}
-                    value={brand.questionAnswer}
-                    onChange={(questionAnswer) => patch({ questionAnswer })}
-                    placeholder="Use uma resposta real. Você pode completá-la depois."
-                  />
-                )}
-              </fieldset>
-              <label>
-                O que a pessoa deve fazer depois?
-                <select
-                  className="quick-input"
-                  value={brand.action}
-                  onChange={(event) => patch({ action: event.target.value as typeof brand.action })}
-                >
-                  {CTA_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {brand.action === "website" && (
                 <label>
-                  Site de destino
-                  <input
+                  Canal preferido de atendimento
+                  <select
                     className="quick-input"
-                    type="url"
-                    maxLength={200}
-                    placeholder="https://suamarca.com.br"
-                    value={brand.destination}
-                    onChange={(event) => patch({ destination: event.target.value })}
-                  />
+                    value={data.answers.preferredChannel}
+                    onChange={(event) => answer("preferredChannel", event.target.value)}
+                  >
+                    <option value="">Escolher um canal (opcional)</option>
+                    {[
+                      ...new Set([
+                        ...(CHAPTERS.flatMap((chapter) => chapter.questions).find(
+                          (question) => question.key === "preferredChannel",
+                        )?.options ?? []),
+                        ...(data.answers.preferredChannel ? [data.answers.preferredChannel] : []),
+                      ]),
+                    ].map((channel) => (
+                      <option key={channel} value={channel}>
+                        {channel}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-              )}
+              </section>
             </>
           )}
           {step === 3 && (
@@ -858,6 +1056,21 @@ export function BrandOnboarding({
                 patch({ visualStyle: style });
               }}
               onAccent={(accent) => patch({ accent })}
+              onIdentity={(identityEdits) => patch({ identityEdits })}
+              onLogo={(logo) =>
+                onData((current) =>
+                  current.brand.referenceUrl === brand.referenceUrl
+                    ? {
+                        ...current,
+                        brand: updateBrand(current.brand, {
+                          logo,
+                          assetSource: "",
+                          identityConfirmed: false,
+                        }),
+                      }
+                    : current,
+                )
+              }
               onCorrect={() => onStep(1)}
             />
           )}
@@ -870,7 +1083,10 @@ export function BrandOnboarding({
             className="quick-primary"
             type="submit"
             disabled={
-              busy || reading || (step === 1 && (pendingReference || referencesNeedConfirmation))
+              busy ||
+              reading ||
+              (step === 1 && (researching || pendingReference || referencesNeedConfirmation)) ||
+              (step === 2 && (!contentIntents.length || !profileConfirmed(data)))
             }
           >
             {busy
@@ -880,7 +1096,7 @@ export function BrandOnboarding({
                 : step === 0
                   ? "Continuar"
                   : step === 1
-                    ? "Confirmar minha marca"
+                    ? "Confirmar perfil da clínica"
                     : step === 2
                       ? "Ver sistema da marca"
                       : "Ir para meu painel"}

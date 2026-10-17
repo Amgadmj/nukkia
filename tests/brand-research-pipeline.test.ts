@@ -98,6 +98,28 @@ test("canceling during collection never starts synthesis", async () => {
   assert.equal(calls, 0);
 });
 
+test("a server deadline still publishes a complete partial result for owner review", async (t) => {
+  const deadline = new AbortController();
+  t.mock.method(AbortSignal, "timeout", () => deadline.signal);
+  let calls = 0;
+  const response = await handleBrandPreview(request({ aiAuthorized: false }), true, {
+    collect: async () => {
+      if (++calls === 2) deadline.abort(new DOMException("Reading budget reached", "TimeoutError"));
+      return researchSchema.parse({ status: "ready", sources: [source] });
+    },
+    synthesize: async () => [],
+  });
+  const events = (await response.text())
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line).research);
+  const final = events.at(-1);
+  assert.equal(final.phase, "complete");
+  assert.equal(final.sources[0].url, "https://marca.com");
+  assert.match(final.message, /parcial/i);
+  assert.match(final.evidenceMarkdown, /https:\/\/marca.com/);
+});
+
 // Production requests: a real host, a same-origin browser and a signed-in user.
 const prodRequest = (
   overrides: Record<string, unknown> = {},

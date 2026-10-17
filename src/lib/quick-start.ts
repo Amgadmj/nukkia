@@ -6,10 +6,31 @@ import { brandPreviewSchema, creativeStatus, researchSchema } from "./brand-prev
 import { healthStudioSchema } from "./health-studio.ts";
 
 export const QUICK_GOALS = [
-  { value: "Atrair novos clientes", detail: "Ser encontrado pelas pessoas certas." },
-  { value: "Receber mais agendamentos", detail: "Transformar interesse em conversas." },
-  { value: "Fortalecer minha marca", detail: "Ser lembrado e transmitir confiança." },
-  { value: "Lançar uma oferta", detail: "Apresentar algo novo ao mercado." },
+  {
+    value: "Atrair novos clientes",
+    label: "Ser conhecido por novos pacientes",
+    detail: "Apresente a clínica para quem ainda não conhece seu trabalho.",
+  },
+  {
+    value: "Receber mais agendamentos",
+    label: "Transformar interesse em agendamentos",
+    detail: "Ajude quem já tem interesse a entrar em contato.",
+  },
+  {
+    value: "Educar meus pacientes",
+    label: "Educar meus pacientes sobre condições e cuidados",
+    detail: "Crie explicações e vídeos sobre exames, condições e acompanhamento.",
+  },
+  {
+    value: "Fortalecer minha marca",
+    label: "Fortalecer a confiança na clínica",
+    detail: "Mostre sua equipe, experiência e forma de cuidar.",
+  },
+  {
+    value: "Lançar uma oferta",
+    label: "Apresentar um novo serviço",
+    detail: "Explique um atendimento ou novidade da clínica.",
+  },
 ] as const;
 
 export const QUICK_TEXT_SUGGESTIONS = {

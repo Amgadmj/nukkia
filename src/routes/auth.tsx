@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NukkiaLogo } from "@/components/nukkia-logo";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, supabaseConfigured } from "@/integrations/supabase/client";
 import { CONSENT_VERSION } from "@/lib/consent";
 
 const searchSchema = z.object({
@@ -57,7 +57,7 @@ function AuthPage() {
   useEffect(() => {
     // An explicit welcome replay keeps the login form visible even if the
     // shared account already has a session. Normal visits resume automatically.
-    if (inicio === "onboarding" || recoveryMode) return;
+    if (!supabaseConfigured || inicio === "onboarding" || recoveryMode) return;
     supabase.auth.getSession().then(({ data }) => {
       if (data.session && !submitting.current) void navigate({ to: "/boas-vindas" });
     });
@@ -76,6 +76,10 @@ function AuthPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!supabaseConfigured) {
+      toast.error("A autenticação não está configurada neste ambiente.");
+      return;
+    }
     const form = new FormData(event.currentTarget);
     submitting.current = true;
     setLoading(true);
@@ -156,6 +160,12 @@ function AuthPage() {
             )}
           </CardHeader>
           <CardContent className="space-y-5">
+            {!supabaseConfigured && (
+              <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground" role="status">
+                A autenticação não está configurada neste ambiente local. Configure o Supabase para
+                entrar ou criar uma conta.
+              </p>
+            )}
             {recoveryMode ? (
               <AuthRecovery key={modo} mode={modo} />
             ) : (
@@ -243,7 +253,7 @@ function AuthPage() {
                     <Button
                       type="submit"
                       className="h-12 w-full rounded-xl bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
-                      disabled={loading || (modo === "cadastro" && !consent)}
+                      disabled={loading || !supabaseConfigured || (modo === "cadastro" && !consent)}
                     >
                       {loading ? "Aguarde..." : modo === "cadastro" ? "Criar conta" : "Entrar"}
                     </Button>

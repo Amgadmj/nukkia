@@ -44,6 +44,75 @@
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+.segment-chip-input {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.brand-fields .segment-chip-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 60px;
+  cursor: text;
+}
+.segment-chip-control:focus-within {
+  outline: 2px solid #78c3c5;
+  outline-offset: 2px;
+}
+.segment-chip-entry {
+  flex: 1 1 160px;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  padding: 4px 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+.brand-fields .segment-chip-control .segment-chip-entry:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.clinic-name-field,
+.clinic-areas-field {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+.clinic-name-field > .research-suggestions-compact,
+.clinic-areas-field > .research-suggestions-compact {
+  margin-top: 0;
+}
+.segment-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.segment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 5px 8px;
+  border: 1px solid #385466;
+  border-radius: 999px;
+  background: #10171c;
+  color: #d8e6ee;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.segment-chip:hover {
+  border-color: #779bb1;
+}
+.segment-chip span {
+  color: #a6bdcc;
+  font-size: 14px;
+  line-height: 1;
+}
 .brand-fields .quick-primary {
   margin-top: 8px;
 }
@@ -235,6 +304,9 @@
   padding-bottom: 10px;
 }
 @media (max-width: 540px) {
+  .brand-field-pair {
+    grid-template-columns: 1fr;
+  }
   .research-suggestion > button {
     display: block;
   }
@@ -1204,6 +1276,15 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+.quick-mark .quick-mark-dark {
+  display: none;
+}
+.dark .quick-mark .quick-mark-light {
+  display: none;
+}
+.dark .quick-mark .quick-mark-dark {
+  display: block;
 }
 .quick-signup {
   width: min(100%, 470px);
@@ -2401,4 +2482,114 @@ textarea.quick-input.quick-autogrow {
   .brand-system-grid {
     grid-template-columns: 1fr;
   }
+}
+.content-intent-picker {
+  border: 0;
+  padding: 0;
+  margin: 0 0 1.5rem;
+}
+.content-intent-picker legend {
+  font-size: 1.15rem;
+  margin-bottom: 1rem;
+}
+.content-intent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.content-intent-card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  background: var(--card);
+}
+.content-intent-card[data-selected="true"] {
+  outline: 2px solid #79c6c9;
+  box-shadow:
+    0 0 0 1px #79c6c9,
+    0 0 24px #79c6c92b;
+  background: color-mix(in srgb, var(--card) 87%, #79c6c9);
+}
+.content-intent-card:focus-within {
+  outline: 2px solid #79c6c9;
+  outline-offset: 3px;
+}
+.content-intent-card span {
+  font-size: 0.95rem;
+  opacity: 0.8;
+}
+.content-intent-card {
+  text-align: center;
+  position: relative;
+  justify-items: center;
+  color: var(--foreground);
+  font: inherit;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+.content-intent-card .content-intent-icon {
+  justify-self: center;
+  font-size: 2.6rem;
+  line-height: 1.3;
+  opacity: 1;
+}
+.content-intent-card strong {
+  font-size: 1rem;
+}
+.content-intent-card .content-intent-priority {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--nukkia-action);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  opacity: 1;
+  color: var(--nukkia-text);
+  background: var(--nukkia-surface);
+}
+.content-intent-picker > p {
+  color: var(--muted-foreground);
+  margin-bottom: 1rem;
+}
+.patient-questions {
+  display: grid;
+  gap: 16px;
+}
+.content-intent-card input {
+  accent-color: #79c6c9;
+}
+.identity-color-candidate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.3rem;
+  padding: 0.4rem;
+  border: 1px solid;
+  border-radius: 8px;
+}
+.identity-color-candidate span {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+@media (max-width: 600px) {
+  .content-intent-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.clinic-evidence-document {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 24rem;
+  overflow-y: auto;
+  font-size: 0.85rem;
 }

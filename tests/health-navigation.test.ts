@@ -62,15 +62,15 @@ function render(search: string) {
   };
 }
 
-test("opening the demo Content destination and reloading enters Health directly", () => {
+test("opening Content and reloading enters the briefing before production", () => {
   for (let reload = 0; reload < 2; reload++) {
     const app = render("?passo=6&aba=conteudo");
-    assert.equal(app.query.vista, "saude");
-    assert.equal(app.tree.filter((node) => node.type === "health-studio").length, 1);
-    assert.equal(app.tree.filter((node) => node.type === "content-studio").length, 0);
+    assert.equal(app.query.vista, "briefing");
+    assert.equal(app.tree.filter((node) => node.type === "health-studio").length, 0);
+    assert.equal(app.tree.filter((node) => node.type === "content-studio").length, 1);
   }
 });
-test("explicit legacy content views remain accessible and invalid views fall back to Health", () => {
+test("explicit legacy content views remain accessible and invalid views fall back to briefing", () => {
   for (const view of ["peca", "abordagens"]) {
     const app = render(`?passo=6&aba=conteudo&vista=${view}`);
     assert.equal(app.query.vista, view);
@@ -78,7 +78,7 @@ test("explicit legacy content views remain accessible and invalid views fall bac
     assert.ok(studio);
     assert.equal(studio.props.view, view);
   }
-  assert.equal(render("?passo=6&aba=conteudo&vista=unknown").query.vista, "saude");
+  assert.equal(render("?passo=6&aba=conteudo&vista=unknown").query.vista, "briefing");
 });
 test("the operator's existing context URL still edits context without resetting its return path", () => {
   const query = Route.validateSearch.parse(

@@ -69,12 +69,13 @@ export function BrandBook({ input }: { input: BrandBookInput }) {
           <div>
             <h2 className="text-base font-semibold">BrandBook</h2>
             <CardDescription className="mt-1 max-w-lg leading-relaxed">
-              Sua marca em um só documento: negócio, público, identidade e história.
+              Negócio, identidade e história, com exemplos de aplicação e propostas de slogan
+              sinalizadas.
             </CardDescription>
           </div>
         </div>
         <span className="w-fit shrink-0 rounded-full border border-border px-2.5 py-1 text-[10px] text-muted-foreground">
-          Prévia dos dados salvos
+          Dados salvos · propostas sinalizadas
         </span>
       </CardHeader>
       <CardContent className="space-y-5">

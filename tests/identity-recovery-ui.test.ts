@@ -7,6 +7,7 @@ import ts from "typescript";
 import * as preview from "../src/lib/brand-preview.ts";
 import * as art from "../src/lib/post-art.ts";
 import * as story from "../src/lib/brand-story.ts";
+import * as palette from "../src/lib/identity-palette.ts";
 import { demoSchema } from "../src/lib/quick-start.ts";
 import * as workspaceLib from "../src/lib/marketing-workspace.ts";
 import * as quick from "../src/lib/quick-start.ts";
@@ -48,6 +49,7 @@ const react = {
 function load(file: string, overrides: Record<string, unknown>) {
   const modules: Record<string, unknown> = {
     react,
+    "@tanstack/react-router": { useBlocker() {} },
     "@/lib/service-brief": serviceBriefDomain,
     "react/jsx-runtime": {
       jsx: (type: unknown, props: object) => ({ type, props }),
@@ -184,6 +186,7 @@ for (const sync of ["loading", "conflict", "ready"] as const)
     const company = { id: "company-a", name: "Aurora", segment: "Pilates" };
     const modules: Record<string, unknown> = {
       "@tanstack/react-router": {
+        useBlocker() {},
         createFileRoute: () => (config: Record<string, unknown>) => ({
           ...config,
           useSearch: () => ({}),
@@ -215,6 +218,7 @@ for (const sync of ["loading", "conflict", "ready"] as const)
       "@/integrations/supabase/client": {},
       "@/lib/utils": {},
       "@/lib/brand-story": story,
+      "@/lib/identity-palette": palette,
       "@/lib/marketing-workspace": workspaceLib,
     };
     for (const item of ["button", "card", "input", "textarea", "label", "select"])
@@ -223,7 +227,7 @@ for (const sync of ["loading", "conflict", "ready"] as const)
     const route = loaded.Route as unknown as { component: () => Element };
     const tree = nodes(route.component());
     assert.equal(
-      tree.some((element) => element.type === "identity-settings"),
+      tree.some((element) => element.props.id === "identity-direction"),
       sync === "ready",
     );
   });
@@ -299,4 +303,107 @@ test("demo identity confirmation returns to the chosen content view", () => {
   const identity = tree.find((node) => node.type === "identity")!;
   (identity.props as unknown as { onContinue: () => void }).onContinue();
   assert.deepEqual(calls, ["view:abordagens"]);
+});
+
+function localIdentity(rejectWrite = false) {
+  let data = demoSchema.parse({ name: "Aurora", answers: {}, brand: { visualStyle: "essential" } });
+  let cursor = 0;
+  const cells: unknown[] = [];
+  const effects: (() => void)[] = [];
+  let blocker:
+    { enableBeforeUnload: boolean; shouldBlockFn: (args: unknown) => boolean } | undefined;
+  let continued = 0;
+  let blockedContinuation = false;
+  const component = load("components/marketing-views", {
+    react: {
+      useState(initial: unknown) {
+        const index = cursor++;
+        if (!(index in cells)) cells[index] = initial;
+        return [
+          cells[index],
+          (value: unknown) => {
+            cells[index] = value;
+          },
+        ];
+      },
+      useRef: (initial: unknown) => ({ current: initial }),
+      useEffect: (effect: () => void) => {
+        effects.push(effect);
+      },
+    },
+    "@tanstack/react-router": {
+      useBlocker: (options: typeof blocker) => {
+        blocker = options;
+      },
+    },
+    "@/lib/quick-start": quick,
+    "@/lib/onboarding": onboarding,
+    "@/lib/brand-research": research,
+    "@/lib/marketing-workspace": workspaceLib,
+    "./brand-onboarding": {},
+    "./brand-direction": {},
+    "./brand-sources": {},
+    "./research-suggestions": {},
+    "./channel-recommendations": {},
+  }).LocalIdentity;
+  const block = (pathname: string, search: Record<string, unknown> = {}) =>
+    blocker?.shouldBlockFn({ next: { pathname, search } }) ?? false;
+  return {
+    block,
+    blocker: () => blocker,
+    data: () => data,
+    continued: () => continued,
+    blockedContinuation: () => blockedContinuation,
+    render() {
+      cursor = 0;
+      const tree = nodes(
+        component({
+          data,
+          onData: (update: (current: typeof data) => typeof data) => {
+            if (!rejectWrite) data = update(data);
+          },
+          onContinue: () => {
+            blockedContinuation = block("/demo", { aba: "trilha" });
+            if (!blockedContinuation) continued++;
+          },
+        }),
+      );
+      effects.splice(0).forEach((effect) => effect());
+      return tree;
+    },
+  };
+}
+
+test("demo identity blocks overview exits until confirmation and still allows corrections and account exits", () => {
+  const ui = localIdentity();
+  ui.render();
+  assert.equal(ui.block("/demo", { aba: "painel" }), true);
+  assert.equal(ui.block("/demo", { aba: "trilha" }), true);
+  assert.equal(ui.blocker()!.enableBeforeUnload, false);
+  assert.ok(ui.render().some((item) => item.props.role === "status"));
+  for (const aba of ["cerebro", "conteudo", "marca"])
+    assert.equal(ui.block("/demo", { aba }), false);
+  for (const pathname of ["/conta", "/auth"]) assert.equal(ui.block(pathname), false);
+  const save = ui
+    .render()
+    .find((item) => item.type === "button" && text(item).includes("Salvar identidade"))!;
+  save.props.onClick!();
+  assert.equal(ui.continued(), 0, "wait for the accepted state to render");
+  ui.render();
+  assert.equal(ui.continued(), 1);
+  assert.equal(ui.blockedContinuation(), false);
+  assert.equal(ui.block("/demo", { aba: "painel" }), false);
+  ui.data().brand.preferredApproach = "trust";
+  ui.data().brand.photo = "";
+  ui.render();
+  assert.equal(ui.block("/demo", { aba: "trilha" }), true);
+});
+
+test("demo identity does not navigate when its confirmation update is rejected", () => {
+  const ui = localIdentity(true);
+  ui.render().find((item) => item.type === "button" && text(item).includes("Salvar identidade"))!
+    .props.onClick!();
+  ui.render();
+  assert.equal(ui.continued(), 0);
+  assert.equal(ui.data().brand.identityConfirmed, false);
 });

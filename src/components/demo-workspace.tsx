@@ -97,6 +97,7 @@ export function DemoWorkspace({
           onReturn={onEditorReturn ?? (() => onSection("painel"))}
           onChapter={onEditorChapter ?? (() => {})}
           onHealthStudio={() => onContentView("saude")}
+          onIdentity={() => onSection("marca")}
         />
       ) : (
         <>
@@ -155,7 +156,7 @@ export function DemoWorkspace({
                   aria-selected={contentView === "saude"}
                   onClick={() => onContentView("saude")}
                 >
-                  Estúdio de saúde
+                  Roteiro de vídeo
                 </button>
                 <button
                   role="tab"
@@ -179,14 +180,19 @@ export function DemoWorkspace({
                 >
                   Planejamento mensal
                 </button>
-                <button
-                  role="tab"
-                  aria-selected={contentView === "revisao"}
-                  onClick={() => onContentView("revisao")}
-                >
-                  Prontidão e revisão
-                </button>
               </div>
+              {(contentView === "briefing" || contentView === "abordagens") && (
+                <section className="workspace-card home-next-step">
+                  <h2>Planeje o mês antes de produzir as peças</h2>
+                  <p>
+                    Conheça o briefing e organize as datas pretendidas. Nenhuma publicação é enviada
+                    automaticamente.
+                  </p>
+                  <button className="quick-primary" onClick={() => onContentView("planejamento")}>
+                    Abrir planejamento mensal
+                  </button>
+                </section>
+              )}
               {(contentView === "peca" || contentView === "saude") && (
                 <SaveToLibrary
                   data={data}

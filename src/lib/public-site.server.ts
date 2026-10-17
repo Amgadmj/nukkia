@@ -4,6 +4,10 @@ import { isIP } from "node:net";
 import { load } from "cheerio";
 import { suggestionSchema, type BrandResearch } from "./brand-preview.ts";
 import { mergeDiscoveredLinks, sourceIdentity } from "./brand-sources.ts";
+import { organizationName, visualEvidence, evidenceMarkdown } from "./clinic-evidence.ts";
+import { parseWithScrapling, logoPalette, renderWithScrapling } from "./scrapling.server.ts";
+import { isTrackingParameter } from "./onboarding.ts";
+import { extractClinicContacts } from "./clinic-contacts.ts";
 
 export function publicWebsiteUrl(raw: string): URL {
   const url = new URL(raw);
@@ -111,6 +115,8 @@ export async function fetchPublicResource(
     originHost?: string;
     robots?: boolean;
     sitemap?: boolean;
+    stylesheet?: boolean;
+    script?: boolean;
     allowedPath?: (path: string) => boolean;
     signal: AbortSignal;
   },
@@ -178,13 +184,17 @@ export async function fetchPublicResource(
             });
             return;
           }
-          const expected = options.image
-            ? /^image\/(png|jpeg|webp)$/
-            : options.robots
-              ? /^text\//
-              : options.sitemap
-                ? /^(application\/(xml|[\w.-]+\+xml)|text\/(xml|plain))$/
-                : /^(text\/html|application\/xhtml\+xml)$/;
+          const expected = options.script
+            ? /^(?:text|application)\/(?:javascript|x-javascript|ecmascript)$/
+            : options.stylesheet
+              ? /^text\/css$/
+              : options.image
+                ? /^image\/(png|jpeg|webp)$/
+                : options.robots
+                  ? /^text\//
+                  : options.sitemap
+                    ? /^(application\/(xml|[\w.-]+\+xml)|text\/(xml|plain))$/
+                    : /^(text\/html|application\/xhtml\+xml)$/;
           if (
             status !== 200 ||
             !expected.test(mime) ||
@@ -279,8 +289,7 @@ export function canonicalCrawlUrl(raw: string, base: string): string | null {
     const url = publicWebsiteUrl(new URL(raw, origin).href);
     if (!sameSite(url.hostname, origin.hostname)) return null;
     for (const key of [...url.searchParams.keys()]) {
-      if (/^(utm_.+|[fg]clid|fbclid|dclid|msclkid|gbraid|wbraid|mc_cid|mc_eid)$/i.test(key))
-        url.searchParams.delete(key);
+      if (isTrackingParameter(key)) url.searchParams.delete(key);
     }
     if (url.search) return null;
     url.hostname = origin.hostname;
@@ -366,6 +375,7 @@ export function parseSitemap(xml: string, base: string): { urls: string[]; sitem
 }
 
 export function extractPage(html: string, url: string) {
+  const contacts = extractClinicContacts(html, url, new Date().toISOString());
   const $ = load(html);
   const noiseHeading =
     /^(?:testimonials?|depoimentos?(?: de clientes)?|reviews?|avaliacoes|comentarios?|comments?|(?:our |meet (?:our |the ))?team|nossa equipe|equipe|staff|cookies?|preferencias de cookies)$/;
@@ -465,7 +475,39 @@ export function extractPage(html: string, url: string) {
   });
   const clean = (s: string) => s.replace(/\s+/g, " ").trim();
   const title = clean($("title").first().text()).slice(0, 200);
-  const name = clean($("meta[property='og:site_name']").attr("content") ?? "").slice(0, 120);
+  let metadataName = "";
+  $("script[type='application/ld+json']").each((_, el) => {
+    try {
+      const data = JSON.parse($(el).text());
+      const nodes = Array.isArray(data) ? data : [data, ...(data?.["@graph"] ?? [])];
+      const org = nodes.find(
+        (node) =>
+          /Organization|Hospital|MedicalClinic|LocalBusiness|DiagnosticLab/.test(
+            String(node?.["@type"]),
+          ) && typeof node?.name === "string",
+      );
+      if (org) metadataName = organizationName(org.name);
+    } catch {
+      /* Optional structured data. */
+    }
+  });
+  const name =
+    metadataName ||
+    organizationName(clean($("meta[property='og:site_name']").attr("content") ?? "")) ||
+    organizationName(title);
+  const stylesheets = $("link[rel='stylesheet'][href]")
+    .toArray()
+    .map((el) => $(el).attr("href") ?? "")
+    .slice(0, 3);
+  const visual = visualEvidence(
+    $("style").text() +
+      "\n" +
+      $("[style]")
+        .toArray()
+        .map((el) => $(el).attr("style"))
+        .join("\n"),
+    url,
+  );
   const description = clean(
     $("meta[name='description']").attr("content") ??
       $("meta[property='og:description']").attr("content") ??
@@ -495,7 +537,9 @@ export function extractPage(html: string, url: string) {
     if (card.length) card.remove();
     else $(el).remove();
   });
-  const blocks = $("h1, h2, h3, p, li")
+  const blocks = $(
+    "h1, h2, h3, h4, h5, p, li, dt, dd, a[href*='especial'], a[href*='servi'], a[href*='tratamento'], a[href*='exame']",
+  )
     .toArray()
     .map((el) => clean($(el).text()))
     .filter(Boolean);
@@ -513,10 +557,15 @@ export function extractPage(html: string, url: string) {
     title,
     name,
     text,
+    contacts,
     links,
     logo,
     placeholderRemoved,
     discoveredLinks: mergeDiscoveredLinks(discovered),
+    visual,
+    stylesheets,
+    // Same noise filtering applies to both parsers, including personal sections.
+    cleanHtml: $.html(),
   };
 }
 
@@ -562,6 +611,57 @@ export function describeReadFailure(error: unknown): { code: string; message: st
   };
 }
 
+/** JS rendering never fetches directly: preload at most four validated same-site scripts. */
+export async function renderPublicPage(
+  html: string,
+  url: string,
+  robots: string,
+  signal: AbortSignal,
+) {
+  if (process.env["SCRAPLING_RENDER"] !== "1") return null;
+  const $ = load(html);
+  if ($("h1,h2,p,li").text().trim().length >= 400 || !$("script[src]").length) return null;
+  const resources: Record<string, { mime: string; body: string }> = {
+    [url]: { mime: "text/html", body: Buffer.from(html).toString("base64") },
+  };
+  const candidates = $("script[src],link[rel='modulepreload'][href]")
+    .toArray()
+    .map((el) => $(el).attr("src") || $(el).attr("href") || "");
+  const visited = new Set<string>();
+  let bytes = Buffer.byteLength(html);
+  while (candidates.length && visited.size < 4 && bytes < 2_500_000 && !signal.aborted) {
+    try {
+      const target = publicWebsiteUrl(new URL(candidates.shift()!, url).href);
+      if (
+        !sameSite(target.hostname, new URL(url).hostname) ||
+        !/\.m?js$/.test(target.pathname) ||
+        target.search ||
+        !robotsAllows(robots, target.pathname) ||
+        visited.has(target.href)
+      )
+        continue;
+      visited.add(target.href);
+      const response = await fetchPublicResource(target.href, {
+        script: true,
+        originHost: new URL(url).hostname,
+        allowedPath: (path) => robotsAllows(robots, path),
+        signal,
+      });
+      bytes += response.bytes.length;
+      if (bytes > 2_500_000) break;
+      resources[target.href] = { mime: response.mime, body: response.bytes.toString("base64") };
+      for (const match of response.bytes
+        .toString("utf8")
+        .matchAll(/(?:from\s*|import\s*\()?["'](\.\.?\/[^"'\s]+\.m?js)["']/g))
+        candidates.push(new URL(match[1]!, response.url).href);
+    } catch {
+      /* Missing optional script: retain static metadata. */
+    }
+  }
+  if (Object.keys(resources).length < 2) return null;
+  return renderWithScrapling(url, resources, signal);
+}
+
 export async function collectBrandSite(
   raw: string,
   options: CollectBrandSiteOptions = {},
@@ -597,6 +697,7 @@ export async function collectBrandSite(
     : {
         status: "loading",
         sources: [],
+        contacts: [],
         discoveredLinks: [],
         suggestions: [],
         profile: [],
@@ -605,6 +706,8 @@ export async function collectBrandSite(
         logoSource: "",
       };
   research.status = "loading";
+  research.contacts ??= [];
+  research.entryUrl = seed;
   const sourceUrls = new Set(
     research.sources.map((source) => canonicalCrawlUrl(source.url, seed) ?? source.url),
   );
@@ -697,7 +800,104 @@ export async function collectBrandSite(
           if (!canonical) return;
           visited.add(canonical);
           pages.delete(canonical);
-          const page = extractPage(response.bytes.toString("utf8"), response.url);
+          const originalHtml = response.bytes.toString("utf8");
+          const rendered = await renderPublicPage(
+            originalHtml,
+            response.url,
+            robots,
+            networkSignal,
+          );
+          const page = extractPage(rendered || originalHtml, response.url);
+          research.contacts = [...research.contacts, ...page.contacts]
+            .filter(
+              (contact, index, all) =>
+                all.findIndex(
+                  (item) =>
+                    item.kind === contact.kind &&
+                    item.normalizedValue === contact.normalizedValue &&
+                    item.sourceUrl === contact.sourceUrl,
+                ) === index,
+            )
+            .slice(0, 30);
+          const scraplingText = await parseWithScrapling(page.cleanHtml, networkSignal);
+          if (scraplingText && scraplingText.length >= 100) {
+            page.text = [
+              ...new Set([
+                page.name,
+                page.title,
+                ...page.text.split("\n").slice(0, 3),
+                scraplingText,
+              ]),
+            ]
+              .filter(Boolean)
+              .join("\n")
+              .slice(0, 10000);
+          }
+          if (target === seed) {
+            research.visualEvidence = { ...page.visual, logoUrl: page.logo };
+            for (const href of page.stylesheets) {
+              try {
+                const cssUrl = new URL(href, response.url);
+                if (
+                  !sameSite(cssUrl.hostname, url.hostname) ||
+                  !robotsAllows(robots, cssUrl.pathname)
+                )
+                  continue;
+                const css = await fetchPublicResource(cssUrl.href, {
+                  originHost: url.hostname,
+                  stylesheet: true,
+                  signal: networkSignal,
+                });
+                const observed = visualEvidence(css.bytes.toString("utf8"), css.url);
+                research.visualEvidence.colors = [
+                  ...research.visualEvidence.colors,
+                  ...observed.colors,
+                ]
+                  .filter(
+                    (item, index, all) => all.findIndex((x) => x.value === item.value) === index,
+                  )
+                  .slice(0, 8);
+                research.visualEvidence.fonts = [
+                  ...research.visualEvidence.fonts,
+                  ...observed.fonts,
+                ]
+                  .filter(
+                    (item, index, all) => all.findIndex((x) => x.value === item.value) === index,
+                  )
+                  .slice(0, 4);
+              } catch {
+                /* Optional identity evidence cannot block text. */
+              }
+            }
+            if (page.logo) {
+              try {
+                const logoUrl = new URL(page.logo);
+                if (
+                  sameSite(logoUrl.hostname, url.hostname) &&
+                  robotsAllows(robots, logoUrl.pathname)
+                ) {
+                  const logo = await fetchPublicResource(page.logo, {
+                    image: true,
+                    originHost: url.hostname,
+                    signal: networkSignal,
+                  });
+                  research.logo = `data:${logo.mime};base64,${logo.bytes.toString("base64")}`;
+                  research.logoSource = logo.url;
+                  const colors = await logoPalette(logo.bytes, networkSignal);
+                  research.visualEvidence.colors = [
+                    ...colors.map((value) => ({ value, sourceUrl: logo.url })),
+                    ...research.visualEvidence.colors,
+                  ]
+                    .filter(
+                      (item, index, all) => all.findIndex((x) => x.value === item.value) === index,
+                    )
+                    .slice(0, 8);
+                }
+              } catch {
+                /* SVG/remote logos remain source references, not inline assets. */
+              }
+            }
+          }
           for (const link of page.links) enqueue(link);
           placeholderRemoved ||= page.placeholderRemoved;
           const discovered = mergeDiscoveredLinks([
@@ -718,6 +918,12 @@ export async function collectBrandSite(
               title: page.title,
               text: page.text,
               fetchedAt,
+              organizationName: page.name,
+              parser: rendered
+                ? "scrapling-rendered"
+                : scraplingText && scraplingText.length >= 100
+                  ? "scrapling"
+                  : "cheerio",
             });
             if (target === seed && page.name && !options.previous) {
               research.suggestions.push(
@@ -799,6 +1005,7 @@ export async function collectBrandSite(
     finished.abort();
   }
   research.status = research.sources.length ? "ready" : "unavailable";
+  research.evidenceMarkdown = evidenceMarkdown(research);
   const messages = [research.message];
   if (placeholderRemoved)
     messages.push(
@@ -807,8 +1014,7 @@ export async function collectBrandSite(
   if (signal.aborted || failedPages)
     messages.push("A leitura ficou parcial; preservamos as fontes disponíveis até a interrupção.");
   research.message = [...new Set(messages.filter(Boolean))].join(" ").slice(0, 500);
-  // No image request competes with text collection. Existing, validated logo
-  // data from the previous research is preserved alongside its provenance.
+  // Logo evidence shares the same bounded gateway and retains provenance.
   publish();
   return research;
 }

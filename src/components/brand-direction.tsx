@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { identityPaletteOptions } from "@/lib/identity-palette";
 import type { DemoData } from "@/lib/quick-start";
 import {
   recommendedVisualStyle,
@@ -6,6 +7,47 @@ import {
   visualStyleTokens,
   type VisualStyle,
 } from "@/lib/brand-preview";
+
+export function BrandPaletteVariations({
+  data,
+  onAccent,
+}: {
+  data: DemoData;
+  onAccent?: ((color: string) => void) | undefined;
+}) {
+  const palettes = identityPaletteOptions({
+    accent: data.brand.accent,
+    confirmed: data.brand.identityConfirmed,
+    colors: data.brand.research.visualEvidence?.colors.map((color) => color.value),
+  });
+  return (
+    <section className="workspace-card" aria-label="Variações próximas da sua identidade">
+      <h3>Variações próximas da sua identidade</h3>
+      <p>
+        A referência atual e duas propostas locais de ajuste suave. As variações não são cores
+        extraídas do site.
+      </p>
+      <div className="direction-grid">
+        {palettes.map((palette) => (
+          <button
+            key={palette.nome}
+            type="button"
+            className="direction-card"
+            onClick={() => onAccent?.(palette.cores[0]!)}
+          >
+            <strong>{palette.nome}</strong>
+            <span className="brand-style-swatches">
+              {palette.cores.slice(0, 4).map((color) => (
+                <i key={color} style={{ background: color }} />
+              ))}
+            </span>
+            <small>{palette.justificativa}</small>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export function VisualStylePicker({
   selected,
@@ -72,14 +114,27 @@ export function BrandDirection({
   onSelect,
   onCorrect,
   onAccent,
+  onIdentity,
+  onLogo,
 }: {
   data: DemoData;
   selected: VisualStyle;
   onSelect: (style: VisualStyle) => void;
   onCorrect: () => void;
   onAccent?: (accent: string) => void;
+  onIdentity?: (edits: NonNullable<DemoData["brand"]["identityEdits"]>) => void;
+  onLogo?: (logo: string) => void;
 }) {
-  const tokens = visualStyleTokens(selected, data.brand.accent);
+  const tokens = visualStyleTokens(selected, data.brand.accent, data.brand.identityEdits);
+  const evidence = data.brand.research.visualEvidence;
+  const extracted = !!(
+    evidence?.colors.length ||
+    evidence?.fonts.length ||
+    data.brand.research.logo
+  );
+  tokens.background = data.brand.identityEdits?.background || tokens.background;
+  tokens.ink = data.brand.identityEdits?.ink || tokens.ink;
+  tokens.font = data.brand.identityEdits?.font || evidence?.fonts[0]?.value || tokens.font;
   return (
     <div className="brand-direction">
       <section className="brand-system" aria-label="Sistema da marca">
@@ -90,8 +145,9 @@ export function BrandDirection({
           </button>
         </div>
         <p>
-          Direção editável. As cores e fontes abaixo são propostas para suas peças, não uma
-          identidade extraída do site.
+          {extracted
+            ? "Identidade sugerida a partir do site. Revise as cores, a fonte e o logo encontrados."
+            : "Proposta de identidade. Não encontramos dados visuais suficientes no site; você pode editar os itens abaixo."}
         </p>
         <div className="brand-system-grid">
           <section aria-label="Paleta">
@@ -118,13 +174,72 @@ export function BrandDirection({
                 onChange={(event) => onAccent?.(event.target.value)}
               />
             </label>
+            {evidence?.colors.map((item) => (
+              <span key={item.value}>
+                <button
+                  type="button"
+                  className="identity-color-candidate"
+                  onClick={() => onAccent?.(item.value)}
+                  style={{ borderColor: item.value }}
+                >
+                  <span style={{ background: item.value }} />
+                  {item.value.toUpperCase()}
+                </button>
+                <a
+                  href={item.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Fonte da cor ${item.value}`}
+                >
+                  Fonte
+                </a>
+              </span>
+            ))}
+            {evidence?.colors[0] && (
+              <p>
+                <a href={evidence.colors[0].sourceUrl} target="_blank" rel="noreferrer">
+                  Origem das cores encontradas
+                </a>{" "}
+                · candidatas para sua revisão.
+              </p>
+            )}
+            {(["background", "ink"] as const).map((key) => (
+              <label className="brand-accent-input" key={key}>
+                {key === "background" ? "Cor de fundo" : "Cor do texto"}
+                <input
+                  type="color"
+                  value={tokens[key]}
+                  onChange={(event) =>
+                    onIdentity?.({ ...data.brand.identityEdits, [key]: event.target.value })
+                  }
+                />
+              </label>
+            ))}
           </section>
           <section aria-label="Tipografia">
             <h3>Tipografia</h3>
             <div className="brand-type-specimen" style={{ fontFamily: tokens.font }}>
               Aa Bb Cc
             </div>
-            <strong>{selected === "warm" ? "Georgia" : "Arial"}</strong>
+            <label>
+              Fonte
+              <input
+                className="quick-input"
+                maxLength={120}
+                value={tokens.font}
+                onChange={(event) =>
+                  onIdentity?.({ ...data.brand.identityEdits, font: event.target.value })
+                }
+              />
+            </label>
+            {evidence?.fonts[0] && (
+              <p>
+                <a href={evidence.fonts[0].sourceUrl} target="_blank" rel="noreferrer">
+                  Origem da fonte: CSS do site
+                </a>
+                . A visualização usa fontes disponíveis neste dispositivo.
+              </p>
+            )}
             <p>
               {selected === "warm"
                 ? "Serifa para títulos e textos de tom próximo."
@@ -140,8 +255,44 @@ export function BrandDirection({
                 alt={`Logo de ${data.name}`}
               />
             ) : (
-              <p>Nenhum logo adicionado. Você pode enviá-lo em Identidade.</p>
+              <p>
+                {evidence?.logoUrl ? (
+                  <a href={evidence.logoUrl} target="_blank" rel="noreferrer">
+                    Consultar logo encontrado no site
+                  </a>
+                ) : (
+                  "Nenhum logo encontrado. Você pode enviá-lo em Identidade."
+                )}
+              </p>
             )}
+            {data.brand.assetSource?.startsWith("https://") && (
+              <a href={data.brand.assetSource} target="_blank" rel="noreferrer">
+                Origem do logo
+              </a>
+            )}
+            <label>
+              Substituir logo
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(event) => {
+                  const input = event.currentTarget;
+                  const file = input.files?.[0];
+                  if (!file) return;
+                  if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 1_000_000) {
+                    input.setCustomValidity("Escolha PNG, JPEG ou WebP de até 1 MB.");
+                    input.reportValidity();
+                    return;
+                  }
+                  input.setCustomValidity("");
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    if (typeof reader.result === "string") onLogo?.(reader.result);
+                  };
+                  reader.readAsDataURL(file);
+                }}
+              />
+            </label>
           </section>
           <section aria-label="Contexto da marca">
             <h3>Contexto</h3>
@@ -154,6 +305,7 @@ export function BrandDirection({
           </section>
         </div>
       </section>
+      <BrandPaletteVariations data={data} onAccent={onAccent} />
       <VisualStylePicker
         selected={selected}
         onSelect={onSelect}

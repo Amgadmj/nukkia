@@ -7,6 +7,12 @@ import { normalizeWebsite } from "./onboarding.ts";
 import { suggestionSchema } from "./brand-preview.ts";
 import { prepareSynthesisExcerpts, prepareEvidence } from "./brand-research.ts";
 import { userClientFromRequest } from "./supabase-request.server.ts";
+import {
+  profileSuggestions,
+  evidenceMarkdown,
+  mergeProfileSuggestions,
+  clinicTopicSuggestions,
+} from "./clinic-evidence.ts";
 
 const inputSchema = z.object({
   action: z.literal("research"),
@@ -244,8 +250,20 @@ export async function handleBrandPreview(
       start(controller) {
         let research = researchSchema.parse({ status: "loading", phase: "collecting", startedAt });
         const emit = (value: BrandResearch) => {
-          if (signal.aborted) return;
-          research = researchSchema.parse({ ...value, startedAt, elapsedMs: Date.now() - started });
+          // Client cancellation closes the consumer; a server deadline does not.
+          // Preserve a terminal frame so the UI can review the evidence already collected.
+          if (cancel.signal.aborted || (signal.aborted && value.phase !== "complete")) return;
+          research = researchSchema.parse({
+            ...value,
+            ...(signal.aborted && value.sources.length
+              ? {
+                  message:
+                    "A leitura ficou parcial; preservamos as fontes disponíveis até o limite de tempo. Revise o perfil antes de continuar.",
+                }
+              : {}),
+            startedAt,
+            elapsedMs: Date.now() - started,
+          });
           controller.enqueue(new TextEncoder().encode(JSON.stringify({ research }) + "\n"));
         };
         const run = async () => {
@@ -258,7 +276,7 @@ export async function handleBrandPreview(
               research = researchSchema.parse(
                 await dependencies.collect(url.trim(), {
                   maxPages: 8,
-                  budgetMs: 9000,
+                  budgetMs: 12000,
                   signal,
                   onProgress: (partial) =>
                     emit({ ...partial, status: "loading", phase: "collecting" }),
@@ -300,7 +318,16 @@ export async function handleBrandPreview(
                 confidence: "medium",
               });
             });
-            research.suggestions = [...research.suggestions, ...extracted].slice(0, 18);
+            research.suggestions = [
+              ...profileSuggestions(research),
+              ...research.suggestions.filter((s) => s.field !== "name"),
+              ...(clinicTopicSuggestions(research).length
+                ? [
+                    ...clinicTopicSuggestions(research),
+                    ...extracted.filter((s) => s.field === "detail"),
+                  ]
+                : extracted),
+            ].slice(0, 18);
             emit(research);
             if (aiEligible) {
               signal.throwIfAborted();
@@ -322,7 +349,11 @@ export async function handleBrandPreview(
                 : Promise.resolve();
               try {
                 const suggestions = await dependencies.synthesize(research, signal, { deadline });
-                research = { ...research, suggestions, synthesis: "ready" };
+                research = {
+                  ...research,
+                  suggestions: mergeProfileSuggestions(research, suggestions),
+                  synthesis: "ready",
+                };
                 stage(host, started, "synthesis", { suggestions: suggestions.length });
               } catch (error) {
                 stage(host, started, "synthesis failed", failureClass(error));
@@ -394,7 +425,10 @@ export async function handleBrandPreview(
                       refreshed,
                     ]);
                     if (synthesis.status === "fulfilled")
-                      research = { ...research, suggestions: synthesis.value };
+                      research = {
+                        ...research,
+                        suggestions: mergeProfileSuggestions(research, synthesis.value),
+                      };
                   } catch {
                     /* Keep the initial useful synthesis. */
                   }
@@ -408,7 +442,7 @@ export async function handleBrandPreview(
               profile: research.profile.length,
               suggestions: research.suggestions.length,
             });
-            emit({ ...research, phase: "complete" });
+            emit({ ...research, evidenceMarkdown: evidenceMarkdown(research), phase: "complete" });
           } catch (error) {
             const failure = describeReadFailure(error);
             // Only the host and a short code: site text and provider bodies stay out of logs.

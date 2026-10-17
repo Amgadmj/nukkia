@@ -301,7 +301,44 @@ export function applyResearchToData(
     brand: { ...brand, suggestedFields: [...brand.suggestedFields] },
     answers: { ...data.answers },
   };
-  if (!brand.confirmed)
+  if (!brand.confirmed && !brand.identityConfirmed) {
+    const color = research.visualEvidence?.colors.find((item) => {
+      const rgb = item.value
+        .slice(1)
+        .match(/.{2}/g)!
+        .map((v) => parseInt(v, 16));
+      return Math.max(...rgb) - Math.min(...rgb) > 35;
+    });
+    if (brand.accent === "#395D51" && color) next.brand.accent = color.value;
+    if (!brand.identityEdits && research.visualEvidence) {
+      const colors = research.visualEvidence.colors.map((c) => c.value);
+      const light = colors.find((c) =>
+        c
+          .slice(1)
+          .match(/.{2}/g)!
+          .every((v) => parseInt(v, 16) > 215),
+      );
+      const dark = colors.find((c) =>
+        c
+          .slice(1)
+          .match(/.{2}/g)!
+          .every((v) => parseInt(v, 16) < 80),
+      );
+      next.brand.identityEdits = {
+        ...(light ? { background: light } : {}),
+        ...(dark ? { ink: dark } : {}),
+        ...(research.visualEvidence.fonts[0]
+          ? { font: research.visualEvidence.fonts[0].value }
+          : {}),
+      };
+    }
+    if (!brand.logo && research.logo) {
+      next.brand.logo = research.logo;
+      next.brand.assetSource = research.logoSource;
+    }
+  }
+  const processing = research.phase && research.phase !== "complete";
+  if (!brand.confirmed && !processing)
     for (const item of allowedSuggestions(next)) {
       if (brand.editedFields.includes(item.field)) continue;
       if ((item.field === "name" || item.field === "segment") && !next[item.field].trim()) {
@@ -347,10 +384,19 @@ function applyProfile(next: DemoData) {
   const brand = next.brand;
   const applied = new Set(brand.profileApplied);
   for (const item of brand.research.profile) {
+    // Clinic identity comes from deterministic public metadata or the owner,
+    // never the diagnostic model's inferred name.
+    if (item.key === "name") continue;
+    if (
+      brand.research.phase &&
+      brand.research.phase !== "complete" &&
+      onboardingFields.has(item.key)
+    )
+      continue;
     if (applied.has(item.key) || brand.editedFields.includes(item.key)) continue;
     if (item.sourceUrl && !allowedSource(next, { ...item, field: "detail", quote: "" })) continue;
     if (brand.confirmed && onboardingFields.has(item.key)) continue;
-    if (item.key === "name" || item.key === "segment") {
+    if (item.key === "segment") {
       if (next[item.key].trim()) continue;
       next[item.key] = item.value.slice(0, 120);
       brand.suggestedFields.push(item.key);

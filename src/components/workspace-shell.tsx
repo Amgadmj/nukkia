@@ -102,9 +102,9 @@ export function WorkspaceShell({
         {!compact && <p className="workspace-nav-label">BRASIL · MEDICINA</p>}
         <nav aria-label="Navegação principal">
           {[
-            { label: "Workspace", ids: ["painel", "trilha"] },
+            { label: "Workspace", ids: ["painel", "trilha", "cerebro"] },
             { label: "Criação", ids: ["conteudo"] },
-            { label: "Marca", ids: ["cerebro", "marca"] },
+            { label: "Marca", ids: ["marca"] },
             { label: "Canais", ids: ["redes", "metricas"] },
           ].map((group) => (
             <div className="workspace-nav-group" key={group.label}>
@@ -299,6 +299,7 @@ export function WorkspaceShell({
           <button className="workspace-top-progress" onClick={() => onSection("trilha")}>
             <Trophy size={14} />
             <span>Primeira entrega</span>
+            <span aria-label="Experiência acumulada">{xp} XP</span>
             <progress aria-label="Progresso da primeira entrega" value={completed} max={total} />
             <small>
               {completed}/{total}

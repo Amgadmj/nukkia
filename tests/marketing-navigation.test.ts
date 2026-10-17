@@ -18,6 +18,7 @@ import * as art from "../src/lib/post-art.ts";
 function journey(onCalendar?: () => void) {
   const module = { exports: {} as Record<string, react.ComponentType<Record<string, unknown>>> };
   const dependencies: Record<string, unknown> = {
+    "@tanstack/react-router": { useBlocker() {} },
     react,
     "@/lib/service-brief": serviceBriefDomain,
     "react/jsx-runtime": jsx,
@@ -62,8 +63,9 @@ function journey(onCalendar?: () => void) {
 }
 
 test("journey does not promise a calendar when the host has no calendar destination", () => {
-  assert.equal(journey().includes("Explorar o planejamento"), false);
+  assert.equal(journey().includes("publicação automática conectada"), false);
+  assert.equal(journey().includes("Planejar a data de publicação"), true);
 });
 test("journey exposes existing planning when its host supplies a calendar destination", () => {
-  assert.equal(journey(() => {}).includes("Explorar o planejamento"), true);
+  assert.equal(journey(() => {}).includes("Planejar a data de publicação"), true);
 });

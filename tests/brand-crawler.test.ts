@@ -156,6 +156,36 @@ test("extraction strips bounded testimonial, comment, team and cookie sections b
   assert.match(page.text, /Produtos de mobilidade/);
 });
 
+test("business footer contacts survive collection and Markdown keeps differing numbers with provenance", async (t) => {
+  network(t, {
+    "/robots.txt": { mime: "text/plain", body: "User-agent: *\nAllow: /" },
+    "/": {
+      body: html(
+        "Clínica QA",
+        '<a href="/contact">Contato</a><footer><a href="tel:+553133334444">Central</a><a href="mailto:contato@brand.com">Email</a><address>Rua de Teste, 100, Belo Horizonte</address></footer>',
+      ),
+    },
+    "/contact": {
+      body: html(
+        "Contato Clínica QA",
+        '<footer><a href="tel:+553133335555">Unidade</a><a href="mailto:CONTATO@brand.com">Email</a></footer>',
+      ),
+    },
+  });
+  const research = await crawler.collectBrandSite(origin, { maxPages: 2, budgetMs: 1500 });
+  assert.ok(Array.isArray(research.contacts), "collection must carry structured public contacts");
+  assert.equal(research.contacts.filter((contact) => contact.kind === "phone").length, 2);
+  assert.equal(
+    research.contacts.filter((contact) => contact.kind === "address")[0]?.value,
+    "Rua de Teste, 100, Belo Horizonte",
+  );
+  assert.match(research.evidenceMarkdown ?? "", /contato@brand.com/i);
+  assert.match(research.evidenceMarkdown ?? "", /553133334444/);
+  assert.match(research.evidenceMarkdown ?? "", /553133335555/);
+  assert.match(research.evidenceMarkdown ?? "", /confirmar finalidade/i);
+  assert.match(research.evidenceMarkdown ?? "", /https:\/\/brand.com\/contact/);
+});
+
 test("initial crawl reads eight prioritized pages with concurrency <=3 and immutable evidence snapshots", async (t) => {
   const paths = [
     "/contact",
@@ -185,7 +215,10 @@ test("initial crawl reads eight prioritized pages with concurrency <=3 and immut
   assert.ok(!result.sources.some((source) => source.url === origin + "/contact"));
   assert.ok(net.peak() <= 3);
   assert.ok(net.peak() >= 2, "pages should overlap instead of consuming the budget sequentially");
-  assert.ok(!net.requested.includes("/logo.png"));
+  assert.ok(
+    net.requested.includes("/logo.png"),
+    "identity collection attempts the same-site public logo",
+  );
   assert.equal(snapshots[0]?.sources.length, 1);
   assert.deepEqual(snapshots[0]?.discoveredLinks, [
     { url: "https://instagram.com/marca", foundOn: origin + "/" },

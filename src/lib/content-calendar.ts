@@ -1,5 +1,19 @@
 import type { LibraryItem } from "./content-library.ts";
 
+export function calendarPlanMove(items: LibraryItem[], id: string, date: string) {
+  const item = items.find((entry) => entry.id === id);
+  if (!item || item.archived || !item.plan || item.plan.date === date) return null;
+  if (!item.versions.some((saved) => saved.version === item.plan!.version)) return null;
+  const target = new Date(`${date}T12:00:00Z`);
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+    !Number.isFinite(target.getTime()) ||
+    target.toISOString().slice(0, 10) !== date
+  )
+    return null;
+  return { ...item.plan, date };
+}
+
 export function localCalendarDate(now = new Date()) {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }

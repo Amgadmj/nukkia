@@ -193,11 +193,11 @@ export function DemoWorkspace({
                   </button>
                 </section>
               )}
-              {(contentView === "peca" || contentView === "saude") && (
+              {contentView === "peca" && (
                 <SaveToLibrary
                   data={data}
                   onData={onData}
-                  kind={contentView === "peca" ? "generic" : "health"}
+                  kind="generic"
                   onLibrary={() => onContentView("biblioteca")}
                 />
               )}

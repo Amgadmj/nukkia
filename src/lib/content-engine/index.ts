@@ -9,6 +9,8 @@ import {
   generateImageBase64,
   generateJson,
   startVideoGeneration,
+  veoDurationSeconds,
+  type VeoDurationSeconds,
 } from "@/lib/ai.server";
 import {
   buildSeedancePrompt,
@@ -235,8 +237,11 @@ const storyboardSchema = z.object({
 });
 
 /**
- * Script + shot list for a short vertical video (reels/stories), in the same
- * 10-second-block shape used by the explainer-video production workflow.
+ * Script + shot list for a short vertical video (reels/stories). The target
+ * is at most 15 seconds because that is what one render produces: Seedance
+ * renders up to 15 s per request (planVideoRender scales longer scripts onto
+ * 15 s) and Veo up to 8 s (veoDurationSeconds), so a longer script would
+ * have its narration outrun the picture.
  * The caller saves the completed script before attempting the separate video
  * render, so a render failure does not discard the creative work.
  */
@@ -250,7 +255,7 @@ export async function generateVideoStoryboard(params: {
     schema: storyboardSchema,
     instructions:
       "Você é roteirista de vídeos curtos verticais (Reels/Stories) para pequenas empresas brasileiras. " +
-      "Divida o roteiro em blocos de aproximadamente 10 segundos (2 a 6 blocos, 15 a 45 segundos no total). " +
+      "Divida o roteiro em 2 a 4 blocos de 3 a 5 segundos, com no máximo 15 segundos no total. " +
       "Cada bloco tem a narração (o que é dito/legendado) e a descrição visual (o que aparece na tela). " +
       "Responda em português do Brasil, sem promessas de resultado quando o segmento for saúde.",
     input: [
@@ -276,6 +281,7 @@ function buildVideoPrompt(
   company: CompanyLike,
   brandKit: BrandKitLike,
   storyboard: Storyboard,
+  durationSeconds: VeoDurationSeconds,
 ): string {
   const anchor = buildStyleAnchor(company, brandKit);
   const scenes = storyboard.shots
@@ -284,7 +290,7 @@ function buildVideoPrompt(
     .join(" Em seguida, ");
   return [
     anchor,
-    `Vídeo vertical curto para redes sociais, ${storyboard.duracao_total_seg} segundos.`,
+    `Vídeo vertical curto para redes sociais, ${durationSeconds} segundos.`,
     `Sequência: ${scenes}.`,
     "Sem texto sobreposto ilegível, sem marcas d'água.",
   ].join(" ");
@@ -314,8 +320,22 @@ export async function startVideoRender(params: {
       idempotencyKey: crypto.randomUUID(),
     });
   }
-  const prompt = buildVideoPrompt(params.company, params.brandKit, params.storyboard);
-  return startVideoGeneration(prompt, { aspectRatio });
+  // Veo renders 4, 6 or 8 seconds; a longer storyboard is rendered as 8.
+  const scripted = params.storyboard.shots.reduce((sum, shot) => sum + shot.duracao_seg, 0);
+  const durationSeconds = veoDurationSeconds(scripted);
+  if (scripted > durationSeconds) {
+    console.warn("[content-engine] storyboard longer than the Veo clip", {
+      scripted,
+      durationSeconds,
+    });
+  }
+  const prompt = buildVideoPrompt(
+    params.company,
+    params.brandKit,
+    params.storyboard,
+    durationSeconds,
+  );
+  return startVideoGeneration(prompt, { aspectRatio, durationSeconds });
 }
 
 /**

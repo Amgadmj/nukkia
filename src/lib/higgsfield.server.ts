@@ -67,6 +67,23 @@ export function estimateCredits(resolution: VideoResolution, seconds: number): n
   return Math.round(CREDITS_PER_SECOND[resolution] * seconds * 100) / 100;
 }
 
+/**
+ * Upper-bound output bitrate in bits per second. 1080p is measured: ffprobe of
+ * native Seedance 1080p 15 s outputs (August 2026 runs) showed 25 to 30 Mbps,
+ * 48 to 57 MB per clip. The other tiers are not measured; they scale the
+ * 1080p ceiling by pixel count and round up (720p is 0.44x, 480p 0.2x, 4k 4x).
+ */
+export const MAX_BITRATE_BPS: Record<VideoResolution, number> = {
+  "480p": 8_000_000,
+  "720p": 15_000_000,
+  "1080p": 30_000_000,
+  "4k": 120_000_000,
+};
+
+export function estimateVideoBytes(resolution: VideoResolution, seconds: number): number {
+  return Math.ceil((MAX_BITRATE_BPS[resolution] * seconds) / 8);
+}
+
 export function videoProvider(): VideoProvider {
   return process.env["VIDEO_PROVIDER"] === "higgsfield" ? "higgsfield" : "veo";
 }
@@ -98,11 +115,13 @@ function clamp(value: number, low: number, high: number): number {
 
 /**
  * Fits the storyboard's blocks into one generation. Seedance renders at most
- * 15 seconds per request while a storyboard runs 15 to 45, so block lengths
+ * 15 seconds per request and a storyboard can run longer, so block lengths
  * are scaled proportionally onto the clip and each block becomes a timed,
  * hard-cut segment (2 to 6 blocks is always feasible: duration >= block count).
  * Refuses a plan whose estimated cost exceeds the configured ceiling, so a
- * profile change can never silently multiply spend.
+ * profile change can never silently multiply spend, and a plan whose output
+ * could exceed the content-media bucket cap, because the download is refused
+ * only after the provider has already charged for the render.
  */
 export function planVideoRender(
   storyboard: Storyboard,
@@ -136,6 +155,24 @@ export function planVideoRender(
     throw new AiError("Este vídeo excede o limite de custo configurado para uma geração.", {
       cause: new Error(
         `estimated ${estimatedCredits} credits exceeds ceiling ${ceiling} (${profile}, ${duration}s)`,
+      ),
+    });
+  }
+  const estimatedBytes = estimateVideoBytes(resolution, duration);
+  if (estimatedBytes > MAX_VIDEO_BYTES) {
+    console.error(
+      "[higgsfield] render refused: output could exceed the content-media bucket limit",
+      {
+        profile,
+        resolution,
+        duration,
+        estimatedBytes,
+        limit: MAX_VIDEO_BYTES,
+      },
+    );
+    throw new AiError("Este vídeo nesta qualidade excede o limite de armazenamento.", {
+      cause: new Error(
+        `estimated ${estimatedBytes} bytes exceeds bucket limit ${MAX_VIDEO_BYTES} (${profile}, ${duration}s)`,
       ),
     });
   }

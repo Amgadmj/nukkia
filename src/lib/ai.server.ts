@@ -227,9 +227,25 @@ export async function generateImageBase64(
 // src/lib/content-engine/index.ts for how this is turned into a poll-able
 // job instead of a blocking call. ---
 
+/**
+ * Veo 3.1 renders only these clip lengths (ai.google.dev/gemini-api/docs/veo,
+ * checked 2026-10-17: durationSeconds 4, 6 or 8; 1080p, 4k and reference
+ * images require 8). Requests here use the default 720p, so all three are
+ * valid. A Veo reel is therefore at most 8 seconds; the 15-second finished
+ * video comes from the Seedance path (VIDEO_PROVIDER=higgsfield).
+ */
+export const VEO_DURATIONS_SECONDS = [4, 6, 8] as const;
+export type VeoDurationSeconds = (typeof VEO_DURATIONS_SECONDS)[number];
+
+/** Smallest allowed Veo length that covers the request, capped at the 8-second maximum. */
+export function veoDurationSeconds(requested: number): VeoDurationSeconds {
+  const wanted = Number.isFinite(requested) ? requested : 8;
+  return VEO_DURATIONS_SECONDS.find((allowed) => allowed >= wanted) ?? 8;
+}
+
 export async function startVideoGeneration(
   prompt: string,
-  options?: { aspectRatio?: "16:9" | "9:16" },
+  options?: { aspectRatio?: "16:9" | "9:16"; durationSeconds?: VeoDurationSeconds },
 ): Promise<{ operationName: string }> {
   const response = await fetch(`${GEMINI_BASE}/models/${VIDEO_MODEL}:predictLongRunning`, {
     method: "POST",
@@ -237,7 +253,10 @@ export async function startVideoGeneration(
     headers: geminiHeaders(),
     body: JSON.stringify({
       instances: [{ prompt }],
-      parameters: { aspectRatio: options?.aspectRatio ?? "9:16" },
+      parameters: {
+        aspectRatio: options?.aspectRatio ?? "9:16",
+        durationSeconds: options?.durationSeconds ?? 8,
+      },
     }),
   }).catch((err) => {
     throw new AiError("Não foi possível conectar ao serviço de vídeo.", { cause: err });

@@ -959,7 +959,7 @@ test("save disclosure distinguishes checking, unsaved seed, queued edits and ack
   await h.advance();
   assert.equal(label(), "Salvando");
   await h.reply(1, cloud(draft("Queued"), r1));
-  assert.equal(label(), "Salvo na conta");
+  assert.equal(h.statusTree(), null, "an acknowledged save shows no indicator");
   h.edit("Newer");
   assert.equal(label(), "Salvando");
 });
@@ -1021,7 +1021,7 @@ test("memory-only loss warning remains visible outside collapsed details until c
   );
   await h.advance();
   await h.reply(1, cloud(draft("Only copy"), r1));
-  assert.equal(text(findElement(h.statusTree(), "summary")).trim(), "Salvo na conta");
+  assert.equal(h.statusTree(), null);
   assert.equal(
     findElement(h.statusTree(), "p", (node) => node.props.role === "alert"),
     undefined,
@@ -1275,7 +1275,7 @@ test("quota failure preserves memory, permits cloud saving and reports cloud suc
   await h.advance();
   await h.reply(1, cloud(draft("Memory only"), r1));
   assert.equal(h.value().sync, "saved");
-  assert.match(h.status(), /Salvo na conta/);
+  assert.equal(h.status(), "");
   h.storageFails(false);
   h.edit("Backup recovered");
   assert.equal(h.value().storageAvailable, true);

@@ -680,7 +680,6 @@ export function DeliveryJourney({
   accountPlan?: { status: string; scheduled_for: string | null }[];
 }) {
   const status = journeyProgress(data);
-  const [selected, setSelected] = useState(-1);
   const trailId = useId();
   const essential = essentialDiagnostic(data);
   const planned = data.library.items.filter((item) => item.plan && !item.archived);
@@ -845,26 +844,16 @@ export function DeliveryJourney({
         </div>
         <progress aria-label="Progresso da trilha" value={status.completed} max={status.total} />
       </div>
-      <p className="journey-intro">
-        Selecione uma etapa para entender o que fazer e por que ela importa.
-      </p>
       <ol className="journey-path" aria-label="Etapas da sua trilha">
         {phases.map((phase, index) => {
           const done = phase.tasks.every((task) => task.done);
           const Icon = phaseIcons[index]!;
-          const open = selected === index;
           const buttonId = `${trailId}-step-${index}`;
           const panelId = `${trailId}-detail-${index}`;
           return (
             <li key={phase.title} className={index % 2 ? "journey-stop is-right" : "journey-stop"}>
               <section data-complete={done} className="journey-stage">
-                <button
-                  id={buttonId}
-                  className={`journey-dot${done ? " is-complete" : ""}${open ? " is-selected" : ""}`}
-                  aria-expanded={open}
-                  aria-controls={panelId}
-                  onClick={() => setSelected(open ? -1 : index)}
-                >
+                <div id={buttonId} className={`journey-dot${done ? " is-complete" : ""}`}>
                   <span className="journey-orbit" aria-hidden="true">
                     <Icon size={30} strokeWidth={1.6} />
                     {done && <Check className="journey-check" size={20} />}
@@ -875,10 +864,9 @@ export function DeliveryJourney({
                       ? "Concluída"
                       : `${phase.tasks.filter((task) => task.done).length} de ${phase.tasks.length} ações concluídas`}
                   </small>
-                </button>
+                </div>
                 <div
                   id={panelId}
-                  hidden={!open}
                   role="region"
                   aria-labelledby={buttonId}
                   className="journey-detail"

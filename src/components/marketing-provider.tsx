@@ -677,30 +677,29 @@ export function WorkspaceSaveStatus() {
     resolveConflict,
     retrySync,
   } = useMarketingWorkspace();
+  // The "saved" state is the normal case and needs no indicator; only
+  // saving, local-only and conflict states stay visible so risk is not hidden.
+  if (sync === "saved") return null;
   const saving = sync === "saving" || sync === "loading" || (sync === "ready" && pendingSave);
-  const memoryOnly = sync !== "saved" && !storageAvailable;
+  const memoryOnly = !storageAvailable;
   const label =
-    sync === "saved"
-      ? "Salvo na conta"
-      : sync === "conflict"
-        ? "Revisar conflito"
-        : saving
-          ? "Salvando"
-          : recoveryAvailable
-            ? "Salvo neste navegador"
-            : "Somente nesta aba";
+    sync === "conflict"
+      ? "Revisar conflito"
+      : saving
+        ? "Salvando"
+        : recoveryAvailable
+          ? "Salvo neste navegador"
+          : "Somente nesta aba";
   const message =
-    sync === "saved"
-      ? "As alterações deste espaço estão salvas na conta."
-      : sync === "conflict"
-        ? conflictSource === "browser"
-          ? "Há outra cópia neste navegador. Escolha qual continuar; nenhuma será apagada por esta escolha."
-          : "Há outra versão na sua conta. Escolha qual continuar."
-        : sync === "loading"
-          ? "Verificando a versão da conta antes de salvar."
-          : saving
-            ? "Aguardando confirmação do salvamento na conta."
-            : syncIssue || "Alterações ainda não salvas na conta.";
+    sync === "conflict"
+      ? conflictSource === "browser"
+        ? "Há outra cópia neste navegador. Escolha qual continuar; nenhuma será apagada por esta escolha."
+        : "Há outra versão na sua conta. Escolha qual continuar."
+      : sync === "loading"
+        ? "Verificando a versão da conta antes de salvar."
+        : saving
+          ? "Aguardando confirmação do salvamento na conta."
+          : syncIssue || "Alterações ainda não salvas na conta.";
   return (
     <div className="workspace-save-indicator" data-state={sync}>
       <details className="workspace-save-disclosure">
@@ -711,16 +710,15 @@ export function WorkspaceSaveStatus() {
         </summary>
         <div className="workspace-save-panel">
           <p>{message}</p>
-          {sync !== "saved" && recoveryAvailable && (
+          {recoveryAvailable && (
             <p>
               Cópia de recuperação neste navegador, não na conta. Disponível entre abas deste
               perfil; sair da conta ou limpar os dados do navegador remove esta cópia.
             </p>
           )}
-          {sync !== "saved" && storageAvailable && !recoveryAvailable && (
+          {storageAvailable && !recoveryAvailable && (
             <p>Rascunho guardado nesta aba. Fechar a aba pode apagar esta cópia.</p>
           )}
-          {sync === "saved" && !storageAvailable && <p>Cópia nesta aba indisponível.</p>}
           {sync === "local" && company && (
             <button type="button" onClick={retrySync}>
               Tentar sincronizar novamente

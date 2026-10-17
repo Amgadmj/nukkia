@@ -435,7 +435,6 @@ function Marca() {
           { href: "#logo", label: "Logo" },
           { href: "#cores", label: "Cores e tipografia" },
           { href: "#voz", label: "Tom de voz" },
-          { href: "#historia", label: "História" },
           { href: "#brandbook", label: "BrandBook" },
         ].map(({ href, label }) => (
           <a
@@ -624,7 +623,7 @@ function Marca() {
           ou envie uma nova imagem.
         </p>
       )}
-      <Card id="historia" className="scroll-mt-24 shadow-none">
+      <Card id="historia" hidden className="scroll-mt-24 shadow-none">
         <CardHeader>
           <h2 className="text-base font-semibold">História da marca · opcional</h2>
           <CardDescription>

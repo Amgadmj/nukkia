@@ -108,12 +108,9 @@ function Conteudo() {
       <div className="workspace-tabs" role="tablist" aria-label="Conteúdo">
         {(
           [
-            ["calendario", "Planejamento mensal"],
+            ["calendario", "Calendário"],
             ["briefing", "Briefing da peça"],
             ["saude", "Roteiro de vídeo"],
-            ["peca", "Minha peça"],
-            ["biblioteca", "Biblioteca"],
-            ["planejamento", "Planejar versões"],
           ] as const
         ).map(([id, label]) => (
           <button

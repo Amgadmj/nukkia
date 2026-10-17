@@ -267,19 +267,15 @@ test("dashboard navigation never overwrites saved snapshots with unsaved editor 
   assert.match(JSON.stringify(app.data().library), /Versão guardada QA/);
 });
 
-test("trail dots reveal explanations without navigating or changing saved progress", () => {
+test("trail stages show their explanations without dropdowns or changing saved progress", () => {
   const app = harness();
   const before = JSON.stringify(app.data());
-  let tree = app.render("DeliveryJourney");
-  const dots = tree.filter((n) => n.type === "button" && n.props["aria-expanded"] !== undefined);
-  assert.equal(dots.length, 5);
-  const identity = dots.find((n) => text(n).includes("Identidade da marca"))!;
-  identity.props.onClick!();
-  tree = app.render("DeliveryJourney");
-  const selected = tree.find((n) => n.type === "button" && n.props["aria-expanded"] === true)!;
-  assert.match(text(selected), /Identidade da marca/);
-  const panel = tree.find((n) => n.props.id === selected.props["aria-controls"])!;
-  assert.ok(panel);
+  const tree = app.render("DeliveryJourney");
+  assert.equal(tree.filter((n) => n.props["aria-expanded"] !== undefined).length, 0);
+  const panels = tree.filter((n) => n.props.className === "journey-detail");
+  assert.equal(panels.length, 5);
+  assert.ok(panels.every((panel) => !panel.props.hidden));
+  const panel = panels[1]!;
   const bullets = nodes(panel).filter((n) => n.type === "li");
   assert.ok(bullets.length >= 2 && bullets.length <= 3);
   assert.match(text(panel), /Cores, estilo e materiais/);

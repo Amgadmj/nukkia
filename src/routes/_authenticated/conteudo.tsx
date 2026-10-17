@@ -51,7 +51,7 @@ export const Route = createFileRoute("/_authenticated/conteudo")({
         content: "Prepare exemplos, edite cenas e organize rascunhos de conteúdo para sua clínica.",
       },
       { property: "og:title", content: "Conteúdo | Nukkia" },
-      { property: "og:description", content: "Roteiros e cenas editáveis no estúdio de saúde." },
+      { property: "og:description", content: "Roteiros e cenas editáveis." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -141,11 +141,11 @@ function Conteudo() {
           </button>
         </section>
       )}
-      {(aba === "peca" || aba === "saude") && (
+      {aba === "peca" && (
         <SaveToLibrary
           data={data}
           onData={setData}
-          kind={aba === "peca" ? "generic" : "health"}
+          kind="generic"
           onLibrary={() => setView("biblioteca")}
         />
       )}

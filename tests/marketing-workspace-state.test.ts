@@ -1026,7 +1026,7 @@ test("memory-only loss warning remains visible outside collapsed details until c
     findElement(h.statusTree(), "p", (node) => node.props.role === "alert"),
     undefined,
   );
-  assert.match(h.status(), /Cópia nesta aba indisponível/);
+  assert.equal(h.status(), "", "an acknowledged cloud save hides the memory-only notice");
 });
 
 test("safe response classifications explain recovery without exposing server messages or guessing a migration", async (t) => {

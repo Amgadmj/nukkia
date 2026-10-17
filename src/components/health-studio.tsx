@@ -153,7 +153,6 @@ export function HealthStudio({
       {currentStep === "formatos" && (
         <section className="studio-create-home" aria-labelledby="health-setup-title">
           <div className="studio-intro">
-            <span className="studio-kicker">ESTÚDIO DE SAÚDE</span>
             <h1 id="health-setup-title" ref={heading} tabIndex={-1}>
               O que vamos criar?
             </h1>

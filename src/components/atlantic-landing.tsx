@@ -24,7 +24,7 @@ import { useFirstSecondsLoop, useHeroScatter } from "@/hooks/use-hero-scatter";
 const faqs = [
   [
     "O que posso experimentar agora?",
-    "O contexto da marca, as opções de conteúdo, o editor, a biblioteca de versões e o planejamento. O estúdio de saúde também permite editar roteiros e visualizar cenas em cartões de texto.",
+    "O contexto da marca, as opções de conteúdo, o editor, a biblioteca de versões e o planejamento. No roteiro de vídeo, você edita as cenas e as visualiza em cartões de texto.",
   ],
   [
     "A Nukkia publica por mim?",

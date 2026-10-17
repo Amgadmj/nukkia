@@ -1,0 +1,194 @@
+================================================================================
+AI AGENT RESEARCH BRIEF v2: VOICE-FIRST, APPROVE-THE-TAKE AI VIDEO PIPELINE
+Revision of "Asymmetric Credit AI Video Workflow Pipeline" | 2026-10-17 (rev 2)
+================================================================================
+
+[CONTEXT & PURPOSE]
+Nukkia makes short vertical (9:16) social videos in pt-BR for Brazilian small
+businesses, many in healthcare. Stack: TanStack Start on Vercel serverless,
+Supabase (Postgres + Storage), Claude (text, JSON, storyboard), Gemini
+(images; Veo video is the current default), Seedance 2.0 via the Higgsfield
+public API (video), ffmpeg-static (assembly). Gap analysis and
+sources: docs/video-pipeline/2026-10-17-gap-analysis-and-research.md
+
+What changed from v1:
+  - Voice-over moves from Stage 7 to Stage 1.5 and becomes the timing master.
+  - The customer approves the actual low-res take, and the final is an upscale
+    of that take. v1 re-rendered at 1080p, which changes motion; that step is
+    removed.
+  - Motion takes are image-to-video from approved boards, not text-to-video.
+    Higgsfield's public API already has this endpoint:
+    bytedance/seedance-2.0/image-to-video takes image_url and end_image_url.
+    The output framing follows the image, so boards must be 9:16.
+  - Credit figures are recomputed from API prices. v1's Stage 5 figure
+    (20-30 credits per pass) is not achievable.
+  - Automated checks run before each human gate. Compliance comes first, then
+    deterministic motion signals, then VLM review.
+  - Assembly is TypeScript + ffmpeg, not Python.
+
+--------------------------------------------------------------------------------
+1. PIPELINE ARCHITECTURE & CREDIT ECONOMICS (per 15 s clip, Higgsfield rates)
+--------------------------------------------------------------------------------
+Seedance 2.0 API rates (credits/second): 480p=3, 720p=4.5, 1080p=9, 4k=22.
+1 credit ~ US$0.0627. One request renders at most 15 s.
+No seed and no fast mode on any Seedance 2.0 endpoint.
+Yield = renders per kept clip. Measured: 2.5 (August run: 5 native-1080p
+renders for 2 kept clips = 675 credits against a 270-credit budget).
+Target: 1.8.
+Native output: 24 fps, AAC 44.1 kHz, 15.09 s per 15 s request, and
+25-30 Mbps at 1080p (48-57 MB per clip, which can exceed the 50 MiB
+per-file storage cap).
+
+Stage 0: Brief + compliance pre-check
+         - Format: text (no credits)
+         - ANVISA/CFM claim screen on topic, offer and CTA
+           (no result promises, no before/after, no identifiable patients)
+
+Stage 1: Script / line sheet
+         - Budget: 2.5 words/s in pt-BR, i.e. 32-38 words per 15 s clip
+         - Numbers and drug names spelled out for speech
+         - Every shot is flagged on_camera_speaker=false by default
+
+Stage 1.5: Scratch VO = timing master
+         - TTS with timestamps (ElevenLabs /with-timestamps, non-beta model;
+           Azure WordBoundary as fallback; forced alignment if none available)
+         - Cuts snapped to inter-word pauses, then to the 24 fps grid
+         - 0.3-0.5 s visual lead-in; total rounded up to whole seconds (<= 15)
+         - Output: vo_audio_path, words[], per-shot start/end in ms, cut_frame
+         - Cost: cents (TTS, not credits)
+
+Stage 2: Character / brand reference sheet
+         - Format: multi-angle image, generated once and reused per brand
+         - Cost: image API, not video credits
+         --> GATE 1: Likeness approved
+             (auto: ArcFace similarity + logo/anatomy VLM check; then a human)
+
+Stage 3: Shot list
+         - Per shot: subject, action, camera, framing, look, and duration
+           taken from Stage 1.5 (not from the LLM's estimate)
+
+Stage 4: Storyboard boards
+         - Format: 9:16 first-frame keyframe per shot (optional last frame)
+         - Cost: images only
+         --> GATE 2: Story + compliance approved
+             (auto: VLM shot alignment, OCR of on-screen pt-BR text,
+              health-claim checks; then human panel review)
+             Rule: "Fix boards, not renders."
+
+Stage 5: Motion take
+         - Format: image-to-video from approved boards, 480p or 720p
+           (Seedance image-to-video: image_url plus end_image_url), timed
+           hard cuts from Stage 1.5, ambient audio only
+         - Option to test: reference-to-video with the scratch VO as an
+           audio reference (up to 3 audio_urls of 2-15 s each)
+         - Completion arrives by Higgsfield webhook instead of polling
+         - Cost: 45 cr (480p) or 67.5 cr (720p) per render
+         --> GATE 3: Motion + seam approved ON THE ACTUAL TAKE
+             (auto: scene-cut timing within +/-0.2 s, face-embedding drift,
+              flicker heuristic, OCR, VLM defect pass with timestamps;
+              then a human)
+             Rule: bad framing -> fix board; bad motion -> fix prompt.
+
+Stage 6: Finalize = upscale the approved take to 1080x1920 (no re-render)
+         - Upscaler API: ByteDance/FlashVSR by default (~$0.11-0.37),
+           SeedVR2/Topaz Starlight for premium (~$0.75-1.80)
+         - Re-encode at about 8 Mbps so the file stays under the 50 MiB cap
+         - Verify: duration (trim 15.09 s to the planned length), resolution,
+           cut count
+
+Stage 7: Assembly (TypeScript + ffmpeg, dedicated Vercel function)
+         - Normalize clips (1080x1920, 24 fps kept native, 48 kHz), then
+           concat (hard cut) or xfade
+         - VO + ambience ducked with sidechaincompress
+         - loudnorm two-pass at -14 LUFS / -1.5 dBTP
+         - Burned ASS captions with word highlight from the Stage 1.5 timestamps
+         - Optional "Conteudo gerado com IA" mark
+         - Encode: H.264 high, yuv420p, 24 fps, about 8 Mbps, +faststart
+           (the August 30 s master was 7.5 Mbps / 28.8 MB)
+
+Cost per kept 15 s clip (credits / USD):
+  Ladder                          yield 2.5            yield 1.8
+  A native 1080p (v1 Stage 6)     337.5 / $21.2        243 / $15.2
+  B 720p take + upscale           ~170-181 / $10.6-11  ~124-134 / $7.8-8.4
+  C 480p i2v take + upscale       ~124 / $7.8          ~93 / $5.8
+  30 s film = 2 kept clips. Reference price: R$179 per extra 15 s video (~$34).
+
+--------------------------------------------------------------------------------
+2. SWOT (revised)
+--------------------------------------------------------------------------------
+STRENGTHS:
+- Spend is gated: no expensive render happens before story and compliance are approved.
+- The customer approves exactly what ships (approve-the-take plus upscale).
+- Audio-first timing removes VO drift and gives captions for free.
+- Existing infrastructure: idempotent renders, cost ceiling, video units,
+  yield metric in admin, ffmpeg runner.
+
+WEAKNESSES:
+- The integration calls only text-to-video today. The image-to-video endpoint
+  exists on the same vendor but is not wired.
+- The default Veo path sends no duration, so clips come out at about 8 s,
+  while a video unit is sold as 15 s.
+- Three human gates add friction. Mitigation: auto-checks pre-fill the verdict
+  so a human confirms rather than inspects from scratch.
+- Seedance timed cuts may drift (unverified, about 0.5 s); cut tolerance and
+  padding are needed.
+- No per-render credit ledger yet.
+
+OPPORTUNITIES:
+- Image-to-video anchoring is the main lever to move yield from 2.5 toward 1.8.
+- Customer uploads (the new clinic media library) can become reference images,
+  once likeness and voice consent records exist (backlog N19).
+- Direct Seedance access (BytePlus ModelArk / fal) is reportedly 35-60%
+  cheaper than Higgsfield (verify with a quote).
+- A compliance gate is a selling point for healthcare customers.
+- C2PA re-signing and AI labelling build trust.
+
+THREATS:
+- Vendor price or API changes. Mitigation: provider prefix in operation ids is
+  already in place; keep the render plan provider-neutral.
+- VLM judges miss fine temporal artifacts. Mitigation: deterministic signals
+  plus a human decides.
+- TTS licensing: ElevenLabs beta outputs are not for commercial use, so
+  confirm v3's status; Multilingual v2 is the safe default. pt-BR
+  mispronunciation of medical terms.
+- AI-labelling rules (Meta/TikTok, TSE during election periods, PL 2338).
+
+--------------------------------------------------------------------------------
+3. AGENT INVESTIGATION TASKS (next round)
+--------------------------------------------------------------------------------
+Agent Task 1: Voice-first timing implementation
+"Extend the storyboard schema with vo_text_spoken, words[], vo_start_ms,
+ vo_end_ms, cut_frame and timing_source. Implement TTS with timestamps,
+ pause-aligned frame snapping, and fitting to <= 15 s (speed up to 1.08x or a
+ script rewrite). Test against 20 pt-BR scripts, including medical terms and
+ prices."
+
+Agent Task 2: Image-to-video and the take ladder
+"Wire bytedance/seedance-2.0/image-to-video (image_url, end_image_url) next
+ to text-to-video, and read its credit price from the Higgsfield cost
+ estimate. Test whether reference-to-video with an audio reference follows
+ the VO pacing. Run a 5-clip A/B: 480p vs 720p base, each upscaled to
+ 1080x1920 with ByteDance, FlashVSR and SeedVR2. Score flicker and sharpness
+ after an Instagram-like re-encode."
+
+Agent Task 3: Gates in shadow mode
+"Ship Gate 2 first: Gemini compliance + OCR on script and keyframes, with
+ binary JSON checks that allow null for 'a human decides'. Then add Gate 3
+ deterministic signals (PySceneDetect or ffmpeg scene score, ArcFace drift,
+ frame-difference flicker) on a CPU worker. Log every verdict next to the
+ human decision. Calibrate on about 200 clips (kappa >= 0.6) before a gate is
+ allowed to block."
+
+Agent Task 4: Assembly function
+"Build /api/render-film as a dedicated Vercel function (maxDuration 300,
+ 4 GB). Media goes in and out through Storage URLs; the function writes job
+ rows with progress from ffmpeg -progress. Verify libass and the brand font in
+ the ffmpeg-static binary in CI. Measure render time for a 30 s 1080p job on
+ 2 vCPU. Keep Vercel Sandbox / Cloud Run with the same arg arrays as fallback."
+
+Agent Task 5: Economics alignment
+"Pass a duration to Veo, or default to Seedance, so a sold 15 s video is
+ 15 s. Replace FILM_FIXED_CREDITS and the renderCredits x yield formula with
+ (take_credits x yield + upscale) per kept clip. Persist a per-render credit
+ ledger. Define the yield threshold that reopens the film_30s SKU."
+================================================================================

@@ -25,6 +25,7 @@ function harness(
   env: Record<string, string> = { HF_API_KEY_ID: "key-id", HF_API_KEY_SECRET: "key-secret" },
 ) {
   const calls: Call[] = [];
+  const errors: unknown[][] = [];
   const exports: Api = {};
   runInNewContext(
     ts.transpileModule(
@@ -37,7 +38,7 @@ function harness(
       AbortSignal,
       Uint8Array,
       process: { env },
-      console: { error: () => {}, warn: () => {}, info: () => {} },
+      console: { error: (...args: unknown[]) => errors.push(args), warn: () => {}, info: () => {} },
       setTimeout: (fn: () => void) => {
         fn();
         return 0;
@@ -54,7 +55,7 @@ function harness(
       },
     },
   );
-  return { api: exports, calls };
+  return { api: exports, calls, errors };
 }
 
 const json = (body: unknown, status = 200) =>
@@ -111,6 +112,42 @@ test("a plan above the credit ceiling is refused before any request is made", ()
   );
   assert.doesNotThrow(() => api["planVideoRender"](storyboard, { profile: "draft" }));
   assert.equal(calls.length, 0);
+});
+
+test("a 1080p 15-second plan is refused for storage even when the credit ceiling allows it", () => {
+  const { api, calls, errors } = harness([]);
+  const storyboard = { titulo: "t", duracao_total_seg: 15, shots: [shot(1, 8), shot(2, 7)] };
+  // Measured Seedance 1080p output runs up to 30 Mbps: 15 s is ~56 MB, above the 50 MiB bucket.
+  assert.ok(api["estimateVideoBytes"]("1080p", 15) > api["MAX_VIDEO_BYTES"]);
+  assert.throws(
+    () => api["planVideoRender"](storyboard, { profile: "premium", maxCredits: 1000 }),
+    /limite de armazenamento/,
+  );
+  assert.equal(calls.length, 0, "refused before any paid request");
+  assert.match(JSON.stringify(errors), /content-media bucket limit/);
+  assert.match(JSON.stringify(errors), /"duration":15/);
+});
+
+test("1080p stays available for clips short enough to fit the bucket", () => {
+  const { api } = harness([]);
+  const plan = api["planVideoRender"](
+    { titulo: "t", duracao_total_seg: 13, shots: [shot(1, 7), shot(2, 6)] },
+    { profile: "premium", maxCredits: 1000 },
+  );
+  assert.equal(plan.resolution, "1080p");
+  assert.equal(plan.duration, 13);
+  assert.ok(api["estimateVideoBytes"]("1080p", 13) <= api["MAX_VIDEO_BYTES"]);
+});
+
+test("the default 720p 15-second render fits the bucket", () => {
+  const { api } = harness([]);
+  assert.ok(api["estimateVideoBytes"]("720p", 15) <= api["MAX_VIDEO_BYTES"]);
+  assert.doesNotThrow(() =>
+    api["planVideoRender"](
+      { titulo: "t", duracao_total_seg: 15, shots: [shot(1, 8), shot(2, 7)] },
+      { profile: "standard" },
+    ),
+  );
 });
 
 test("the prompt carries timed hard cuts and never the narration", () => {

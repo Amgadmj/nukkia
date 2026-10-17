@@ -141,7 +141,7 @@ test("compact suggestions retain historical and inference warnings outside close
   visible.find("details").remove();
   assert.match(visible.text(), /Campanha anterior/);
   assert.match(visible.text(), /vigência/i);
-  assert.match(visible.text(), /Hipótese da IA/);
+  assert.match(visible.text(), /Hipótese de público/);
   assert.equal($("svg.lucide-sparkles").length, 1);
 });
 

@@ -320,14 +320,19 @@ function Section({ title, items }: { title: string; items?: string[] }) {
   return (
     <div>
       <h2 className="mb-3 text-sm font-semibold">{title}</h2>
-      <ul className="space-y-2 text-sm leading-6 text-muted-foreground">
-        {items.map((item) => (
+      <ol className="space-y-2 text-sm leading-6 text-muted-foreground">
+        {items.map((item, index) => (
           <li key={item} className="flex gap-3">
-            <span className="mt-2.5 size-1 shrink-0 rounded-full bg-primary" />
+            <span
+              className="shrink-0 font-semibold text-primary"
+              aria-label={`Prioridade ${index + 1}`}
+            >
+              {index + 1}.
+            </span>
             {item}
           </li>
         ))}
-      </ul>
+      </ol>
     </div>
   );
 }

@@ -13,6 +13,8 @@ export const sourceSchema = z.object({
   title: z.string().max(200),
   text: z.string().max(10000),
   fetchedAt: z.string(),
+  organizationName: z.string().max(120).optional(),
+  parser: z.enum(["scrapling", "cheerio", "scrapling-rendered"]).optional(),
 });
 export const suggestionSchema = z.object({
   field: z.enum(["name", "segment", "audience", "offers", "detail", "faq"]),
@@ -41,6 +43,25 @@ export const profileFieldSchema = z.object({
 export const researchSchema = z.object({
   status: z.enum(["idle", "loading", "ready", "unavailable"]).default("idle"),
   sources: z.array(sourceSchema).max(16).default([]),
+  contacts: z
+    .array(
+      z.object({
+        kind: z.enum(["phone", "email", "address"]),
+        value: z.string().max(500),
+        normalizedValue: z.string().max(500),
+        sourceUrl: z
+          .string()
+          .max(2048)
+          .url()
+          .refine((value) => {
+            const url = new URL(value);
+            return url.protocol === "https:" && !url.username && !url.password;
+          }),
+        observedAt: z.string().max(80),
+      }),
+    )
+    .max(30)
+    .default([]),
   discoveredLinks: z
     .array(
       z.object({
@@ -59,6 +80,24 @@ export const researchSchema = z.object({
   message: z.string().max(500).default(""),
   logo: imageData.default(""),
   logoSource: z.string().max(2048).default(""),
+  evidenceMarkdown: z.string().max(180000).optional(),
+  entryUrl: z.string().max(2048).optional(),
+  visualEvidence: z
+    .object({
+      colors: z
+        .array(
+          z.object({
+            value: z.string().regex(/^#[a-fA-F0-9]{6}$/),
+            sourceUrl: z.string().max(2048),
+          }),
+        )
+        .max(8),
+      fonts: z
+        .array(z.object({ value: z.string().max(120), sourceUrl: z.string().max(2048) }))
+        .max(4),
+      logoUrl: z.string().max(2048),
+    })
+    .optional(),
 });
 export const CTA_OPTIONS = [
   { value: "direct", label: "Receber uma mensagem", copy: "Vamos conversar? Envie uma mensagem." },
@@ -139,6 +178,25 @@ export const brandPreviewSchema = z.object({
   material: z.string().max(8000).default(""),
   research: researchSchema.default({}),
   confirmed: z.boolean().default(false),
+  profileConfirmation: z.string().optional(),
+  contentIntent: z.enum(["service", "explain", "trust", "booking"]).optional(),
+  contentIntents: z
+    .array(z.enum(["service", "explain", "trust", "booking"]))
+    .max(4)
+    .optional(),
+  identityEdits: z
+    .object({
+      background: z
+        .string()
+        .regex(/^#[a-fA-F0-9]{6}$/)
+        .optional(),
+      ink: z
+        .string()
+        .regex(/^#[a-fA-F0-9]{6}$/)
+        .optional(),
+      font: z.string().max(120).optional(),
+    })
+    .optional(),
   siteAuthorized: z.boolean().default(false),
   aiAuthorized: z.boolean().default(false),
   extraLinks: z.array(z.string().max(2048)).max(12).default([]),
@@ -171,6 +229,56 @@ export const brandPreviewSchema = z.object({
   creative: creativeSchema.nullable().default(null),
 });
 export type BrandPreview = z.infer<typeof brandPreviewSchema>;
+export type ContentIntent = NonNullable<BrandPreview["contentIntent"]>;
+export const CONTENT_INTENTS = [
+  {
+    value: "service",
+    label: "Apresentar um serviço",
+    description: "Mostre um serviço oferecido pela clínica.",
+    icon: "🩺",
+  },
+  {
+    value: "explain",
+    label: "Explicar serviços",
+    description: "Explique como funcionam os serviços, exames e cuidados da clínica.",
+    icon: "🧪",
+  },
+  {
+    value: "trust",
+    label: "Fortalecer Marca",
+    description: "Apresente a equipe, a estrutura e o jeito de cuidar.",
+    icon: "🤝",
+  },
+  {
+    value: "booking",
+    label: "Convidar para agendar",
+    description: "Facilite o próximo contato com a clínica.",
+    icon: "🗓️",
+  },
+] as const;
+export function selectedContentIntents(brand: BrandPreview): ContentIntent[] {
+  return brand.contentIntents ?? (brand.contentIntent ? [brand.contentIntent] : []);
+}
+export function toggleContentIntent(
+  brand: BrandPreview,
+  intent: ContentIntent,
+): Partial<BrandPreview> {
+  const previous = selectedContentIntents(brand);
+  const contentIntents = previous.includes(intent)
+    ? previous.filter((v) => v !== intent)
+    : [...previous, intent];
+  const primary = contentIntents[0];
+  return {
+    contentIntents,
+    ...(primary ? { contentIntent: primary } : {}),
+    preferredApproach: contentIntents.includes("explain")
+      ? "educate"
+      : primary === "trust"
+        ? "trust"
+        : "invite",
+    action: contentIntents.includes("booking") ? "booking" : "direct",
+  };
+}
 export function markBrandFieldsEdited(brand: BrandPreview, fields: string[]) {
   const tracked = new Set<string>(suggestionSchema.shape.field.options);
   const changed = fields.filter((field) => tracked.has(field));
@@ -215,6 +323,25 @@ type BrandData = {
   brand: BrandPreview;
 };
 
+export function profileFingerprint(data: BrandData) {
+  return JSON.stringify([
+    data.name.trim(),
+    data.segment.trim(),
+    data.answers.audience.trim(),
+    data.brand.referenceUrl,
+  ]);
+}
+
+export function profileConfirmed(data: BrandData) {
+  return (
+    data.brand.confirmed &&
+    data.name.trim().length >= 2 &&
+    data.segment.trim().length >= 2 &&
+    data.answers.audience.trim().length >= 3 &&
+    (!data.brand.profileConfirmation || data.brand.profileConfirmation === profileFingerprint(data))
+  );
+}
+
 export function firstPostBrief(data: BrandData): FirstPostBrief {
   return {
     name: data.name.trim(),
@@ -233,6 +360,22 @@ export function firstPostBrief(data: BrandData): FirstPostBrief {
         }
       : {}),
     detail: data.brand.serviceBrief?.detail ?? data.brand.detail.trim(),
+    ...(selectedContentIntents(data.brand).length
+      ? {
+          constraints: [
+            data.brand.pieceBrief?.constraints.trim(),
+            "Tipos de conteúdo escolhidos: " +
+              selectedContentIntents(data.brand)
+                .map(
+                  (value, index) =>
+                    `${index + 1}. ${CONTENT_INTENTS.find((intent) => intent.value === value)!.label}`,
+                )
+                .join("; "),
+          ]
+            .filter(Boolean)
+            .join("\n"),
+        }
+      : {}),
     action: data.brand.action,
     destination: data.brand.destination.trim(),
   };
@@ -265,7 +408,7 @@ export function briefIssues(data: BrandData): string[] {
     issues.push(
       "Confira as referências atualizadas em “Vamos dar contexto à sua marca” antes de continuar.",
     );
-  if (!data.brand.confirmed) issues.push("Confirme as informações da sua marca.");
+  if (!profileConfirmed(data)) issues.push("Confirme o nome, as áreas e o público da sua clínica.");
   if (data.brand.offerReviewRequired)
     issues.push("Confirme a vigência e as condições da oferta antes de criar a peça.");
   if (brief.name.length < 2 || brief.segment.length < 2)
@@ -298,6 +441,7 @@ export function creativeFingerprint(data: BrandData) {
     data.brand.logo,
     data.brand.photo,
     ...(data.brand.visualStyle ? [data.brand.visualStyle] : []),
+    ...(data.brand.identityEdits ? [data.brand.identityEdits] : []),
   ]);
   // Local edit detection, not an authorization/signature mechanism. Keep large
   // uploaded images out of the duplicated approval/export markers.
@@ -355,7 +499,14 @@ export function updateBrand(brand: BrandPreview, patch: Partial<BrandPreview>): 
     ([key, value]) => JSON.stringify(brand[key as keyof BrandPreview]) !== JSON.stringify(value),
   );
   const next = { ...brand, ...patch };
-  if (patch.visualStyle !== undefined && patch.visualStyle !== brand.visualStyle)
+  if (
+    ["visualStyle", "accent", "logo", "identityEdits"].some(
+      (key) =>
+        key in patch &&
+        JSON.stringify(patch[key as keyof BrandPreview]) !==
+          JSON.stringify(brand[key as keyof BrandPreview]),
+    )
+  )
     next.identityConfirmed = false;
   if (changed && next.creative)
     next.creative = { ...next.creative, approved: null, exported: null };
@@ -383,14 +534,23 @@ export const VISUAL_STYLES = [
   },
 ] as const;
 export type VisualStyle = (typeof VISUAL_STYLES)[number]["id"];
-export function visualStyleTokens(style: VisualStyle | null | undefined, accent: string) {
+export function visualStyleTokens(
+  style: VisualStyle | null | undefined,
+  accent: string,
+  identity?: {
+    background?: string | undefined;
+    ink?: string | undefined;
+    font?: string | undefined;
+  },
+) {
   const dynamic = style === "dynamic";
   return {
     accent: /^#[a-f\d]{6}$/i.test(accent) ? accent : "#395D51",
-    background: dynamic ? "#111318" : style === "warm" ? "#f2e6dc" : "#f5f3ed",
-    ink: dynamic ? "#f7f6f2" : "#1c2822",
+    background:
+      identity?.background || (dynamic ? "#111318" : style === "warm" ? "#f2e6dc" : "#f5f3ed"),
+    ink: identity?.ink || (dynamic ? "#f7f6f2" : "#1c2822"),
     secondary: dynamic ? "#c4cad2" : "#53615a",
-    font: style === "warm" ? "Georgia,serif" : "Arial,sans-serif",
+    font: identity?.font || (style === "warm" ? "Georgia,serif" : "Arial,sans-serif"),
   };
 }
 export function recommendedVisualStyle(data: BrandData): VisualStyle {

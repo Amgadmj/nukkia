@@ -2,6 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as onboarding from "../src/lib/onboarding.ts";
 
+test("advertising parameters are stripped before persisting a long pasted clinic URL", () => {
+  const tracked =
+    "https://draquisyvascular.com.br/?utm_source=google&utm_campaign=" +
+    "x".repeat(220) +
+    "&gad_source=1&gad_campaignid=123&gbraid=abc&gclid=xyz";
+  assert.equal(onboarding.normalizeWebsite(tracked), "https://draquisyvascular.com.br/");
+  assert.equal(
+    onboarding.normalizeWebsite("https://clinic.com.br/?service=cardiology"),
+    "https://clinic.com.br/?service=cardiology",
+  );
+});
+
 test("website entry accepts bare and www domains and produces one HTTPS URL", () => {
   assert.equal(typeof onboarding.normalizeWebsite, "function");
   for (const [input, expected] of [

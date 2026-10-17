@@ -45,8 +45,17 @@ function harness(references = false) {
   let cursor = 0;
   let returned = 0;
   let studioOpened = 0;
+  let chapterOpened: number | undefined;
+  let shouldBlock:
+    | ((args: { next: { pathname: string; search: Record<string, unknown> } }) => boolean)
+    | undefined;
   const exports: Record<string, RuntimeValue> = {};
   const dependencies: Record<string, RuntimeValue> = {
+    "@tanstack/react-router": {
+      useBlocker: (options: RuntimeValue) => {
+        shouldBlock = options.shouldBlockFn;
+      },
+    },
     react: {
       useState: (initial: RuntimeValue) => {
         const i = cursor++;
@@ -102,7 +111,10 @@ function harness(references = false) {
     },
     returned: () => returned,
     studioOpened: () => studioOpened,
-    render() {
+    chapterOpened: () => chapterOpened,
+    navigate: (pathname: string, search: Record<string, unknown> = {}) =>
+      shouldBlock?.({ next: { pathname, search } }),
+    render(chapter?: number) {
       cursor = 0;
       return nodes(
         exports.WorkspaceContextEditor({
@@ -111,26 +123,62 @@ function harness(references = false) {
             data = typeof v === "function" ? v(data) : v;
           },
           onReturn: () => returned++,
-          onChapter: () => {},
+          onChapter: (next?: number) => {
+            chapterOpened = next;
+          },
           onHealthStudio: () => studioOpened++,
-          mode: "contexto",
+          mode: chapter === undefined ? "contexto" : "diagnostico",
+          chapter,
         }),
       );
     },
   };
 }
-test("the existing context-editor link exposes the Health studio without changing saved answers", () => {
+test("the context editor keeps focus on diagnosis without a Health-studio detour", () => {
   const app = harness();
   const before = JSON.stringify(app.data());
   const button = app
     .render()
     .find((n) => n.type === "button" && n.props.className === "context-health-link");
-  assert.ok(button, "The context editor needs a direct visible Health studio destination");
-  button.props.onClick();
-  assert.equal(app.studioOpened(), 1);
+  assert.equal(button, undefined);
+  assert.equal(app.studioOpened(), 0);
   assert.equal(JSON.stringify(app.data()), before);
 });
-test("opening Health preserves an unfinished edit to an existing reference link", () => {
+test("an unfinished essential setup cannot return to the panel or generate analysis", () => {
+  const app = harness();
+  app
+    .render()
+    .find((n) => n.type === "form")!
+    .props.onSubmit({ preventDefault() {} });
+  assert.equal(app.returned(), 0);
+  assert.ok(app.render().some((n) => n.props.role === "alert"));
+});
+test("a completed diagnostic cannot bypass an invalid clinic name via Back", () => {
+  const app = harness();
+  app.data().name = "";
+  app.data().answers.challenge = "Reduzir dúvidas de preparo";
+  app.data().strategy.metric = "appointments";
+  app
+    .render()
+    .find((n) => n.props.className === "quick-text-button context-back")!
+    .props.onClick();
+  assert.equal(app.returned(), 0);
+  assert.ok(app.render().some((n) => n.props.role === "alert"));
+});
+test("sidebar navigation cannot bypass the current diagnostic setup", () => {
+  const app = harness();
+  app.render();
+  assert.equal(app.navigate("/painel"), true);
+  assert.equal(app.navigate("/trilha"), true);
+  assert.equal(app.navigate("/demo", { aba: "painel", passo: 6 }), true);
+  assert.equal(app.navigate("/demo", { aba: "trilha", editar: "contexto" }), false);
+  assert.equal(app.navigate("/conta"), false, "account and sign-out remain accessible");
+  app.data().answers.challenge = "Reduzir dúvidas";
+  app.data().strategy.metric = "appointments";
+  app.render();
+  assert.equal(app.navigate("/painel"), false);
+});
+test("returning to the panel preserves an unfinished edit to an existing reference link", () => {
   const app = harness(true);
   const before = JSON.stringify(app.data());
   app
@@ -146,7 +194,7 @@ test("opening Health preserves an unfinished edit to an existing reference link"
     .props.editor.onChange("https://edited.example");
   app
     .render()
-    .find((n) => n.props.className === "context-health-link")!
+    .find((n) => n.props.className === "quick-text-button context-back")!
     .props.onClick();
   assert.equal(app.studioOpened(), 0);
   assert.equal(
@@ -156,7 +204,7 @@ test("opening Health preserves an unfinished edit to an existing reference link"
   assert.equal(JSON.stringify(app.data()), before);
   assert.ok(app.render().some((n) => n.props.role === "alert"));
 });
-test("opening Health preserves an unfinished new reference link", () => {
+test("returning to the panel preserves an unfinished new reference link", () => {
   const app = harness();
   app
     .render()
@@ -168,7 +216,7 @@ test("opening Health preserves an unfinished new reference link", () => {
     .props.onChange({ target: { value: "https://new.example" } });
   app
     .render()
-    .find((n) => n.props.className === "context-health-link")!
+    .find((n) => n.props.className === "quick-text-button context-back")!
     .props.onClick();
   assert.equal(app.studioOpened(), 0);
   assert.equal(
@@ -177,7 +225,7 @@ test("opening Health preserves an unfinished new reference link", () => {
   );
   assert.equal(app.data().brand.extraLinks.length, 0);
 });
-test("context editor populates existing answers and saves back without creating a new onboarding", () => {
+test("context editor generates the review only after all essential decisions, without restarting onboarding", () => {
   const app = harness();
   const offer = app.render().find((n) => n.props.label === "Oferta prioritária")!;
   assert.equal(offer.props.value, "Aulas individuais");
@@ -186,9 +234,24 @@ test("context editor populates existing answers and saves back without creating 
     .render()
     .find((n) => n.type === "form")!
     .props.onSubmit({ preventDefault() {} });
-  assert.equal(app.returned(), 1);
+  assert.equal(app.returned(), 0);
+  assert.equal(app.data().brand.confirmed, false);
+  app.data().answers.challenge = "Reduzir dúvidas de preparo";
+  app.data().strategy.metric = "appointments";
+  app
+    .render()
+    .find((n) => n.type === "form")!
+    .props.onSubmit({ preventDefault() {} });
   assert.equal(app.data().answers.offers, "Fisioterapia individual");
   assert.equal(app.data().brand.confirmed, true);
+  const continueButton = app
+    .render()
+    .find(
+      (n) => n.type === "button" && n.props.children?.includes?.("Continuar para Identidade "),
+    )!;
+  assert.ok(continueButton);
+  continueButton.props.onClick();
+  assert.equal(app.returned(), 1);
 });
 test("reference confirmation cannot be bypassed by submitting the context form", () => {
   const app = harness(true);
@@ -269,6 +332,8 @@ test("editing the full essential form keeps a persistable workspace", () => {
 
 test("context steps preserve answers and prevent hiding an unfinished reference", () => {
   const app = harness();
+  app.data().answers.challenge = "Reduzir dúvidas de preparo";
+  app.data().strategy.metric = "appointments";
   const panel = (title: string) =>
     app.render().find((n) => n.type === "section" && n.props["aria-label"] === title);
   assert.equal(panel("Marca e oferta")?.props.hidden, false);
@@ -304,4 +369,48 @@ test("context steps preserve answers and prevent hiding an unfinished reference"
   );
   assert.equal(app.data().answers.goals, "Reduzir dúvidas antes da consulta");
   assert.ok(app.render().some((n) => n.props.role === "alert"));
+});
+
+test("forward context tabs require the current stage while previous tabs remain reachable", () => {
+  const app = harness();
+  const tab = (label: string) =>
+    app.render().find((n) => n.type === "button" && n.props["aria-label"] === label)!;
+  app.data().name = "";
+  tab("Objetivo").props.onClick();
+  assert.equal(
+    app.render().find((n) => n.props["aria-label"] === "Marca e oferta")?.props.hidden,
+    false,
+  );
+  app.data().name = "Clínica QA";
+  tab("Objetivo").props.onClick();
+  tab("Referências").props.onClick();
+  assert.equal(
+    app.render().find((n) => n.props["aria-label"] === "Seu objetivo")?.props.hidden,
+    false,
+  );
+  tab("Marca").props.onClick();
+  assert.equal(
+    app.render().find((n) => n.props["aria-label"] === "Marca e oferta")?.props.hidden,
+    false,
+  );
+});
+
+test("a chapter advances only after required answers, without making optional history mandatory", () => {
+  const app = harness();
+  const direction = () =>
+    app
+      .render(1)
+      .find(
+        (n) =>
+          n.type === "button" &&
+          n.props.children?.some?.(
+            (child: Element) => child?.type === "strong" && child.props.children === "Seu público",
+          ),
+      )!;
+  direction().props.onClick();
+  assert.equal(app.chapterOpened(), undefined);
+  app.data().answers.problems = "Dúvidas antes das consultas";
+  direction().props.onClick();
+  assert.equal(app.chapterOpened(), 2);
+  assert.equal(app.data().answers.founderStory, "");
 });

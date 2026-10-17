@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useBlocker } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Check, FileText, Plus } from "lucide-react";
 import { CompactAnswer } from "./brand-onboarding";
 import { BrandSources } from "./brand-sources";
 import { changeDemoContext, type DemoData } from "@/lib/quick-start";
 import { answersSchema, CHAPTERS, hasAnswer, type AnswerKey } from "@/lib/onboarding";
-import { markBrandFieldsEdited, updateBrand } from "@/lib/brand-preview";
+import { markBrandFieldsEdited, updateBrand, profileFingerprint } from "@/lib/brand-preview";
 import { referenceFingerprint, replaceBrandReference } from "@/lib/brand-research";
 import { sourceIdentity } from "@/lib/brand-sources";
 import {
@@ -19,7 +20,7 @@ export function WorkspaceContextEditor({
   onReturn,
   onChapter,
   onReport,
-  onHealthStudio,
+  onIdentity,
   mode = "contexto",
   chapter,
 }: {
@@ -29,11 +30,13 @@ export function WorkspaceContextEditor({
   onChapter: (chapter?: number) => void;
   onReport?: (() => void) | undefined;
   onHealthStudio?: (() => void) | undefined;
+  onIdentity?: (() => void) | undefined;
   mode?: "contexto" | "diagnostico";
   chapter?: number | undefined;
 }) {
   const [error, setError] = useState("");
   const [contextStep, setContextStep] = useState(0);
+  const [localReport, setLocalReport] = useState(false);
   const [editingLink, setEditingLink] = useState<{ key: string; value: string } | null>(null);
   const [newLink, setNewLink] = useState<string | null>(null);
   const progress = essentialDiagnostic(data);
@@ -45,6 +48,33 @@ export function WorkspaceContextEditor({
   const references = referenceFingerprint(data);
   const referencesPending = Boolean(references && references !== data.brand.referencesConfirmed);
   const pendingLink = editingLink !== null || newLink !== null;
+  const canConfirm =
+    data.name.trim().length >= 2 &&
+    data.segment.trim().length >= 2 &&
+    data.answers.audience.trim().length >= 3;
+  const setupIncomplete =
+    pendingLink ||
+    referencesPending ||
+    !progress.complete ||
+    !canConfirm ||
+    !!activeChapter?.questions.some(
+      (question) => question.required && !hasAnswer(data.answers[question.key]),
+    );
+  useBlocker({
+    enableBeforeUnload: false,
+    shouldBlockFn: ({ next }) => {
+      const search = next.search as Record<string, unknown>;
+      const overview =
+        next.pathname === "/painel" ||
+        next.pathname === "/trilha" ||
+        (next.pathname === "/demo" &&
+          !search["editar"] &&
+          (search["aba"] === "painel" || search["aba"] === "trilha"));
+      if (!setupIncomplete || !overview) return false;
+      setError("Conclua a configuração antes de voltar. Suas respostas permanecem salvas.");
+      return true;
+    },
+  });
   const edited = (brand: DemoData["brand"], field: string) => markBrandFieldsEdited(brand, [field]);
   const patchBrand = (patch: Parameters<typeof updateBrand>[1]) =>
     onData((current) => ({ ...current, brand: updateBrand(current.brand, patch) }));
@@ -73,34 +103,89 @@ export function WorkspaceContextEditor({
       setError("Confira os links e confirme que pertencem à sua marca.");
       return;
     }
-    const canConfirm =
-      data.name.trim().length >= 2 &&
-      data.segment.trim().length >= 2 &&
-      data.answers.audience.trim().length >= 3;
-    onData((current) => ({
-      ...current,
-      brand: updateBrand(current.brand, { confirmed: canConfirm }),
-    }));
-    onReturn();
-  }
-  function openHealthStudio() {
-    if (pendingLink) {
-      setError("Salve ou cancele a edição do link antes de abrir o estúdio de saúde.");
+    if (!canConfirm || !progress.complete) {
+      setError(
+        "Complete o nome, a área, o público, a oferta, o objetivo, o principal obstáculo e o indicador antes de gerar a análise.",
+      );
+      setContextStep(!canConfirm ? 0 : 1);
       return;
     }
-    onHealthStudio?.();
+    if (
+      activeChapter &&
+      activeChapter.questions.some(
+        (question) => question.required && !hasAnswer(data.answers[question.key]),
+      )
+    ) {
+      setError("Preencha as respostas obrigatórias deste capítulo antes de continuar.");
+      return;
+    }
+    onData((current) => ({
+      ...current,
+      brand: updateBrand(current.brand, {
+        confirmed: true,
+        profileConfirmation: profileFingerprint(current),
+      }),
+    }));
+    if (onReport) onReport();
+    else setLocalReport(true);
   }
   function changeStep(step: number) {
     if (pendingLink) {
       setError("Salve ou cancele a edição do link antes de mudar de etapa.");
       return;
     }
+    if (step > contextStep && (!canConfirm || !hasAnswer(data.answers.offers))) {
+      setError("Complete o nome, a área, a oferta e o público antes de avançar.");
+      return;
+    }
+    if (step > contextStep && step > 1 && !progress.complete) {
+      setError("Complete o objetivo, o principal obstáculo e o indicador antes de avançar.");
+      return;
+    }
     setError("");
     setContextStep(step);
   }
+  if (localReport)
+    return (
+      <div className="workspace-page">
+        <section className="workspace-card" aria-label="Visão do Cérebro">
+          <h1>Seu próximo passo está mais claro.</h1>
+          <p>
+            Visão do Cérebro · resumo das informações que você confirmou, sem uma nova análise por
+            IA.
+          </p>
+          <dl className="workspace-facts">
+            {[
+              ["Clínica", data.name],
+              ["Objetivo", data.answers.goals],
+              ["Público", data.answers.audience],
+              ["Prioridade", data.answers.challenge],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <button className="quick-primary" onClick={onIdentity ?? onReturn}>
+            Continuar para Identidade <ArrowRight size={18} />
+          </button>
+        </section>
+      </div>
+    );
   return (
     <div className="workspace-page context-editor">
-      <button type="button" className="quick-text-button context-back" onClick={onReturn}>
+      <button
+        type="button"
+        className="quick-text-button context-back"
+        onClick={() => {
+          if (setupIncomplete) {
+            setError("Conclua a configuração antes de voltar. Suas respostas permanecem salvas.");
+            return;
+          }
+          onReturn();
+        }}
+      >
         <ArrowLeft size={16} /> Voltar
       </button>
       <header className="workspace-page-heading">
@@ -114,11 +199,6 @@ export function WorkspaceContextEditor({
             ? activeChapter.description
             : "Organize a comunicação da sua clínica. Suas respostas e referências anteriores continuam aqui."}
         </p>
-        {onHealthStudio && (
-          <button type="button" className="context-health-link" onClick={openHealthStudio}>
-            Abrir estúdio de saúde <ArrowRight size={16} aria-hidden="true" />
-          </button>
-        )}
       </header>
       {!activeChapter && (
         <nav className="studio-stepper context-stepper" aria-label="Etapas do contexto">
@@ -247,9 +327,21 @@ export function WorkspaceContextEditor({
                 </div>
                 {field("offers", "Oferta prioritária")}
                 {field("audience", "Quem você quer alcançar?")}
+                <details className="context-audience-details">
+                  <summary>Detalhar o público da clínica (opcional)</summary>
+                  {field("age", "Faixa etária do público")}
+                  {field("location", "Onde seu público está?")}
+                  {field("income", "Perfil socioeconômico (opcional)")}
+                  {field("interests", "Interesses, necessidades e condições atendidas")}
+                  {field(
+                    "objections",
+                    "Quais dúvidas fazem a pessoa adiar o atendimento?",
+                    "Objeções são dúvidas ou motivos para adiar a decisão: preço, tempo ou insegurança sobre o preparo.",
+                  )}
+                </details>
                 <CompactAnswer
                   key={`detail:${contextStep}`}
-                  label="Um detalhe verdadeiro que vale destacar (opcional)"
+                  label="Um detalhe importante que vale destacar (opcional)"
                   value={data.brand.detail}
                   maxLength={600}
                   onChange={(detail) =>
@@ -436,25 +528,13 @@ export function WorkspaceContextEditor({
             className="quick-primary"
             disabled={pendingLink || referencesPending}
           >
-            Salvar e voltar <Check size={17} />
+            Gerar Análise <ArrowRight size={17} />
           </button>
-          <span>Você pode completar o restante depois.</span>
-          {onReport && (
-            <button
-              type="button"
-              className="quick-text-button"
-              disabled={pendingLink || referencesPending}
-              onClick={onReport}
-            >
-              Revisar para gerar análise <ArrowRight size={16} />
-            </button>
-          )}
         </div>
       </form>
-      <details className="context-chapters">
-        <summary>Aprofundar diagnóstico</summary>
+      <section className="context-chapters" aria-label="Capítulos do Cérebro">
         <div className="workspace-card-top">
-          <h2>Aprofundar diagnóstico</h2>
+          <h2>Complete os capítulos do Cérebro</h2>
           {activeChapter && (
             <button type="button" className="quick-text-button" onClick={() => onChapter()}>
               Voltar ao essencial
@@ -470,7 +550,22 @@ export function WorkspaceContextEditor({
                 key={item.title}
                 data-complete={count === item.questions.length}
                 aria-current={index === chapter ? "step" : undefined}
-                onClick={() => onChapter(index)}
+                onClick={() => {
+                  if (
+                    pendingLink ||
+                    (activeChapter &&
+                      index > (chapter ?? 0) &&
+                      activeChapter.questions.some(
+                        (question) => question.required && !hasAnswer(data.answers[question.key]),
+                      ))
+                  ) {
+                    setError(
+                      "Conclua as respostas obrigatórias e salve os links antes de avançar de capítulo.",
+                    );
+                    return;
+                  }
+                  onChapter(index);
+                }}
               >
                 {count === item.questions.length ? <Check size={18} /> : <FileText size={18} />}
                 <strong>{item.title}</strong>
@@ -482,7 +577,7 @@ export function WorkspaceContextEditor({
             );
           })}
         </div>
-      </details>
+      </section>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import * as quick from "../src/lib/quick-start.ts";
 import * as onboarding from "../src/lib/onboarding.ts";
 import * as workspace from "../src/lib/marketing-workspace.ts";
 import * as research from "../src/lib/brand-research.ts";
+import * as palette from "../src/lib/identity-palette.ts";
 
 // Values cross the VM boundary as untyped JSX props, hooks and module exports.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,6 +54,8 @@ function mount({
   fetchLogo,
   prepareImage,
   search = {},
+  rejectWorkspaceWrite = false,
+  diagnosticAnswers = null,
 }: {
   kit?: Record<string, RuntimeValue>;
   unavailable?: boolean;
@@ -60,6 +63,8 @@ function mount({
   fetchLogo?: () => Promise<Response>;
   prepareImage?: (file: File) => Promise<string>;
   search?: Record<string, unknown>;
+  rejectWorkspaceWrite?: boolean;
+  diagnosticAnswers?: unknown;
 } = {}) {
   let data = quick.demoSchema.parse({
     name: "Aurora",
@@ -93,8 +98,10 @@ function mount({
   };
   const writes: { table: string; value: Record<string, RuntimeValue> }[] = [];
   const navigations: Record<string, unknown>[] = [];
+  let blocker: RuntimeValue;
   let workspaceWrites = 0;
   let fetches = 0;
+  let remoteCalls = 0;
   const states = new Map<string, RuntimeValue[]>();
   let current = "";
   let cursor = 0;
@@ -120,12 +127,14 @@ function mount({
       const { values, index } = slot(() => ({ current: initial }));
       return values[index];
     },
-    useEffect(effect: () => RuntimeValue) {
-      slot(() => {
+    useEffect(effect: () => RuntimeValue, deps?: unknown[]) {
+      const { values, index } = slot(() => undefined);
+      const previous = values[index] as unknown[] | undefined;
+      if (!previous || !deps || deps.some((value, i) => value !== previous[i])) {
+        values[index] = deps;
         const cleanup = effect();
         if (cleanup) cleanups.push(cleanup);
-        return true;
-      });
+      }
     },
     useMemo: (fn: () => RuntimeValue) => fn(),
   };
@@ -150,7 +159,15 @@ function mount({
         ...options,
         useSearch: () => options.validateSearch?.(search) ?? {},
       }),
-      useNavigate: () => (options: Record<string, unknown>) => navigations.push(options),
+      useBlocker: (options: RuntimeValue) => {
+        blocker = options;
+      },
+      useNavigate: () => (options: Record<string, unknown>) => {
+        if (
+          !blocker?.shouldBlockFn({ next: { pathname: options.to, search: options.search ?? {} } })
+        )
+          navigations.push(options);
+      },
       Link: "a",
     },
     "@tanstack/react-query": {
@@ -160,7 +177,11 @@ function mount({
     "@/lib/company": {
       useCompany: () => ({ data: company }),
       useBrandKit: () => ({ data: brandKit, isLoading: false, isError: false }),
-      useDiagnostic: () => ({ data: null, isLoading: false, isError: false }),
+      useDiagnostic: () => ({
+        data: diagnosticAnswers ? { answers: diagnosticAnswers } : null,
+        isLoading: false,
+        isError: false,
+      }),
     },
     "@/components/marketing-provider": {
       useMarketingWorkspace: () => ({
@@ -170,6 +191,7 @@ function mount({
         sync,
         setData: (update: RuntimeValue) => {
           workspaceWrites++;
+          if (rejectWorkspaceWrite) return;
           data = typeof update === "function" ? update(data) : update;
         },
       }),
@@ -197,6 +219,7 @@ function mount({
     "@/lib/use-logo-url": { useLogoUrl: (value: string | null) => ({ url: value }) },
     "@/lib/brand-preview": preview,
     "@/lib/brand-story": story,
+    "@/lib/identity-palette": palette,
     "@/lib/quick-start": quick,
     "@/lib/post-art": {
       ...art,
@@ -209,6 +232,7 @@ function mount({
     "@/lib/utils": { cn: (...values: unknown[]) => values.filter(Boolean).join(" ") },
     "@/lib/api": {
       apiFetch: () => {
+        remoteCalls++;
         throw new Error("Remote API must not run in this test");
       },
     },
@@ -282,9 +306,13 @@ function mount({
     kit: brandKit,
     writes,
     navigations,
+    block: (pathname: string, search: Record<string, unknown> = {}) =>
+      blocker?.shouldBlockFn({ next: { pathname, search } }) ?? false,
+    blocker: () => blocker,
     route,
     workspaceWrites: () => workspaceWrites,
     fetches: () => fetches,
+    remoteCalls: () => remoteCalls,
     replaceData: (next: typeof data) => {
       data = next;
     },
@@ -292,7 +320,7 @@ function mount({
   };
 }
 
-test("identity shows one page heading and the saved logo before disclosed piece adjustments", () => {
+test("identity shows one heading and saved logo without inspirations or piece adjustments", () => {
   const ui = mount();
   const tree = ui.render();
   assert.deepEqual(
@@ -309,8 +337,8 @@ test("identity shows one page heading and the saved logo before disclosed piece 
         "Ajustes desta peça",
       ),
   );
-  assert.ok(adjustments, "Piece controls belong to a disclosure");
-  assert.ok(!adjustments.props.open);
+  assert.equal(adjustments, undefined);
+  assert.ok(!nodes(tree).some((x) => x.type === "inspiration-board"));
   assert.equal(ui.data(), ui.original);
   assert.equal(ui.workspaceWrites(), 0);
   assert.equal(ui.fetches(), 0);
@@ -340,11 +368,11 @@ test("IdentityForm returns one form root rather than fragment siblings", () => {
   assert.equal(root.closingElement.tagName.getText(file), "form");
 });
 
-test("saved kit and piece settings have unique keys as rendered siblings", () => {
+test("saved kit has a stable unique key", () => {
   const ui = mount({ search: { retorno: "conteudo" } });
   const children = ui.route.component().props.children as Element[];
   const keyed = children.filter((child) => child?.key != null);
-  assert.ok(keyed.length >= 2, "Both kit and piece settings must be mounted");
+  assert.ok(keyed.length >= 1);
   const keys = keyed.map((child) => child.key);
   assert.equal(
     new Set(keys).size,
@@ -407,6 +435,21 @@ test("saved palette survives a tone-only save even when legacy kit has no option
   });
   assert.equal(ui.writes[0].value.logo_url, ui.kit.logo_url);
   assert.equal(ui.data(), ui.original);
+});
+
+test("refreshing anchored palette proposals preserves the reference without an AI call", async () => {
+  const ui = mount();
+  const refresh = nodes(ui.render()).find(
+    (x) => x.type === "button" && text(x).includes("Atualizar variações próximas"),
+  );
+  assert.ok(refresh);
+  await refresh.props.onClick();
+  assert.equal(ui.remoteCalls(), 0);
+  assert.equal(ui.writes.length, 0);
+  const selected = nodes(ui.render()).find(
+    (x) => x.props["aria-pressed"] === true && text(x).includes("#654321"),
+  );
+  assert.ok(selected, "the existing palette must remain first");
 });
 
 test("custom saved tone stays selectable and brandbook is a secondary disclosure", () => {
@@ -503,19 +546,111 @@ test("conflicting workspace blocks applying the kit", () => {
   assert.equal(ui.fetches(), 0);
 });
 
-test("piece color adjustment remains available inside disclosure and invalidates only the piece", () => {
+test("identity overview exits require confirmation and all required materials", () => {
   const ui = mount();
-  const disclosure = nodes(ui.render()).find(
-    (x) => x.type === "details" && text(x).includes("Ajustes desta peça"),
-  );
-  assert.ok(disclosure);
-  const color = nodes(disclosure).find((x) => x.type === "input" && x.props.type === "color");
-  assert.ok(color);
-  color.props.onChange({ target: { value: "#ABCDEF" } });
-  assert.equal(ui.data().brand.accent, "#ABCDEF");
-  assert.equal(ui.data().brand.creative?.approved, null);
-  assert.equal(ui.data().brand.creative?.copy, ui.original.brand.creative?.copy);
+  ui.render();
+  assert.equal(ui.block("/painel"), true);
+  assert.equal(ui.block("/trilha"), true);
+  assert.equal(ui.blocker().enableBeforeUnload, false);
+  assert.ok(nodes(ui.render()).some((item) => item.props.role === "alert"));
+  for (const path of ["/diagnostico", "/conteudo", "/conta", "/auth", "/assinatura"]) {
+    assert.equal(ui.block(path), false);
+  }
+  ui.replaceData({ ...ui.data(), brand: { ...ui.data().brand, identityConfirmed: true } });
+  ui.render();
+  assert.equal(ui.block("/painel"), false);
+  ui.replaceData({
+    ...ui.data(),
+    brand: { ...ui.data().brand, preferredApproach: "trust", photo: "" },
+  });
+  ui.render();
+  assert.equal(ui.block("/trilha"), true);
+});
+
+test("completion refuses stale clicks when required identity is invalid", () => {
+  const ui = mount();
+  const complete = nodes(ui.render()).find(
+    (x) => x.type === "button" && text(x).includes("Concluir identidade"),
+  )!;
+  assert.ok(complete);
+  ui.replaceData({ ...ui.data(), brand: { ...ui.data().brand, visualStyle: "warm", photo: "" } });
+  ui.render();
+  complete.props.onClick();
+  assert.deepEqual(ui.navigations, []);
+  assert.equal(ui.data().brand.identityConfirmed, false);
   assert.deepEqual(ui.writes, []);
+});
+
+test("completion waits for an accepted workspace update before navigating", () => {
+  const ui = mount({ rejectWorkspaceWrite: true });
+  nodes(ui.render())
+    .find((x) => x.type === "button" && text(x).includes("Concluir identidade"))!
+    .props.onClick();
+  ui.render();
+  assert.deepEqual(ui.navigations, []);
+  assert.equal(ui.data().brand.identityConfirmed, false);
+});
+
+test("confirmed Brain answers override older diagnostic candidates, including cleared history", () => {
+  const ui = mount({
+    diagnosticAnswers: { offers: "Oferta antiga", founderStory: "Começamos em família." },
+  });
+  const tree = nodes(ui.render());
+  assert.match(
+    tree.find((x) => x.props.id === "brand-story-mission")!.props.value,
+    /Aulas individuais/,
+  );
+  assert.ok(
+    !tree
+      .find((x) => x.props.id === "brand-story-manifesto")!
+      .props.value.includes("Começamos em família"),
+  );
+});
+
+test("late visual evidence updates untouched palette proposals", () => {
+  const ui = mount({ kit: { palette: null } });
+  ui.render();
+  ui.replaceData({
+    ...ui.data(),
+    brand: {
+      ...ui.data().brand,
+      confirmed: false,
+      research: {
+        ...ui.data().brand.research,
+        visualEvidence: {
+          colors: [{ value: "#335577", sourceUrl: "https://example.com" }],
+          fonts: [],
+          logoUrl: "",
+        },
+      },
+    },
+  });
+  ui.render();
+  const options = nodes(ui.render()).filter((x) => x.props["aria-pressed"] !== undefined);
+  assert.ok(text(options[0]).includes("#335577"));
+});
+
+test("palette choices use observed colors when no identity has been confirmed", () => {
+  const ui = mount({ kit: { palette: null, options: [{ nome: "Não usar", cores: ["#FF0000"] }] } });
+  ui.replaceData({
+    ...ui.data(),
+    brand: {
+      ...ui.data().brand,
+      confirmed: false,
+      research: {
+        ...ui.data().brand.research,
+        visualEvidence: {
+          colors: [{ value: "#335577", sourceUrl: "https://example.com" }],
+          fonts: [],
+          logoUrl: "",
+        },
+      },
+    },
+  });
+  const options = nodes(ui.render()).filter((x) => x.props["aria-pressed"] !== undefined);
+  assert.equal(options.length, 3);
+  assert.ok(text(options[0]).includes("#335577"));
+  assert.ok(!text(options).includes("#FF0000"));
 });
 
 test("saving tone preserves custom fonts instead of replacing them with a starter preset", async () => {
@@ -540,43 +675,29 @@ test("saving tone preserves custom fonts instead of replacing them with a starte
   assert.equal(ui.data(), ui.original);
 });
 
-test("piece style changes invalidate approval and missing required photo blocks confirmation", () => {
+test("missing required photo blocks the single completion action", () => {
   const ui = mount();
-  ui.replaceData({ ...ui.data(), brand: { ...ui.data().brand, photo: "" } });
-  nodes(ui.render())
-    .find((x) => x.props.id === "piece-visual-style")!
-    .props.onChange({ target: { value: "warm" } });
-  assert.equal(ui.data().brand.visualStyle, "warm");
-  assert.equal(ui.data().brand.creative?.approved, null);
+  ui.replaceData({ ...ui.data(), brand: { ...ui.data().brand, visualStyle: "warm", photo: "" } });
   const tree = ui.render();
   assert.ok(nodes(tree).some((x) => x.props.role === "status" && text(x).includes("foto")));
   assert.equal(
-    nodes(tree).find((x) => x.type === "button" && text(x).includes("Confirmar ajustes"))!.props
+    nodes(tree).find((x) => x.type === "button" && text(x).includes("Concluir identidade"))!.props
       .disabled,
     true,
   );
 });
 
-test("a pending piece upload cannot write after leaving identity", async () => {
-  let finish!: (asset: string) => void;
-  const asset = new Promise<string>((resolve) => {
-    finish = resolve;
-  });
-  const ui = mount({ prepareImage: () => asset });
-  nodes(ui.render())
-    .find((x) => x.props.id === "piece-photo")!
-    .props.onChange({
-      target: {
-        files: [new File(["photo"], "photo.png", { type: "image/png" })],
-        value: "photo.png",
-      },
-    });
-  ui.unmount();
-  finish("data:image/png;base64,Yw==");
-  await asset;
-  await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(ui.data(), ui.original);
-  assert.equal(ui.workspaceWrites(), 0);
+test("story candidates are editable inline without making a provider call", () => {
+  const ui = mount();
+  const field = nodes(ui.render()).find((x) => x.props.id === "brand-story-mission")!;
+  assert.ok(field.props.value.includes("Aulas individuais"));
+  field.props.onChange({ target: { value: "Texto revisado" } });
+  assert.equal(
+    nodes(ui.render()).find((x) => x.props.id === "brand-story-mission")!.props.value,
+    "Texto revisado",
+  );
+  assert.deepEqual(ui.writes, []);
+  assert.deepEqual(ui.navigations, []);
 });
 
 test("identity search accepts only workspace section IDs as optional return origins", () => {
@@ -617,8 +738,9 @@ for (const [retorno, to] of [
     const tree = ui.render();
     assert.equal(ui.data(), ui.original);
     nodes(tree)
-      .find((x) => x.type === "button" && text(x).includes("Confirmar ajustes"))!
+      .find((x) => x.type === "button" && text(x).includes("Concluir identidade"))!
       .props.onClick();
+    ui.render();
     assert.deepEqual(JSON.parse(JSON.stringify(ui.navigations)), [
       { to, search: to === "/conteudo" ? { aba: "peca" } : {} },
     ]);
@@ -660,8 +782,9 @@ for (const retorno of ["painel", "trilha", "conteudo"] as const) {
 test("identity returns to the originating piece briefing after confirmation", () => {
   const ui = mount({ search: { retorno: "conteudo", origemConteudo: "briefing" } });
   nodes(ui.render())
-    .find((x) => x.type === "button" && text(x).includes("Confirmar ajustes"))!
+    .find((x) => x.type === "button" && text(x).includes("Concluir identidade"))!
     .props.onClick();
+  ui.render();
   assert.deepEqual(JSON.parse(JSON.stringify(ui.navigations)), [
     { to: "/conteudo", search: { aba: "briefing" } },
   ]);

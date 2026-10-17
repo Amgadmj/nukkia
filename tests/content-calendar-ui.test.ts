@@ -15,6 +15,9 @@ type Node = {
     onChange: (event: { target: { value: string } }) => void;
     onInput: (event: { currentTarget: { value: string } }) => void;
     onSubmit: (event: { preventDefault: () => void }) => void;
+    onDragStart: (event: ReturnType<typeof dragEvent>) => void;
+    onDragEnd: () => void;
+    onDrop: (event: ReturnType<typeof dragEvent>) => void;
   };
 };
 function nodes(value: unknown): Node[] {
@@ -23,7 +26,7 @@ function nodes(value: unknown): Node[] {
   const node = value as Node;
   return [node, ...nodes(node.props.children)];
 }
-function harness() {
+function harness(outcome: boolean | Error = true) {
   let data = demoSchema.parse({ name: "Clínica QA", answers: {} });
   data.brand.creative = composeContent(data, "educate");
   data = saveLibraryVersion(data, "generic");
@@ -50,7 +53,11 @@ function harness() {
           },
         ];
       },
-      useRef: () => ({ current: null }),
+      useRef(initial: unknown) {
+        const i = cursor++;
+        if (!(i in state)) state[i] = { current: initial };
+        return state[i];
+      },
       useEffect: () => {},
     },
     "react/jsx-runtime": {
@@ -71,6 +78,7 @@ function harness() {
   return {
     plans,
     id,
+    items: data.library.items,
     render() {
       cursor = 0;
       return nodes(
@@ -88,7 +96,8 @@ function harness() {
           },
           onPlan: (...args: unknown[]) => {
             plans.push(args);
-            return true;
+            if (outcome instanceof Error) throw outcome;
+            return outcome;
           },
         }),
       );
@@ -106,6 +115,104 @@ test("opening an adjacent-month bubble selects its actual day, month and saved i
     h.render().find((n) => n.props["data-day"] === "2026-11-01")!.props["aria-pressed"],
     true,
   );
+});
+
+function dragEvent() {
+  const payload = new Map<string, string>();
+  return {
+    preventDefault() {},
+    dataTransfer: {
+      effectAllowed: "all",
+      dropEffect: "none",
+      setData(type: string, value: string) {
+        payload.set(type, value);
+      },
+      getData(type: string) {
+        return payload.get(type) ?? "";
+      },
+    },
+  };
+}
+function target(h: ReturnType<typeof harness>, date = "2026-10-20") {
+  return h
+    .render()
+    .find(
+      (n) =>
+        n.props.className === "calendar-cell" &&
+        nodes(n.props.children).some((child) => child.props["data-day"] === date),
+    )!;
+}
+test("dragging a saved plan changes only its date through onPlan", () => {
+  const h = harness();
+  const event = dragEvent();
+  const bubble = h.render().find((n) => n.props.className === "calendar-bubble")!;
+  assert.equal(bubble.props.draggable, true);
+  bubble.props.onDragStart(event);
+  target(h).props.onDrop(event);
+  assert.deepEqual(JSON.parse(JSON.stringify(h.plans)), [
+    [h.id, 1, "2026-10-20", "instagram", { time: "09:00", timezone: "UTC" }],
+  ]);
+  assert.deepEqual(h.selected(), { month: "2026-10", activeId: h.id });
+  assert.ok(h.render().some((n) => n.props.role === "status"));
+  target(h).props.onDrop(event);
+  assert.equal(h.plans.length, 1, "a consumed drag cannot be replayed");
+});
+test("external drops and stale, archived or unplanned items never call onPlan", () => {
+  for (const invalid of ["external", "archived", "unplanned", "version", "forged", "ended"]) {
+    const h = harness();
+    const event = dragEvent();
+    const bubble = h.render().find((n) => n.props.className === "calendar-bubble")!;
+    if (invalid !== "external") bubble.props.onDragStart(event);
+    if (invalid === "archived") h.items[0]!.archived = true;
+    if (invalid === "unplanned") h.items[0]!.plan = null;
+    if (invalid === "version") h.items[0]!.plan!.version = 999;
+    if (invalid === "forged") event.dataTransfer.getData = () => "unknown-item";
+    if (invalid === "ended") bubble.props.onDragEnd();
+    target(h).props.onDrop(event);
+    assert.equal(h.plans.length, 0, invalid);
+  }
+});
+test("moving a date-only legacy plan does not invent channel, time or timezone", () => {
+  const h = harness();
+  h.items[0]!.plan = { date: "2026-11-01", version: 1 };
+  const event = dragEvent();
+  h.render()
+    .find((n) => n.props.className === "calendar-bubble")!
+    .props.onDragStart(event);
+  target(h).props.onDrop(event);
+  assert.equal(h.plans.length, 1);
+  assert.equal(h.plans[0]![3], undefined);
+  assert.deepEqual(Object.keys(h.plans[0]![4] as object), []);
+});
+test("failed or throwing onPlan reports an error without selecting the moved item", () => {
+  for (const outcome of [false, new Error("save failed")]) {
+    const h = harness(outcome);
+    const event = dragEvent();
+    h.render()
+      .find((n) => n.props.className === "calendar-bubble")!
+      .props.onDragStart(event);
+    target(h).props.onDrop(event);
+    assert.equal(h.selected().activeId, null);
+    assert.ok(h.render().some((n) => n.props.role === "alert"));
+    assert.ok(!h.render().some((n) => n.props.role === "status"));
+  }
+});
+test("failed keyboard-accessible planning form stays open and reports the failure", () => {
+  for (const outcome of [false, new Error("save failed")]) {
+    const h = harness(outcome);
+    h.render()
+      .find((n) => n.props["aria-expanded"] === false)!
+      .props.onClick();
+    h.render()
+      .find((n) => n.type === "select" && n.props.required)!
+      .props.onChange({ target: { value: h.id } });
+    h.render()
+      .find((n) => n.type === "form")!
+      .props.onSubmit({ preventDefault() {} });
+    assert.ok(h.render().some((n) => n.type === "form"));
+    assert.ok(h.render().some((n) => n.props.role === "alert"));
+    assert.equal(h.selected().activeId, null);
+  }
 });
 test("planning form persists native time input and cancel does not submit a plan", () => {
   const h = harness();

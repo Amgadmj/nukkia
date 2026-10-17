@@ -1,7 +1,7 @@
 import { WorkspaceSkeleton } from "@/components/workspace-skeleton";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CheckCircle2, Circle, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,18 @@ function Trilha() {
   const { data: company } = useCompany();
   const { data: missions } = useMissions(company?.id);
   const { data: progress } = useProgress(company?.id);
+  const monthly = useQuery({
+    queryKey: ["content-items", company?.id, "journey"],
+    enabled: !!company?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("content_items")
+        .select("status,scheduled_for")
+        .eq("company_id", company!.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   const queryClient = useQueryClient();
 
   const xp = progress?.xp ?? 0;
@@ -122,6 +134,7 @@ function Trilha() {
             : void navigate({ to: WORKSPACE_NAV.find((item) => item.id === id)!.to })
         }
         identity={{ logo: foundation.logo, tone: foundation.identity }}
+        accountPlan={monthly.data ?? []}
         onCalendar={() => void navigate({ to: "/conteudo", search: { aba: "calendario" } })}
       />
       <details className="workspace-card">

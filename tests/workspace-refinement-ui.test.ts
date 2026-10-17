@@ -50,6 +50,7 @@ function harness() {
   });
   const exports: Record<string, (p: Record<string, unknown>) => Element> = {};
   const modules: Record<string, unknown> = {
+    "@tanstack/react-router": { useBlocker() {} },
     react: {
       useState(initial: unknown) {
         const index = cursor++;
@@ -144,26 +145,19 @@ test("demo channels use edited public references without reviving an excluded le
   assert.ok(!content.includes("Conta conectada"));
 });
 
-test("the brain lets a user create and revise a hypothesis without replacing brand facts", () => {
+test("the initial Brain hides hypothesis editing without deleting saved hypotheses", () => {
   const app = harness();
-  app.render().find((n) => n.props.role === "tab" && text(n) === "Hipóteses")!.props.onClick!();
-  const create = app.render().find((n) => n.type === "button" && text(n).includes("Nova hipótese"));
-  assert.ok(create, "Hypotheses need a real creation action, not only suggestions");
-  create.props.onClick!();
-  app.render().find((n) => n.type === "textarea")!.props.onChange!({
-    target: { value: "Mostrar a equipe pode aumentar os contatos." },
-  });
-  app.render().find((n) => n.type === "form")!.props.onSubmit!({ preventDefault() {} });
-  assert.equal(app.data().hypotheses.length, 1);
-  assert.equal(app.data().answers.offers, "Exercícios");
-  app.render().find((n) => n.type === "button" && n.props["aria-label"] === "Editar hipótese")!
-    .props.onClick!();
-  app.render().find((n) => n.type === "textarea")!.props.onChange!({
-    target: { value: "Mostrar o atendimento pode reduzir dúvidas." },
-  });
-  app.render().find((n) => n.type === "form")!.props.onSubmit!({ preventDefault() {} });
-  assert.equal(app.data().hypotheses.length, 1);
-  assert.equal(app.data().hypotheses[0].text, "Mostrar o atendimento pode reduzir dúvidas.");
+  app.data().hypotheses = [
+    { id: "saved-hypothesis", text: "Uma hipótese guardada", source: "user" },
+  ];
+  const before = JSON.stringify(app.data().hypotheses);
+  const tree = app.render();
+  assert.equal(
+    tree.some((n) => n.props.role === "tab" && text(n) === "Hipóteses"),
+    false,
+  );
+  assert.equal(JSON.stringify(app.data().hypotheses), before);
+  assert.ok(tree.some((n) => n.props.role === "tab" && text(n) === "Referências do site"));
 });
 
 test("dashboard opens diagnosis directly and defers channel recommendations until it is complete", () => {
@@ -179,6 +173,34 @@ test("dashboard opens diagnosis directly and defers channel recommendations unti
     tree.some((n) => n.type === "button" && text(n).includes("Ver recomendações")),
     false,
   );
+});
+
+test("dashboard leads with diagnosis and hides secondary panels without deleting saved work", () => {
+  const app = harness();
+  const before = JSON.stringify(app.data());
+  const tree = app.render("WorkspaceOverview");
+  const firstButton = tree.find((n) => n.type === "button")!;
+  assert.match(text(firstButton), /Concluir diagnóstico da marca/);
+  firstButton.props.onClick!();
+  assert.deepEqual(app.actions, ["editor"]);
+  assert.doesNotMatch(
+    text(tree),
+    /Seus rascunhos|Prioridades|Em andamento|OBJETIVO DA MARCA|Seus resultados começam/,
+  );
+  assert.equal(JSON.stringify(app.data()), before);
+});
+
+test("journey puts identity before channels and exposes chronological production tasks", () => {
+  const tree = harness().render("DeliveryJourney");
+  const copy = text(tree);
+  assert.ok(copy.indexOf("Identidade da marca") < copy.indexOf("Canais e presença digital"));
+  for (const label of [
+    "Gerar o cronograma mensal",
+    "Revisar o cronograma",
+    "Aprovar a peça completa",
+    "Planejar a data de publicação",
+  ])
+    assert.ok(copy.includes(label), label);
 });
 
 test("trail completed sections carry explicit completion state instead of decorative ordinals", () => {
@@ -208,17 +230,13 @@ test("home creation cards route video to scenes and image to a new piece brief",
   assert.equal(app.data().name, "Movitta");
 });
 
-test("home resumes the newest saved item by its exact id and version", () => {
+test("home hides the drafts section while retaining every saved library version", () => {
   const app = harness();
   app.data().brand.creative = preview.composeContent(app.data(), "invite");
   Object.assign(app.data(), saveLibraryVersion(app.data(), "generic"));
-  const item = app.data().library.items[0]!;
-  const button = app
-    .render("WorkspaceOverview")
-    .find((node) => node.type === "button" && text(node).includes("Retomar versão 1"));
-  assert.ok(button);
-  button.props.onClick!();
-  assert.deepEqual(app.actions, [`${item.id}:1`]);
+  const before = JSON.stringify(app.data().library);
+  assert.doesNotMatch(text(app.render("WorkspaceOverview")), /Seus rascunhos|Retomar versão/);
+  assert.equal(JSON.stringify(app.data().library), before);
 });
 
 test("home carousel choice selects an educational approach without replacing the draft", () => {
@@ -235,22 +253,18 @@ test("home carousel choice selects an educational approach without replacing the
   assert.equal(JSON.stringify(app.data()), before);
 });
 
-test("home saved preview depicts the saved snapshot rather than unsaved editor changes", () => {
+test("dashboard navigation never overwrites saved snapshots with unsaved editor changes", () => {
   const app = harness();
   app.data().brand.creative = preview.composeContent(app.data(), "invite");
   app.data().brand.creative!.copy.title = "Versão guardada QA";
   Object.assign(app.data(), saveLibraryVersion(app.data(), "generic"));
   app.data().brand.creative!.copy.title = "Alteração ainda não guardada";
-  const button = app
-    .render("WorkspaceOverview")
-    .find((n) => n.type === "button" && text(n).includes("Retomar versão 1"))!;
-  const thumbnail = nodes(button).find((n) => n.type === "img");
-  assert.ok(thumbnail, "Saved work needs its actual visual preview");
-  assert.match(decodeURIComponent(String(thumbnail.props.src)), /Versão guardada QA/);
-  assert.doesNotMatch(
-    decodeURIComponent(String(thumbnail.props.src)),
-    /Alteração ainda não guardada/,
-  );
+  const before = JSON.stringify(app.data().library);
+  const tree = app.render("WorkspaceOverview");
+  tree.find((n) => n.type === "button" && text(n).includes("Concluir diagnóstico da marca"))!.props
+    .onClick!();
+  assert.equal(JSON.stringify(app.data().library), before);
+  assert.match(JSON.stringify(app.data().library), /Versão guardada QA/);
 });
 
 test("trail dots reveal explanations without navigating or changing saved progress", () => {
@@ -268,11 +282,18 @@ test("trail dots reveal explanations without navigating or changing saved progre
   assert.ok(panel);
   const bullets = nodes(panel).filter((n) => n.type === "li");
   assert.ok(bullets.length >= 2 && bullets.length <= 3);
+  assert.match(text(panel), /Cores, estilo e materiais/);
   assert.deepEqual(app.actions, []);
   assert.equal(JSON.stringify(app.data()), before);
   nodes(panel).find((n) => n.type === "button" && text(n).includes("Escolher uma direção"))!.props
     .onClick!();
   assert.deepEqual(app.actions, ["marca"]);
+});
+
+test("manual onboarding does not claim a site has been analyzed", () => {
+  const app = harness();
+  app.data().brand.research.sources = [];
+  assert.doesNotMatch(text(app.render("WorkspaceOverview")), /Seu site já trouxe/);
 });
 
 test("home no longer duplicates the section title and workspace brand", () => {

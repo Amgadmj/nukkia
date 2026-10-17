@@ -2321,3 +2321,66 @@
   max-width: 100%;
   min-width: 0;
 }
+.home-next-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px;
+  border: 1px solid var(--nukkia-action);
+  background: color-mix(in srgb, var(--nukkia-action) 7%, var(--nukkia-surface));
+}
+.home-next-step .quick-primary {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 52px;
+}
+.home-plan-next {
+  margin: 20px 0;
+}
+.context-editor .brand-fields :is(input:not([type="checkbox"]), textarea, select),
+.context-editor .quick-input {
+  border: 1px solid var(--nukkia-border-strong, var(--nukkia-action));
+  background: var(--nukkia-bg);
+  box-shadow: 0 2px 5px #0000000c;
+  border-radius: 12px;
+}
+.context-stepper button {
+  border: 1px solid var(--nukkia-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: var(--nukkia-surface);
+}
+.context-stepper button[aria-current="step"] {
+  border-color: var(--nukkia-action);
+  box-shadow: inset 0 -3px var(--nukkia-action);
+  background: color-mix(in srgb, var(--nukkia-action) 12%, var(--nukkia-surface));
+  font-weight: 700;
+}
+.context-editor .context-section[aria-label="Referências da marca"],
+.context-add-link {
+  border: 1px solid var(--nukkia-action);
+  border-radius: 16px;
+  padding: 24px;
+}
+.context-chapters {
+  border: 1px solid var(--nukkia-border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 24px;
+}
+.context-audience-details {
+  border: 1px solid var(--nukkia-border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.context-audience-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.context-save {
+  justify-content: flex-end;
+}
+.workspace-top-progress [aria-label="Experiência acumulada"] {
+  white-space: nowrap;
+  font-weight: 700;
+}

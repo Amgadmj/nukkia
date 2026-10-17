@@ -71,7 +71,7 @@ export function postSvg(
   brief: FirstPostBrief,
   copy: PostCopy,
   brand: Pick<BrandPreview, "accent" | "logo" | "photo"> &
-    Partial<Pick<BrandPreview, "visualStyle">>,
+    Partial<Pick<BrandPreview, "visualStyle" | "identityEdits">>,
   layout: { approach: ContentApproach; page: number; total: number } = {
     approach: "invite",
     page: 1,
@@ -81,6 +81,7 @@ export function postSvg(
   const { accent, background, ink, secondary, font } = visualStyleTokens(
     brand.visualStyle,
     brand.accent,
+    brand.identityEdits,
   );
   const photo = raster(brand.photo),
     logo = raster(brand.logo);
@@ -129,7 +130,7 @@ export function postSvg(
   ${logo ? `<rect x="60" y="58" width="208" height="100" rx="12" fill="white"/><image href="${logo}" x="70" y="68" width="188" height="80" preserveAspectRatio="xMidYMid meet"/>` : ""}
   <text font-family="Arial,sans-serif" font-size="${brandSize}" font-weight="600" fill="${ink}">${textLines(brandName, logo ? 300 : 64, 100, brandSize * 1.4)}</text>
   <path d="M64 205H1016" stroke="#cccfc7"/>
-  <text font-family="${font}" font-size="${effectiveTitleSize}" letter-spacing="-2" font-weight="700" fill="${ink}">${textLines(title, 60, titleY, effectiveTitleSize * 1.25)}</text>
+  <text font-family="${escapeXml(font)}" font-size="${effectiveTitleSize}" letter-spacing="-2" font-weight="700" fill="${ink}">${textLines(title, 60, titleY, effectiveTitleSize * 1.25)}</text>
   <text font-family="Arial,sans-serif" font-size="${bodySize}" fill="${secondary}">${textLines(body, 64, bodyY, bodySize * 1.5)}</text>
   ${
     photoLed

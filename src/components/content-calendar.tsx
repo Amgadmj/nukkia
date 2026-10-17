@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import {
   calendarDays,
+  calendarPlanMove,
   localCalendarDate,
   plannedForDay,
   plannedTitle,
@@ -71,8 +72,8 @@ export function ContentCalendar({
     id: string,
     version: number,
     date: string,
-    channel: PlanningChannel,
-    timing: { time: string; timezone: string },
+    channel: PlanningChannel | undefined,
+    timing: { time?: string; timezone?: string },
   ) => boolean;
 }) {
   const today = localCalendarDate();
@@ -85,6 +86,8 @@ export function ContentCalendar({
   const [time, setTime] = useState("09:00");
   const [zone, setZone] = useState("America/Sao_Paulo");
   const [channel, setChannel] = useState<PlanningChannel>("instagram");
+  const [feedback, setFeedback] = useState<{ error: boolean; text: string } | null>(null);
+  const draggedItem = useRef<string | null>(null);
   const focusDay = useRef(false);
   const calendar = useRef<HTMLDivElement>(null);
   const entries = plannedForDay(items, day);
@@ -159,6 +162,10 @@ export function ContentCalendar({
           </button>
         </div>
       </div>
+      <p className="calendar-caption">
+        Arraste um conteúdo para mudar a data ou use Planejar conteúdo no dia de destino.
+      </p>
+      {feedback && <p role={feedback.error ? "alert" : "status"}>{feedback.text}</p>}
       {view === "month" && (
         <div className="calendar-month-scroll" ref={calendar}>
           <div className="calendar-weekdays" aria-hidden="true">
@@ -175,6 +182,45 @@ export function ContentCalendar({
                   data-outside={!date.startsWith(month)}
                   data-selected={date === day}
                   key={date}
+                  onDragOver={(event) => {
+                    if (
+                      draggedItem.current &&
+                      calendarPlanMove(allItems, draggedItem.current, date)
+                    ) {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                    }
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const id = draggedItem.current;
+                    draggedItem.current = null;
+                    if (
+                      !id ||
+                      event.dataTransfer.getData("application/x-nukkia-calendar-item") !== id
+                    )
+                      return;
+                    const plan = calendarPlanMove(allItems, id, date);
+                    if (!plan) return;
+                    setFeedback(null);
+                    try {
+                      if (
+                        !onPlan(id, plan.version, plan.date, plan.channel, {
+                          ...(plan.time !== undefined ? { time: plan.time } : {}),
+                          ...(plan.timezone !== undefined ? { timezone: plan.timezone } : {}),
+                        })
+                      )
+                        throw new Error("Plan not saved");
+                      selectDay(date);
+                      onSelect(id);
+                      setFeedback({ error: false, text: "Data do planejamento atualizada." });
+                    } catch {
+                      setFeedback({
+                        error: true,
+                        text: "Não foi possível mover o planejamento. Tente novamente.",
+                      });
+                    }
+                  }}
                 >
                   <button
                     className="calendar-date"
@@ -205,6 +251,16 @@ export function ContentCalendar({
                       <button
                         className="calendar-bubble"
                         key={item.id}
+                        draggable
+                        onDragStart={(event) => {
+                          draggedItem.current = item.id;
+                          setFeedback(null);
+                          event.dataTransfer.effectAllowed = "move";
+                          event.dataTransfer.setData("application/x-nukkia-calendar-item", item.id);
+                        }}
+                        onDragEnd={() => {
+                          draggedItem.current = null;
+                        }}
                         aria-label={`${item.plan!.time || "Sem horário"} — ${plannedTitle(item)} — ${calendarChannels[item.plan!.channel ?? "undecided"]}`}
                         onClick={() => {
                           selectDay(date);
@@ -267,13 +323,19 @@ export function ContentCalendar({
             className="calendar-plan-form"
             onSubmit={(event) => {
               event.preventDefault();
-              if (
-                chosen &&
-                selectedVersion &&
-                onPlan(chosen.id, selectedVersion, day, channel, { time, timezone: zone })
-              ) {
+              if (!chosen || !selectedVersion) return;
+              setFeedback(null);
+              try {
+                if (!onPlan(chosen.id, selectedVersion, day, channel, { time, timezone: zone }))
+                  throw new Error("Plan not saved");
                 onSelect(chosen.id);
                 setAdding(false);
+                setFeedback({ error: false, text: "Planejamento salvo." });
+              } catch {
+                setFeedback({
+                  error: true,
+                  text: "Não foi possível salvar o planejamento. Tente novamente.",
+                });
               }
             }}
           >
